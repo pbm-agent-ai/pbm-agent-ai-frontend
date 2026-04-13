@@ -20,8 +20,8 @@ export default function App(): React.JSX.Element {
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/conditions" element={<Conditions />} />
-          <Route path="/history" element={<PriceHistory />} />
-          <Route path="/recommendation" element={<Recommendation />} />
+          <Route path="/price-history" element={<PriceHistory />} />
+          <Route path="/recommendations" element={<Recommendation />} />
           <Route path="/image-search" element={<ImageSearch />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/settings" element={<Settings />} />
