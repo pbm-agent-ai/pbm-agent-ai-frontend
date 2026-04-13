@@ -28,6 +28,8 @@ export default function App(): React.JSX.Element {
         </Route>
 
         {/* 루트 → 대시보드 리다이렉트 */}
+        {/* <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} /> */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         {/* 알 수 없는 경로 → 대시보드 리다이렉트 */}
