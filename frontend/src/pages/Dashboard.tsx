@@ -1,5 +1,4 @@
 import { TrendingUp, CheckCircle, Clock, DollarSign, Send, Circle, Search } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -122,7 +121,7 @@ export default function Dashboard() {
       conditionId: 1,
       status: 'exploring',
       statusLabel: '탐색 중',
-      statusColor: '#5bf0c0',
+      statusColor: '#10b981',
       product: '인천-오사카 왕복 항공권(테스트)',
       platform: 'naver-flights',
       currentPrice: '₩289,000',
@@ -528,163 +527,231 @@ export default function Dashboard() {
     .filter((item) => item.product.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="p-6 bg-gray-100" >
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold text-foreground">대시보드</h1>
+    <div className="w-full bg-[#eef2f6] min-h-screen font-sans">
+      <div className="p-4 md:p-8 max-w-[1600px] mx-auto flex flex-col h-full">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between px-2 gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">대시보드</h1>
+          <p className="text-[#6b7280] mt-1 font-medium">나만의 똑똑한 구매 비서와 함께하세요.</p>
+        </div>
       </div>
-      {/* [추가] 로딩/에러 상태를 상단에 표시해 API 연결 상태를 바로 확인할 수 있게 한다. */}
+
       {loading && (
-        <div className="mb-4 rounded-lg border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 text-sm text-[#1e40af]">
+        <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-6 py-4 text-sm text-blue-800 shadow-sm">
           대시보드 데이터를 불러오는 중입니다...
         </div>
       )}
       {error && (
-        <div className="mb-4 rounded-lg border border-[#fecaca] bg-[#fef2f2] px-4 py-3 text-sm text-[#b91c1c]">
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-6 py-4 text-sm text-red-800 shadow-sm">
           {error}
         </div>
       )}
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 border-2 border-[#e2e8f0] p-4 px-5 bg-white rounded-lg">
-        <p className="col-span-full text-xl font-bold">핵심 지표</p>
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index} className="bg-white border-[#e2e8f0] shadow-sm">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-[#64748b] text-sm">{stat.label}</span>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <div className={`text-3xl font-bold ${stat.color}`}>{stat.value}</div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
 
-      {/* Natural Language Shopping Command Input */}
-      <Card className="bg-white border-[#e2e8f0] shadow-sm mb-6">
-        <CardHeader>
-          <CardTitle className="text-[#0f172a]">자연어 쇼핑 명령</CardTitle>
-          <CardDescription className="text-[#64748b]">
-            원하는 조건을 자연어로 입력하세요
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3 mb-4">
-            <Input
-              type="text"
-              placeholder="예: 네이버 항공에서 인천-오사카 25만원 이하면 바로 결제해줘"
-              value={naturalLanguageInput}
-              onChange={(e) => setNaturalLanguageInput(e.target.value)}
-              className="flex-1 bg-[#f8fafc] border-[#e2e8f0] text-[#0f172a] placeholder:text-[#94a3b8] focus-visible:border-[#10b981] focus-visible:ring-[#10b981]/50"
-            />
-            <Button 
-              className="bg-[#10b981] text-white hover:bg-[#059669] shadow-md"
-              disabled={loading}
-              onClick={handleExecuteClick}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              실행
+      {/* Bento Grid Layout (모듈형 벤토뷰) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8 auto-rows-max">
+        
+        {/* 메인 입력 배너 (좌측 8칸 차지) */}
+        <div className="lg:col-span-8 bg-gradient-to-br from-[#10b981] to-[#047857] rounded-[2rem] p-6 text-white shadow-lg flex flex-col justify-center relative overflow-hidden h-full min-h-[280px]">
+          {/* 장식용 배경 요소 */}
+          <div className="absolute -right-16 -top-16 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute left-10 bottom-10 w-40 h-40 bg-[#34d399]/20 rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div className="relative z-10 mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight">무엇을 모니터링할까요?</h2>
+            <p className="text-emerald-100 text-sm md:text-base opacity-90">자연스럽게 입력하면 AI가 조건을 파악해 자동으로 모니터링을 시작합니다.</p>
+          </div>
+           
+          <div className="relative z-10 w-full flex flex-col gap-3">
+            <div className="bg-white/15 backdrop-blur-md rounded-2xl p-2 border border-white/20 focus-within:bg-white focus-within:shadow-xl group transition-all duration-500">
+              <textarea
+                rows={1}
+                placeholder="예: 인천에서 오사카 왕복 항공권 25만원 이하면 알려줘"
+                value={naturalLanguageInput}
+                onChange={(e) => {
+                  setNaturalLanguageInput(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+                }}
+                className="w-full bg-transparent border-none px-4 py-3 text-white text-lg placeholder:text-white/60 focus:text-[#0f172a] focus:placeholder:text-[#94a3b8] focus:outline-none resize-none min-h-[60px]"
+              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+              <div className="flex flex-wrap gap-2 items-center">
+                {parsedConditionBadges.length > 0 ? (
+                  parsedConditionBadges.map((badge) => (
+                    <Badge
+                      key={`${badge.label}-${badge.value}`}
+                      variant="secondary"
+                      className="bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm border-none px-3 py-1 rounded-full text-xs font-medium transition-colors"
+                      style={badge.color ? { color: '#fff', backgroundColor: badge.color } : {}}
+                    >
+                      <span className="opacity-80 mr-1">{badge.label}</span>
+                      {badge.value}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-emerald-100/70 text-xs">문장을 분석하여 조건 배지가 이곳에 나타납니다.</span>
+                )}
+              </div>
+              
+              <Button 
+                className="w-full sm:w-auto bg-white text-[#047857] hover:bg-[#d1fae5] hover:-translate-y-1 hover:shadow-xl shadow-lg shadow-black/10 rounded-xl h-11 px-8 text-sm font-bold transition-all duration-300 active:scale-95 group"
+                onClick={handleExecuteClick}
+                title="입력한 문장을 분석하고 모니터링을 시작합니다"
+              >
+                <Send className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                분석 및 실행
               </Button>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#94a3b8]">
-            <Badge variant="outline" className="border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]">
-              GPT 파싱 결과
-            </Badge>
-            {parsedConditionBadges.length > 0 ? (
-              parsedConditionBadges.map((badge) => (
-                <Badge
-                  key={`${badge.label}-${badge.value}`}
-                  variant="outline"
-                  className="border-[#cbd5e1] bg-white text-[#0f172a]"
-                  style={badge.color ? { borderColor: `${badge.color}40`, color: badge.color } : undefined}
-                >
-                  <span className="text-[#64748b]">{badge.label}:</span>
-                  <span>{badge.value}</span>
-                </Badge>
-              ))
-            ) : (
-              <Badge variant="outline" className="border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8]">
-                아직 파싱 결과 없음
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Real-time Monitoring List */}
-      <Card className="bg-white border-[#e2e8f0] shadow-sm">
-        <CardHeader className="border-b border-[#e2e8f0]">
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="text-[#0f172a]">실시간 모니터링 목록</CardTitle>
-            <div className="relative w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#94a3b8]" />
+        {/* 사용 가이드 및 추천 명령어 (우측 4칸 차지) */}
+        <div className="lg:col-span-4 bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-[#e5e7eb] flex flex-col h-full">
+          <h3 className="text-xl font-bold text-[#111827] mb-2">이렇게 입력해 보세요!</h3>
+          <p className="text-[#6b7280] text-sm mb-6">원하는 문장을 클릭해 AI 모니터링을 바로 체험해 보세요.</p>
+          
+          <div className="flex flex-col gap-3 flex-1">
+            {[
+              "네이버 항공에서 인천-오사카 25만원 이하면 바로 결제해줘",
+              "쿠팡에서 탐사수 2L 12개입 7000원 밑으로 떨어지면 알림",
+              "나이키 에어포스 1 화이트 270 사이즈 10만원 이하 자동결제",
+            ].map((text, i) => (
+              <div 
+                key={i}
+                onClick={() => {
+                  setNaturalLanguageInput(text);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="p-4 rounded-2xl border border-[#e5e7eb] bg-[#f9fafb] hover:border-[#10b981]/50 hover:bg-[#ecfdf5] transition-all cursor-pointer group shadow-sm hover:shadow"
+              >
+                <p className="text-sm font-medium text-[#374151] group-hover:text-[#047857] leading-relaxed">
+                  "{text}"
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-[#f3f4f6]">
+            <h4 className="text-sm font-bold text-[#111827] mb-3 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-[#fef3c7] text-[#b45309] flex items-center justify-center text-xs">💡</span>
+              인식 가능한 핵심 키워드
+            </h4>
+            <div className="text-xs text-[#6b7280] space-y-2.5">
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] mt-1.5 flex-shrink-0"></div>
+                <p><strong className="text-[#374151]">플랫폼:</strong> 네이버 쇼핑/항공, 쿠팡, 알리익스프레스</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] mt-1.5 flex-shrink-0"></div>
+                <p><strong className="text-[#374151]">상품:</strong> 정확한 상품명, 브랜드, 경로, 사이즈</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#10b981] mt-1.5 flex-shrink-0"></div>
+                <p><strong className="text-[#374151]">조건/액션:</strong> O만원 이하, 즉시 결제, 알림, 대기 등</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 모니터링 리스트 (좌측 8칸 차지) */}
+        <div className="lg:col-span-8 bg-white rounded-[2rem] p-6 md:p-8 shadow-sm border border-[#e5e7eb] flex flex-col h-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h3 className="text-xl font-bold text-[#111827] flex items-center gap-2">
+              진행 중인 모니터링
+              <Badge className="bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb] font-bold rounded-full px-2.5">
+                {filteredMonitoringItems.length}
+              </Badge>
+            </h3>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#9ca3af]" />
               <Input
                 type="text"
-                placeholder="제품명 검색..."
+                placeholder="검색..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-[#f8fafc] border-[#e2e8f0] text-[#0f172a] placeholder:text-[#94a3b8] focus-visible:border-[#10b981] focus-visible:ring-[#10b981]/50"
+                className="pl-10 bg-[#f9fafb] border-transparent text-sm focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#10b981]/30 focus-visible:border-[#10b981] rounded-full h-11 transition-all"
               />
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-[#e2e8f0]">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredMonitoringItems.length > 0 ? (
               filteredMonitoringItems.map((item) => (
                 <div 
                   key={item.conditionId} 
-                  className="p-5 flex items-center gap-4 hover:bg-[#f8fafc] transition-colors cursor-pointer"
+                  className="bg-[#f9fafb] border border-[#f3f4f6] rounded-2xl p-5 hover:bg-white hover:border-[#10b981]/40 hover:shadow-lg transition-all duration-300 cursor-pointer flex flex-col group"
                   onClick={() => handleDetailClick(item)}
                 >
-                  {/* Status Dot */}
-                  <Circle
-                    className="w-3 h-3 flex-shrink-0"
-                    fill={item.statusColor}
-                    color={item.statusColor}
-                  />
-                  
-                  {/* Product Name */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[#0f172a] font-medium truncate">{item.product}</p>
+                  <div className="flex justify-between items-start mb-4">
+                    <Badge
+                      variant="outline"
+                      className="border-none px-2.5 py-1 rounded-lg text-xs font-bold"
+                      style={{
+                        backgroundColor: `${item.statusColor}15`,
+                        color: item.statusColor,
+                      }}
+                    >
+                      <Circle className="w-2 h-2 inline-block mr-1.5" fill="currentColor" />
+                      {item.statusLabel}
+                    </Badge>
+                    <span className="text-xs font-medium text-[#6b7280] bg-white px-2 py-1 rounded-md shadow-sm border border-[#f3f4f6]">
+                      {getPlatformName(item.platform)}
+                    </span>
                   </div>
                   
-                  {/* Current Price */}
-                  <div className="text-right">
-                    <p className="text-[#64748b] text-xs mb-0.5">현재가</p>
-                    <p className="text-[#0f172a] font-semibold">{item.currentPrice}</p>
+                  <div className="mb-6 flex-1">
+                    <p className="text-[#111827] font-bold text-base leading-tight line-clamp-2 group-hover:text-[#10b981] transition-colors">{item.product}</p>
                   </div>
                   
-                  {/* Target Price */}
-                  <div className="text-right">
-                    <p className="text-[#64748b] text-xs mb-0.5">목표가</p>
-                    <p className="text-[#94a3b8] font-semibold">{item.targetPrice}</p>
+                  <div className="flex items-end justify-between mt-auto">
+                    <div>
+                      <p className="text-[#9ca3af] text-[10px] uppercase font-bold tracking-wider mb-0.5">목표가</p>
+                      <p className="text-[#6b7280] font-semibold text-sm">{item.targetPrice}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[#10b981] text-[10px] uppercase font-bold tracking-wider mb-0.5">현재가</p>
+                      <p className="text-[#111827] font-black text-xl">{item.currentPrice}</p>
+                    </div>
                   </div>
-                  
-                  {/* Status Badge */}
-                  <Badge
-                    variant="outline"
-                    className="font-mono"
-                    style={{
-                      backgroundColor: `${item.statusColor}15`,
-                      borderColor: `${item.statusColor}40`,
-                      color: item.statusColor,
-                    }}
-                  >
-                    {item.statusLabel}
-                  </Badge>
                 </div>
               ))
             ) : (
-              <div className="p-12 text-center">
-                <p className="text-[#94a3b8]">검색 결과가 없습니다.</p>
+              <div className="col-span-full py-20 flex flex-col items-center justify-center text-center bg-[#f9fafb] rounded-2xl border border-dashed border-[#e5e7eb]">
+                <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 text-[#9ca3af]">
+                  <Search className="w-8 h-8" />
+                </div>
+                <h4 className="text-lg font-bold text-[#111827] mb-1">검색 결과가 없습니다</h4>
+                <p className="text-[#6b7280]">조건에 맞는 모니터링 항목을 찾을 수 없습니다.</p>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* 핵심 통계 그리드 (우측 4칸 차지) */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4 h-full">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            // 각 통계마다 고유한 부드러운 파스텔톤 배경을 줍니다.
+            const bgColors = ['bg-[#ecfdf5]', 'bg-[#eff6ff]', 'bg-[#fffbeb]', 'bg-[#f5f3ff]'];
+            const iconBgColors = ['bg-[#d1fae5]', 'bg-[#dbeafe]', 'bg-[#fef3c7]', 'bg-[#ede9fe]'];
+            const textColors = ['text-[#047857]', 'text-[#1d4ed8]', 'text-[#b45309]', 'text-[#6d28d9]'];
+
+            return (
+              <div key={index} className={`${bgColors[index % 4]} rounded-[2rem] p-5 flex flex-col justify-center relative overflow-hidden transition-transform hover:-translate-y-1 hover:shadow-md`}>
+                <div className={`w-10 h-10 rounded-2xl ${iconBgColors[index % 4]} flex items-center justify-center mb-4`}>
+                  <Icon className={`w-5 h-5 ${textColors[index % 4]}`} />
+                </div>
+                <div className={`${textColors[index % 4]}`}>
+                  <div className="text-2xl font-extrabold mb-1 tracking-tight">{stat.value}</div>
+                  <div className="text-xs font-bold uppercase tracking-wider opacity-80">{stat.label}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* 확인 다이얼로그 */}
       <AlertDialog
@@ -987,6 +1054,7 @@ export default function Dashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
