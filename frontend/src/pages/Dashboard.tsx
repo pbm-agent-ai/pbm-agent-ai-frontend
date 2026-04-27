@@ -575,7 +575,6 @@ export default function Dashboard() {
             <Input
               type="text"
               placeholder="예: 네이버 항공에서 인천-오사카 25만원 이하면 바로 결제해줘"
-              maxLength={500}
               value={naturalLanguageInput}
               onChange={(e) => setNaturalLanguageInput(e.target.value)}
               className="flex-1 bg-[#f8fafc] border-[#e2e8f0] text-[#0f172a] placeholder:text-[#94a3b8] focus-visible:border-[#10b981] focus-visible:ring-[#10b981]/50"
@@ -610,7 +609,6 @@ export default function Dashboard() {
                 아직 파싱 결과 없음
               </Badge>
             )}
-            <span className="ml-auto">{naturalLanguageInput.length}/500</span>
           </div>
         </CardContent>
       </Card>
@@ -820,7 +818,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-3 gap-3">
                 <Select
                   value={productDetailDraft.expiryYear}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setProductDetailDraft((prev) => ({
                       ...prev,
                       expiryYear: value,
@@ -840,7 +838,7 @@ export default function Dashboard() {
                 </Select>
                 <Select
                   value={productDetailDraft.expiryMonth}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setProductDetailDraft((prev) => ({
                       ...prev,
                       expiryMonth: value,
@@ -860,7 +858,7 @@ export default function Dashboard() {
                 </Select>
                 <Select
                   value={productDetailDraft.expiryDay}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setProductDetailDraft((prev) => ({
                       ...prev,
                       expiryDay: value,

@@ -28,8 +28,14 @@ export const createApiClient = ({
   apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
       const token = sessionStorage.getItem('accessToken');
+      const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
 
-      config.headers.set('Content-Type', 'application/json');
+      // FormData 요청은 브라우저가 multipart boundary를 자동으로 설정해야 하므로 Content-Type을 강제로 넣지 않는다.
+      if (!isFormData) {
+        config.headers.set('Content-Type', 'application/json');
+      } else {
+        config.headers.delete('Content-Type');
+      }
 
       if (token) {
         config.headers.set('Authorization', `Bearer ${token}`);
