@@ -1,27 +1,13 @@
 import apiClient from './axios';
 import shoppingApiClient from './shoppingAxios';
 import type {
-  DashboardConditionDetailResponse,
   DashboardMonitoringCreateRequest,
   DashboardMonitoringCreateResponse,
-  DashboardMonitoringResponseItem,
   DashboardStatsSummary,
 } from '../types/dashboard';
 
 // [추가] 대시보드 관련 API 호출을 한 곳에 모아두는 서비스 레이어다.
 // [추가] 실제 백엔드 경로가 확정되면 이 파일만 수정하면 되도록 분리했다.
-
-export async function fetchDashboardMonitoringItems(): Promise<DashboardMonitoringResponseItem[]> {
-  // 대시보드 목록은 조건 전체를 받아 화면을 통째로 갱신하는 용도다.
-  const { data } = await shoppingApiClient.get<DashboardMonitoringResponseItem[]>('/api/conditions');
-  return data;
-}
-
-export async function fetchConditionDetail(conditionId: number): Promise<DashboardConditionDetailResponse> {
-  // 카드 클릭 시에는 선택한 조건의 상세 정보만 다시 불러와 모달을 채운다.
-  const { data } = await shoppingApiClient.get<DashboardConditionDetailResponse>(`/api/conditions/${conditionId}`);
-  return data;
-}
 
 export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummary> {
   // TODO: 백엔드 stats summary 응답 필드가 확정되면 여기서 고정 매핑한다.

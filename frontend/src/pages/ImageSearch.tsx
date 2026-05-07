@@ -57,7 +57,7 @@ export default function ImageSearch() {
   const [isDragging, setIsDragging] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [searchResponse, setSearchResponse] = useState<{ searchId: number; createdAt: string } | null>(null);
+  const [, setSearchResponse] = useState<{ searchId: number; createdAt: string } | null>(null);
   const [aiResult, setAiResult] = useState({
     brand: '',
     model: '',

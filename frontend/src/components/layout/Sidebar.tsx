@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router';
-import { LayoutDashboard, ClipboardList, TrendingUp, Receipt, Bell, LogOut, Zap, Sparkles, Search, Key, Settings as SettingsIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, TrendingUp, Receipt, LogOut, Zap, Sparkles, Search, Key, Settings as SettingsIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 
