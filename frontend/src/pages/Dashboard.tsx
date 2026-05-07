@@ -12,10 +12,9 @@ import axios from 'axios';
 import {
   createDashboardMonitoringItem,
   createMonitoringCondition,
-  fetchConditionDetail,
-  fetchDashboardMonitoringItems,
   fetchDashboardStatsSummary,
 } from '../api/dashboard';
+import { fetchDashboardMonitoringItems } from '../api/condition';
 import type {
   DashboardMonitoringItem,
   DashboardMonitoringCreateResponse,
@@ -384,34 +383,12 @@ export default function Dashboard() {
   // 모니터링 항목 클릭 시 상세 정보 다이얼로그 열기
   //any타입에서 -> DashboardMonitoringItem으로 변경
   const handleDetailClick = async (item: DashboardMonitoringItem) => {
-    const conditionId = item.conditionId;
-
-    if (conditionId == null) {
+    if (item.conditionId == null) {
       return;
     }
 
-    try {
-      // 상세 모달은 목록 데이터가 아니라 선택한 conditionId의 최신 상세값으로 채운다.
-      const detail = await fetchConditionDetail(conditionId);
-      setSelectedItem({
-        ...item,
-        conditionId: detail.conditionId ?? conditionId,
-        product: detail.product,
-        platform: detail.platform,
-        currentPrice: detail.currentPrice,
-        targetPrice: detail.targetPrice,
-        status: detail.status,
-        statusLabel: detail.statusLabel ?? item.statusLabel,
-        statusColor: detail.statusColor ?? item.statusColor,
-      });
-    } catch {
-      setSelectedItem({
-        ...item,
-        conditionId,
-      });
-    } finally {
-      setShowDetailDialog(true);
-    }
+    setSelectedItem(item);
+    setShowDetailDialog(true);
   };
 
   // 가격 차이 계산 함수

@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { ConditionCardItem } from './condition.ts';
 
 export type MonitoringPlatform = 'naver' | 'coupang' | '11st' | 'gmarket' | 'auction' | 'naver-flights' | 'naver_flight' | '';
 
@@ -6,7 +7,7 @@ export type MonitoringStatus = 'exploring' | 'met' | 'waiting' | 'completed';
 
 // [추가] 대시보드에서만 쓰는 카드/드래프트 타입을 분리해 any 의존을 제거한다.
 export interface DashboardMonitoringItem {
-  conditionId?: number;
+  conditionId?: ConditionCardItem['conditionId'];
   status: MonitoringStatus;
   statusLabel?: string;
   statusColor?: string;
@@ -32,7 +33,7 @@ export interface DashboardStatsSummary {
 }
 
 export interface DashboardConditionDetailResponse {
-  conditionId?: number;
+  conditionId?: ConditionCardItem['conditionId'];
   product: string;
   platform: MonitoringPlatform;
   currentPrice: string;
