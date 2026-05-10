@@ -1,131 +1,356 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router';
-import { LayoutDashboard, ClipboardList, TrendingUp, Receipt, LogOut, Zap, Sparkles, Search, Key, Settings as SettingsIcon, ChevronUp, ChevronDown } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Zap, Menu, X } from 'lucide-react';
+import { applyTheme, getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/theme';
 
+// 2026-05-08: Sidebar palette를 Dashboard와 맞추고, 중앙 메뉴 정렬 및 유튜브 스타일 2단계 테마 드롭다운을 추가한다.
+// 2026-05-08: 반응형 레이아웃 적용: 좁은 화면에서는 중앙 메뉴를 숨기고 전체 화면을 덮는 모바일 메뉴를 표시한다.
 export function Sidebar() {
   const location = useLocation();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => getStoredThemePreference());
+  const themeMenuRef = useRef<HTMLDivElement | null>(null);
 
   const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
-    { path: '/conditions', icon: ClipboardList, label: '조건 관리' },
-    { path: '/recommendations', icon: Sparkles, label: '추천' },
-    { path: '/image-search', icon: Search, label: '이미지 검색' },
-    { path: '/price-history', icon: TrendingUp, label: '가격 히스토리' },
-    { path: '/payments', icon: Receipt, label: '결제 내역' },
-    { path: '/settings', icon: SettingsIcon, label: '설정' },
+    { path: '/dashboard', label: '대시보드' },
+    { path: '/conditions', label: '조건 관리' },
+    { path: '/recommendations', label: '추천' },
+    { path: '/image-search', label: '이미지 검색' },
+    { path: '/price-history', label: '가격 히스토리' },
+    { path: '/payments', label: '결제 내역' },
+  ];
+
+  const themeMenuItems: Array<{
+    value: ThemePreference;
+    label: string;
+    icon: typeof Sun;
+  }> = [
+    { value: 'light', label: '밝은 테마', icon: Sun },
+    { value: 'dark', label: '어두운 테마', icon: Moon },
   ];
 
   const isActive = (path: string) => location.pathname === path;
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (themeMenuRef.current && !themeMenuRef.current.contains(event.target as Node)) {
+        setIsThemeMenuOpen(false);
+        setIsThemeSubmenuOpen(false);
+      }
+    };
+
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (isThemeSubmenuOpen) {
+          setIsThemeSubmenuOpen(false);
+          return;
+        }
+
+        setIsThemeMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscapeKey);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [isThemeSubmenuOpen]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    if (themePreference !== 'system') {
+      return;
+    }
+
+    const handleSystemThemeChange = () => {
+      applyTheme('system');
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    };
+  }, [themePreference]);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
+  const handleThemeSelect = (theme: ThemePreference) => {
+    persistThemePreference(theme);
+    setThemePreference(theme);
+    setIsThemeMenuOpen(false);
+    setIsThemeSubmenuOpen(false);
+  };
+
   return (
-    <div 
-      className="w-[84px] hover:w-[240px] group transition-all duration-300 h-screen bg-white border-r border-[#e2e8f0] flex flex-col shrink-0 z-20 overflow-hidden"
-      onMouseLeave={() => setIsProfileOpen(false)}
-    >
-      {/* Logo and Service Name */}
-      <div className="p-4 flex items-center h-20 shrink-0">
-        <Link to="/dashboard" className="flex items-center w-full">
-          <div className="w-[52px] flex items-center justify-center shrink-0">
-            <div className="w-12 h-12 bg-[#10b981] rounded-xl flex items-center justify-center shadow-md">
-              <Zap className="w-6 h-6 text-white" />
+    <header className="shrink-0 z-50 w-full bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm border-b border-[#E2E8F0] dark:border-[#1E293B] transition-colors duration-300">
+      <div className="relative max-w-[1200px] mx-auto h-[72px] px-4 md:px-8 flex items-center justify-between">
+        <div className="flex items-center">
+          {/* Brand Logo */}
+          <Link to="/dashboard" className="flex items-center gap-2.5 group">
+            <div className="w-10 h-10 bg-[#6366F1] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
+              <Zap className="w-[22px] h-[22px] text-white fill-white" />
             </div>
-          </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 w-[140px] shrink-0 whitespace-nowrap ml-2">
-            <div className="text-[#0f172a] font-bold text-base">PBM Agent</div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Navigation Menu */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar">
-        <ul className="space-y-2 group/menu">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            
-            return (
-              <li key={item.path} className="transition-opacity duration-300 group-hover/menu:opacity-40 hover:!opacity-100">
-                <Button
-                  asChild
-                  variant={active ? "secondary" : "ghost"}
-                  className={`w-full justify-start h-12 px-0 ${
-                    active
-                      ? 'bg-[#10b981]/10 text-[#10b981] hover:bg-[#10b981]/15 hover:text-[#10b981]'
-                      : 'text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]'
-                  }`}
-                >
-                  <Link to={item.path} className="flex items-center">
-                    <div className="w-[60px] flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-                      {item.label}
-                    </span>
-                  </Link>
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {/* User Profile Chip with Dropdown */}
-      <div className="p-3 relative">
-        <div 
-          onClick={() => setIsProfileOpen(!isProfileOpen)}
-          className="flex items-center h-12 rounded-xl hover:bg-[#f8fafc] border border-transparent hover:border-[#e2e8f0] transition-colors overflow-hidden cursor-pointer"
-        >
-          <div className="w-[60px] flex items-center justify-center shrink-0">
-            <Avatar className="w-10 h-10 bg-[#10b981]">
-              <AvatarFallback className="bg-[#10b981] text-white font-semibold text-sm">
-                KL
-              </AvatarFallback>
-            </Avatar>
-          </div>
-          <div className="flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between whitespace-nowrap min-w-0 pr-3">
-            <div>
-              <div className="text-[#0f172a] text-sm font-medium truncate">김레온</div>
-              <div className="text-[#94a3b8] text-xs font-mono truncate">0x8a9d...4f2c</div>
+            <div className="hidden sm:block">
+              <div className="text-[#0F172A] dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">나의 구매 비서</div>
             </div>
-            {isProfileOpen ? <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronUp className="w-4 h-4 text-gray-500 shrink-0" />}
-          </div>
+          </Link>
+          
         </div>
 
-        {/* Dropdown Menu */}
-        {isProfileOpen && (
-          <div className="absolute bottom-full left-4 mb-2 w-[200px] bg-white border border-[#e2e8f0] rounded-xl shadow-lg overflow-hidden py-1 z-50">
-            <Link to="/settings/password" className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8fafc] text-sm font-medium text-[#0f172a] transition-colors">
-              <Key className="w-4 h-4 text-[#64748b]" />
-              비밀번호 변경
-            </Link>
-            <Link to="/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8fafc] text-sm font-medium text-[#0f172a] transition-colors">
-              <SettingsIcon className="w-4 h-4 text-[#64748b]" />
-              환경 설정
-            </Link>
+        {/* Main Nav Links */}
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 lg:flex items-center gap-1 whitespace-nowrap">
+          {menuItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link 
+                key={item.path} 
+                to={item.path}
+                className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-[15px] font-bold transition-all duration-300 ${
+                  active
+                    ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]' 
+                    : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Right Utilities (Desktop) */}
+        <div className="hidden lg:flex items-center gap-2">
+          <div className="relative" ref={themeMenuRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsThemeMenuOpen((prev) => {
+                  const nextOpen = !prev;
+
+                  if (!nextOpen) {
+                    setIsThemeSubmenuOpen(false);
+                  }
+
+                  return nextOpen;
+                });
+              }}
+              className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
+                isThemeMenuOpen || isActive('/settings')
+                  ? 'bg-[#F8FAFC] dark:bg-[#111827] text-[#0F172A] dark:text-white'
+                  : 'hover:bg-[#F8FAFC] dark:hover:bg-[#111827] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-white'
+              }`}
+              title="설정"
+              aria-haspopup="menu"
+              aria-expanded={isThemeMenuOpen}
+            >
+              <SettingsIcon className="w-[22px] h-[22px]" />
+            </button>
+
+            {isThemeMenuOpen && (
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] p-2 shadow-[0_8px_24px_rgb(15,23,42,0.08)]">
+                {isThemeSubmenuOpen ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsThemeSubmenuOpen(false)}
+                      className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="flex-1">화면 테마</span>
+                    </button>
+                    <div className="space-y-1">
+                      {themeMenuItems.map((item) => {
+                        const Icon = item.icon;
+                        const active = themePreference === item.value;
+
+                        return (
+                          <button
+                            key={item.value}
+                            type="button"
+                            onClick={() => handleThemeSelect(item.value)}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors cursor-pointer ${
+                              active
+                                ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
+                                : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span className="flex-1">{item.label}</span>
+                            {active && <Check className="h-4 w-4" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIsThemeSubmenuOpen(true)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                    >
+                      <Monitor className="h-4 w-4" />
+                      <span className="flex-1">화면 테마</span>
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                    <div className="my-2 h-px bg-[#E2E8F0] dark:bg-[#1E293B]" />
+                    <Link
+                      to="/settings"
+                      onClick={() => {
+                        setIsThemeMenuOpen(false);
+                        setIsThemeSubmenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+                    >
+                      <SettingsIcon className="h-4 w-4" />
+                      상세 설정
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-        )}
+          <Link 
+            to="/login" 
+            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#EF4444] transition-colors"
+            title="로그아웃"
+          >
+            <LogOut className="w-[22px] h-[22px]" />
+          </Link>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen(true)}
+          className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[#64748B] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+          aria-label="메뉴 열기"
+        >
+          <Menu className="w-[22px] h-[22px]" />
+        </button>
       </div>
 
-      {/* Logout */}
-      <div className="p-3 mb-2">
-        <Button
-          asChild
-          variant="ghost"
-          className="w-full justify-start h-12 px-0 text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]"
+      {/* Mobile Menu Backdrop */}
+      <div 
+        className={`fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-200 lg:hidden ${
+          isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
+
+        {/* 2026-05-08: 모바일 메뉴를 스크롤형 드로어가 아닌, 화면 전체를 덮는 고정 풀스크린 메뉴로 전환한다. */}
+        {/* Mobile Fullscreen Menu */}
+        <div 
+          className={`fixed inset-0 z-[70] h-screen overflow-hidden bg-white dark:bg-[#0F172A] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
+            isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 translate-y-2'
+          }`}
         >
-          <Link to="/login" className="flex items-center">
-            <div className="w-[60px] flex items-center justify-center shrink-0">
-              <LogOut className="w-5 h-5 text-[#ef4444]" />
+          <div className="flex items-center justify-between h-[72px] px-4 md:px-8 shrink-0 border-b border-[#E2E8F0] dark:border-[#1E293B]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 bg-[#6366F1] rounded-[14px] flex items-center justify-center shadow-sm">
+                <Zap className="w-[22px] h-[22px] text-white fill-white" />
+              </div>
+              <div className="text-[#0F172A] dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">
+                나의 구매 비서
+              </div>
             </div>
-            <span className="text-sm font-medium text-[#ef4444] opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-11 h-11 flex items-center justify-center rounded-full text-[#64748B] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+            aria-label="메뉴 닫기"
+          >
+            <X className="w-[22px] h-[22px]" />
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col justify-between bg-white dark:bg-[#0F172A] px-4 py-6">
+          <section className="shrink-0">
+            <div className="mb-3 px-4 py-2 text-xs font-bold tracking-[0.08em] text-[#64748B] dark:text-[#94A3B8] uppercase">
+              메뉴
+            </div>
+            <nav className="flex flex-col gap-2">
+              {menuItems.map((item) => {
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`block px-4 py-4 rounded-2xl text-[18px] font-bold transition-colors ${
+                      active
+                        ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
+                        : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </section>
+
+          <section className="mt-8 shrink-0 border-t border-[#E2E8F0] dark:border-[#1E293B] pt-6">
+            <div className="px-4 py-2 text-xs font-bold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
+              화면 테마
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+            {themeMenuItems.map((item) => {
+              const Icon = item.icon;
+              const active = themePreference === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => handleThemeSelect(item.value)}
+                  className={`flex flex-col items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
+                      : 'bg-[#F8FAFC] dark:bg-[#111827] text-[#475569] dark:text-[#CBD5E1]'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+            </div>
+
+            <Link
+              to="/settings"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+            >
+              <SettingsIcon className="h-5 w-5" />
+              상세 설정
+            </Link>
+            <Link
+              to="/login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
               로그아웃
-            </span>
-          </Link>
-        </Button>
+            </Link>
+          </section>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }
