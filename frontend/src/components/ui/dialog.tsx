@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 
 type DialogContextValue = {
 	open: boolean;
@@ -32,10 +33,11 @@ function DialogContent({
 		return null;
 	}
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+	return createPortal(
+		<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
 			<div className={`w-full rounded-lg bg-white shadow-xl ${className}`}>{children}</div>
-		</div>
+		</div>,
+		document.body
 	);
 }
 
