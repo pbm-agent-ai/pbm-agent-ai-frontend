@@ -34,8 +34,11 @@ function DialogContent({
 	}
 
 	return createPortal(
-		<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-			<div className={`w-full rounded-lg bg-white shadow-xl ${className}`}>{children}</div>
+		<div className="fixed inset-0 z-[100] p-4">
+			<div className="absolute inset-0 bg-black/50" />
+			<div className="relative z-[101] flex min-h-full items-center justify-center">
+				<div className={`w-full rounded-lg bg-white shadow-xl ${className}`}>{children}</div>
+			</div>
 		</div>,
 		document.body
 	);
