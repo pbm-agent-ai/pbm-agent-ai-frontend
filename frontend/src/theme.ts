@@ -1,4 +1,4 @@
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type ThemePreference = 'light' | 'dark';
 
 export const THEME_STORAGE_KEY = 'theme-preference';
 
@@ -11,21 +11,21 @@ export function getSystemTheme(): 'light' | 'dark' {
 }
 
 export function resolveTheme(theme: ThemePreference): 'light' | 'dark' {
-  return theme === 'system' ? getSystemTheme() : theme;
+  return theme;
 }
 
 export function getStoredThemePreference(): ThemePreference {
   if (typeof window === 'undefined') {
-    return 'system';
+    return 'light';
   }
 
   const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
 
-  if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
+  if (storedTheme === 'light' || storedTheme === 'dark') {
     return storedTheme;
   }
 
-  return 'system';
+  return getSystemTheme();
 }
 
 export function applyTheme(theme: ThemePreference): void {

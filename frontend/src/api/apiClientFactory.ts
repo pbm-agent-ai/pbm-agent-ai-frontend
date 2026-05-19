@@ -34,7 +34,7 @@ type CreateApiClientOptions = {
 
 export const createApiClient = ({
   baseURL,
-  refreshBaseURL = 'http://localhost:8081', //추후 환경변수로 관리
+  refreshBaseURL = import.meta.env.VITE_AUTH_API_BASE_URL,
   refreshPath = '/api/v1/auth/refresh',
 }: CreateApiClientOptions): AxiosInstance => {
   const apiClient = axios.create({
@@ -71,6 +71,7 @@ export const createApiClient = ({
       // 2026-04-30 수정: 로그인/재발급 요청 자체는 401이어도 토큰 재발급 로직에 개입시키지 않는다.
       const shouldSkipRefresh =
         requestUrl.includes('/api/v1/auth/login') ||
+        requestUrl.includes('/api/v1/auth/logout') ||
         requestUrl.includes(refreshPath);
 
       if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
