@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Copy, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon } from 'lucide-react';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -7,6 +7,20 @@ import { Button } from '../components/ui/button';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
+import { changeAuthPassword, fetchAuthMe } from '../api/auth';
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return 'U';
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+};
 
 export default function Settings() {
   const [paymentMode, setPaymentMode] = useState<'alert' | 'auto'>('auto');
@@ -14,7 +28,6 @@ export default function Settings() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [telegramChatId, setTelegramChatId] = useState('123456789');
   const [email, setEmail] = useState('leon.kim@example.com');
-  const [walletAddress, setWalletAddress] = useState('0x8a9d3B7c45E6F2A1b8C4D5e6f7A8b9C0d1E2F3a4');
   const [monthlyLimit, setMonthlyLimit] = useState('5000000');
   const [perTxLimit, setPerTxLimit] = useState('1000000');
   const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['naver', 'coupang', '11st', 'gmarket']);
@@ -22,12 +35,10 @@ export default function Settings() {
   const [dndEnabled, setDndEnabled] = useState(false);
   const [dndStart, setDndStart] = useState('22:00');
   const [dndEnd, setDndEnd] = useState('07:00');
-  const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'account' | 'notifications' | 'payment'>('account');
 
   const platformOptions = [
     { id: 'naver-shopping', label: '네이버 쇼핑' },
-    { id: 'coupang', label: '쿠팡' },
     { id: 'aliexpress', label: '알리 익스프레스' },
     { id: 'naver-flight', label: '네이버 항공' },
   ];
@@ -46,15 +57,19 @@ export default function Settings() {
 
   // ── Profile edit ──
   const [showProfileSheet, setShowProfileSheet] = useState(false);
-  const [profileName, setProfileName] = useState('Leon Kim');
-  const [profileEmail, setProfileEmail] = useState('leon.kim@example.com');
+  // 2026-05-18 수정 8: 계정탭은 빈 문자열로 시작하고 auth/me 응답이 오면 닉네임과 이메일을 채운다.
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
   const [profileWalletAddress, setProfileWalletAddress] = useState('0x8a9d3B7c45E6F2A1b8C4D5e6f7A8b9C0d1E2F3a4');
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   // ── Password change ──
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  // 2026-05-18 수정 12: 비밀번호 변경 요청 중에는 중복 제출을 막기 위해 로딩 상태를 둔다.
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [visiblePwd, setVisiblePwd] = useState<Record<string, boolean>>({});
   // ── Delete account ──
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -74,6 +89,42 @@ export default function Settings() {
     setDeleteReason('');
   };
 
+  // 2026-05-18 수정 5: 계정탭 진입 시 8081 /api/v1/auth/me를 호출해 닉네임과 이메일을 현재 로그인 사용자 값으로 갱신한다.
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      setIsProfileLoading(true);
+
+      try {
+        const profile = await fetchAuthMe();
+
+        if (!isMounted || !profile) {
+          return;
+        }
+
+        setProfileName(profile.name);
+        setProfileEmail(profile.email);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        console.error(error);
+      } finally {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleDeleteAccount = () => {
     // TODO: call DELETE /api/v1/members/{id} with { password: deletePassword, reason: deleteReason }
     setShowDeleteDialog(false);
@@ -91,14 +142,6 @@ export default function Settings() {
 
   const formatPrice = (price: string) => `₩${parseInt(price).toLocaleString()}`;
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* fallback */ }
-  };
-
   const handleProfileSave = () => {
     // TODO: call PUT /api/v1/members/{id} with { name: profileName, walletAddress: profileWalletAddress }
     setShowProfileSheet(false);
@@ -110,10 +153,36 @@ export default function Settings() {
     setConfirmPassword('');
   };
 
-  const handlePasswordSave = () => {
-    // TODO: call PUT /api/v1/members/{id}/password with { currentPassword, newPassword }
-    setShowPasswordDialog(false);
-    resetPasswordFields();
+  // 2026-05-18 수정 13: 비밀번호 변경은 auth 서버의 /api/v1/auth/password로 보내고 성공 시에만 다이얼로그를 닫는다.
+  const handlePasswordSave = async () => {
+    if (isPasswordSaving) {
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setIsPasswordSaving(true);
+
+    try {
+      const message = await changeAuthPassword({
+        currentPassword,
+        newPassword,
+      });
+
+      // 2026-05-18 수정 15: 비밀번호 변경 완료 안내도 서버가 내려준 message를 그대로 화면에 띄운다.
+      alert(message);
+      setShowPasswordDialog(false);
+      resetPasswordFields();
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      }
+    } finally {
+      setIsPasswordSaving(false);
+    }
   };
 
   const handlePasswordCancel = () => {
@@ -212,12 +281,16 @@ export default function Settings() {
                 <div className="flex items-center gap-4 px-6 py-5">
                   <Avatar className="w-14 h-14 rounded-2xl border-2 border-[#E2E8F0] dark:border-slate-700">
                     <AvatarFallback className="bg-gradient-to-br from-[#6366F1] to-[#4F46E5] text-white text-lg font-bold rounded-2xl">
-                      LK
+                      {getInitials(profileName)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-[#0F172A] dark:text-slate-50">{profileName}</p>
-                    <p className="text-sm text-[#64748b] dark:text-slate-400 truncate">{profileEmail}</p>
+                    <p className="text-base font-bold text-[#0F172A] dark:text-slate-50">
+                      {isProfileLoading ? '불러오는 중...' : profileName || '닉네임 없음'}
+                    </p>
+                    <p className="text-sm text-[#64748b] dark:text-slate-400 truncate">
+                      {isProfileLoading ? '이메일을 불러오는 중...' : profileEmail || '이메일 없음'}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -231,8 +304,8 @@ export default function Settings() {
               </Card>
 
               {/* Security Card */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
-                <CardHeader>
+              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] gap-4">
+                <CardHeader className="px-6 pt-5 pb-0">
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-[#6366F1]" />
                     <CardTitle className="text-[#0F172A] dark:text-slate-50">보안</CardTitle>
@@ -241,15 +314,14 @@ export default function Settings() {
                     계정 보안 설정을 관리합니다
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-0">
-                  <div className="flex items-center justify-between py-4">
+                <CardContent className="px-6 pt-0 pb-5 space-y-0">
+                  <div className="flex items-center justify-between py-2.5">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
                         <span className="text-sm">🔒</span>
                       </div>
                       <div>
                         <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50">비밀번호</p>
-                        <p className="text-[11px] text-[#94A3B8] dark:text-slate-500">마지막 변경: 3개월 전</p>
                       </div>
                     </div>
                     <button
@@ -749,15 +821,17 @@ export default function Settings() {
             <Button
               variant="outline"
               onClick={handlePasswordCancel}
+              disabled={isPasswordSaving}
               className="flex-1 border-[#E2E8F0] dark:border-slate-700 text-[#64748b] dark:text-slate-400 hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl h-11 text-sm font-bold"
             >
               취소
             </Button>
             <Button
               onClick={handlePasswordSave}
+              disabled={isPasswordSaving}
               className="flex-1 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] hover:to-[#4338CA] rounded-xl h-11 text-sm font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300"
             >
-              변경
+              {isPasswordSaving ? '변경 중...' : '변경'}
             </Button>
           </div>
         </DialogContent>

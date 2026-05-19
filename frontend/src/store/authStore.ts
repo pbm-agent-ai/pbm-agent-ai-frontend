@@ -1,24 +1,20 @@
 import { create } from 'zustand';
-import type { User } from '@/types';
 
+// 기존에 있던 user는 auth/me API의 응답이 닉네임과 이메일을 넘겨주기 때문에 더 이상 필요가 없어져 삭제한다.
+// setUser도 마찬가지로 삭제한다. --- IGNORE ---
 interface AuthState {
-  user: User | null;
   accessToken: string | null;
   tokenType: string | null;
   authErrorMessage: string | null;
-  setUser: (user: User | null) => void;
   setAccessToken: (token: string | null, tokenType?: string | null) => void;
   setAuthErrorMessage: (message: string | null) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
   accessToken: null,
   tokenType: null,
   authErrorMessage: null,
-
-  setUser: (user) => set({ user }),
 
   setAccessToken: (token, tokenType = null) => {
     // 2026-04-30 수정: accessToken과 tokenType을 브라우저 메모리(Zustand) 안에서 함께 관리해 Authorization 헤더를 서버 응답 스펙대로 구성한다.
@@ -32,7 +28,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
-    // 2026-04-30 수정: 로그아웃 시 메모리의 사용자 정보와 accessToken/tokenType을 비우고 인증 오류 메시지는 필요 시 별도로 유지한다.
-    set({ user: null, accessToken: null, tokenType: null });
+    // 2026-04-30 수정: 로그아웃 시 메모리의 accessToken/tokenType을 비우고 인증 오류 메시지는 필요 시 별도로 유지한다.
+    set({ accessToken: null, tokenType: null });
   },
 }));

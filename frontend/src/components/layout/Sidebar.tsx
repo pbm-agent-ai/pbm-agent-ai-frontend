@@ -1,16 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Zap, Menu, X } from 'lucide-react';
-import { applyTheme, getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/theme';
+import { getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/theme';
+import { logoutAuth } from '@/api/auth';
+import { useAuthStore } from '@/store/authStore';
 
 // 2026-05-08: Sidebar palette를 Dashboard와 맞추고, 중앙 메뉴 정렬 및 유튜브 스타일 2단계 테마 드롭다운을 추가한다.
 // 2026-05-08: 반응형 레이아웃 적용: 좁은 화면에서는 중앙 메뉴를 숨기고 전체 화면을 덮는 모바일 메뉴를 표시한다.
 export function Sidebar() {
+  const navigate = useNavigate();
   const location = useLocation();
+  const logout = useAuthStore((state) => state.logout);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isThemeSubmenuOpen, setIsThemeSubmenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => getStoredThemePreference());
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement | null>(null);
 
   const menuItems = [
@@ -41,43 +46,12 @@ export function Sidebar() {
       }
     };
 
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (isThemeSubmenuOpen) {
-          setIsThemeSubmenuOpen(false);
-          return;
-        }
-
-        setIsThemeMenuOpen(false);
-      }
-    };
-
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscapeKey);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
     };
-  }, [isThemeSubmenuOpen]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (themePreference !== 'system') {
-      return;
-    }
-
-    const handleSystemThemeChange = () => {
-      applyTheme('system');
-    };
-
-    mediaQuery.addEventListener('change', handleSystemThemeChange);
-
-    return () => {
-      mediaQuery.removeEventListener('change', handleSystemThemeChange);
-    };
-  }, [themePreference]);
+  }, []);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -95,6 +69,31 @@ export function Sidebar() {
     setThemePreference(theme);
     setIsThemeMenuOpen(false);
     setIsThemeSubmenuOpen(false);
+  };
+
+  // 2026-05-18 수정 18: 로그아웃 버튼은 auth/logout API를 호출한 뒤 메모리 토큰을 비우고 로그인 화면으로 이동한다.
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+
+    try {
+      const message = await logoutAuth();
+      alert(message);
+      logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message);
+      }
+
+      logout();
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -225,13 +224,16 @@ export function Sidebar() {
               </div>
             )}
           </div>
-          <Link 
-            to="/login" 
-            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#EF4444] transition-colors"
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#EF4444] transition-colors disabled:opacity-60"
             title="로그아웃"
+            aria-label="로그아웃"
           >
             <LogOut className="w-[22px] h-[22px]" />
-          </Link>
+          </button>
         </div>
 
         {/* Mobile Menu Button */}
@@ -340,14 +342,18 @@ export function Sidebar() {
               <SettingsIcon className="h-5 w-5" />
               상세 설정
             </Link>
-            <Link
-              to="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] transition-colors"
+            <button
+              type="button"
+              onClick={async () => {
+                setIsMobileMenuOpen(false);
+                await handleLogout();
+              }}
+              disabled={isLoggingOut}
+              className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#EF4444] hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] transition-colors disabled:opacity-60"
             >
               <LogOut className="h-5 w-5" />
               로그아웃
-            </Link>
+            </button>
           </section>
         </div>
       </div>
