@@ -19,11 +19,8 @@ interface RefreshTokenResponse {
 
 interface RefreshTokenErrorResponse {
   success: false;
-  error: {
-    code: string;
-    message: string;
-    detail: unknown;
-  };
+  data: null;
+  message: string;
 }
 
 type CreateApiClientOptions = {
@@ -106,7 +103,7 @@ export const createApiClient = ({
         } catch (refreshError: unknown) {
           // 2026-04-30 수정: 재발급이 AUTH005/AUTH006으로 실패하면 서버 메시지를 저장한 뒤 로그인 화면으로 보내 재인증을 유도한다.
           if (axios.isAxiosError<RefreshTokenErrorResponse>(refreshError)) {
-            const refreshErrorMessage = refreshError.response?.data?.error.message;
+            const refreshErrorMessage = refreshError.response?.data?.message;
             useAuthStore.getState().setAuthErrorMessage(refreshErrorMessage ?? '세션이 만료되었습니다. 다시 로그인해주세요');
           } else {
             useAuthStore.getState().setAuthErrorMessage('세션이 만료되었습니다. 다시 로그인해주세요');
