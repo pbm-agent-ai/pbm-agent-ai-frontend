@@ -119,7 +119,8 @@ export interface DashboardMonitoringCreateRequest {
 }
 
 export interface DashboardCommandParseRequest {
-  // 2026-05-20 수정: 서버가 토큰에서 userId를 추출하므로 명령문만 보낸다.
+  // 2026-05-20 수정: 프론트에서 userId를 직접 보내야 함
+  userId: number;
   commandText: string;
 }
 

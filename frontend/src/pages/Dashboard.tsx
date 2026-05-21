@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Bot, Circle, Clock, CheckCircle, DollarSign, Loader2, MessageSquare, Search, Sparkles, TrendingUp } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection, submitCommandProductLinks } from '../api/dashboard';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -228,7 +229,11 @@ export default function Dashboard() {
     try {
       setIsAnalyzing(true);
 
-      const response: DashboardCommandParseResponse = await parseDashboardCommand({ commandText });
+      // 설명: 로그인 사용자 정보를 먼저 가져옵니다.
+      const user = await fetchAuthMe();
+      if (!user) throw new Error('AUTH_REQUIRED');
+
+      const response: DashboardCommandParseResponse = await parseDashboardCommand({ userId: user.id, commandText });
       if (!response.success) throw new Error(response.message);
 
       applyParsedPreview(response);
