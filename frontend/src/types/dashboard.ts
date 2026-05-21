@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import type { ConditionCardItem } from './condition.ts';
 
-export type MonitoringPlatform = 'naver' | 'coupang' | '11st' | 'gmarket' | 'auction' | 'naver-flights' | 'naver_flight' | '';
+
 
 export type MonitoringStatus = 'exploring' | 'met' | 'waiting' | 'completed';
 
@@ -12,7 +12,7 @@ export interface DashboardMonitoringItem {
   statusLabel?: string;
   statusColor?: string;
   product: string;
-  platform: MonitoringPlatform;
+  platform: string;
   currentPrice: string;
   targetPrice: string;
 }
@@ -35,7 +35,7 @@ export interface DashboardStatsSummary {
 export interface DashboardConditionDetailResponse {
   conditionId?: ConditionCardItem['conditionId'];
   product: string;
-  platform: MonitoringPlatform;
+  platform: string;
   currentPrice: string;
   targetPrice: string;
   status: MonitoringStatus;
@@ -43,44 +43,187 @@ export interface DashboardConditionDetailResponse {
   statusColor?: string;
 }
 
-export interface DashboardParsedConditionChip {
-  label: string;
-  value: string;
-  color?: string;
-}
-
-export interface DashboardCommandParsedData {
-  platform?: MonitoringPlatform | string;
-  route?: string; //항공권 같은 경우는 route를 따로 놔둘 것인가
-  maxPrice?: number;
-  mode?: 'AUTO_PAYMENT' | 'ALERT_ONLY';
+export interface DashboardParsedCommand {
+  // 2026-05-19 수정: 새 파싱 응답의 명령 필드만 보관한다.
+  productCategory?: string;
   productName?: string;
+  brand?: string;
+  line?: string;
+  model?: string;
+  color?: string;
+  size?: string;
+  platform?: string;
+  maxPrice?: number;
+  minPrice?: number;
+  currency?: string;
+  route?: string;
   options?: string;
+  mode?: 'ALERT_ONLY' | 'AUTO_PAYMENT';
 }
 
-export interface DashboardCommandExecuteData {
+export interface DashboardCommandParseSuccessData {
+  // 2026-05-19 수정: parse 응답 메타를 화면 상태로 그대로 쓴다.
+  intent: string;
+  parsedData: DashboardParsedCommand;
+  missingFields: string[];
+  ambiguousFields: string[];
+  needsClarification: boolean;
+  confidence: number;
   commandId: number;
-  status: string;
+}
+
+export interface DashboardCommandParseSuccessResponse {
+  success: true;
+  data: DashboardCommandParseSuccessData;
+  message: string;
+}
+
+export interface DashboardCommandParseErrorResponse {
+  // 2026-05-20 수정: 에러 응답은 message를 최상위 필드로 내려준다.
+  success: false;
+  data: null;
+  message: string;
+}
+
+export type DashboardCommandParseResponse =
+  | DashboardCommandParseSuccessResponse
+  | DashboardCommandParseErrorResponse;
+
+export type DashboardCommandParsedData = DashboardParsedCommand;
+
+export interface DashboardMonitoringCreateData {
+  commandId: number;
+  status?: string;
   parsedData: DashboardCommandParsedData;
   missingFields: string[];
 }
 
 export interface DashboardMonitoringCreateResponse {
-  success: boolean;
-  data: DashboardCommandExecuteData;
+  success: true;
+  data: DashboardMonitoringCreateData;
   message: string;
 }
+
+export type DashboardCommandExecuteData = DashboardMonitoringCreateData;
 
 export interface DashboardMonitoringCreateRequest {
   commandId: number;
   productName: string;
-  platform: MonitoringPlatform;
+  platform: string;
   route?: string;
   productDetail: string;
   targetPrice: string;
   monitoringRegisteredAt: string;
   paymentMode: 'ALERT_ONLY' | 'AUTO_PAYMENT';
-  expiryDate: string;
+
+}
+
+export interface DashboardCommandParseRequest {
+  // 2026-05-20 수정: 서버가 토큰에서 userId를 추출하므로 명령문만 보낸다.
+  commandText: string;
+}
+
+export interface DashboardClarificationSubmissionRequest {
+  clarificationInput: string;
+  answers: Record<string, string>;
+}
+
+export interface DashboardClarificationSubmissionSuccessResponse {
+  success: true;
+  message: string;
+}
+
+export interface DashboardClarificationSubmissionErrorResponse {
+  success: false;
+  data: null;
+  message: string;
+}
+
+export type DashboardClarificationSubmissionResponse =
+  | DashboardClarificationSubmissionSuccessResponse
+  | DashboardClarificationSubmissionErrorResponse;
+
+// 2026-05-20 수정: 상품 후보 (ProductCandidateResponse)
+export interface DashboardCommandCandidateItem {
+  productId: string;
+  title: string;
+  lprice: string;
+  mallName: string;
+  productUrl: string;
+  currency: string;
+  platform: string;
+  searchKeyword: string;
+  imageUrl?: string;
+}
+
+// 2026-05-20 수정: validationResult
+export interface DashboardCommandValidationResult {
+  triggeredProducts: DashboardCommandCandidateItem[];
+  monitoringProducts: DashboardCommandCandidateItem[];
+  purchasedProductId: string | null;
+  summaryMessage: string;
+  confirmationRequired: boolean;
+  duplicateProducts: DashboardCommandCandidateItem[];
+  confirmationMessage: string;
+}
+
+// 2026-05-20 수정: 명령 세션 조회 응답 (GET /api/v1/commands/{commandId})
+export interface DashboardCommandDetailResponseData {
+  commandId: string;
+  userId: number;
+  originalCommand: string;
+  status: string;
+  missingFields: string[];
+  clarificationMessage?: string;
+  categoryPath?: string | null;
+  candidates: DashboardCommandCandidateItem[];
+  selectedProductIds: string[];
+  validationResult?: DashboardCommandValidationResult | null;
+  targetPrice?: number;
+  commandIntent?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardCommandDetailSuccessResponse {
+  success: true;
+  data: DashboardCommandDetailResponseData;
+  message: string;
+}
+
+export interface DashboardCommandDetailErrorResponse {
+  success: false;
+  data: null;
+  message: string;
+}
+
+export type DashboardCommandDetailResponse = DashboardCommandDetailSuccessResponse | DashboardCommandDetailErrorResponse;
+
+// 2026-05-20 수정: 상품 선택 요청
+export interface DashboardCommandSelectionRequest {
+  selectedProductIds: string[];
+  forceResubscribe?: boolean;
+}
+
+export interface DashboardCommandSelectionSuccessResponse {
+  success: true;
+  data: Record<string, unknown>;
+  message: string;
+}
+
+export interface DashboardCommandSelectionErrorResponse {
+  success: false;
+  data: null;
+  message: string;
+}
+
+export type DashboardCommandSelectionResponse =
+  | DashboardCommandSelectionSuccessResponse
+  | DashboardCommandSelectionErrorResponse;
+
+// 2026-05-20 수정: 상품 URL 제출 요청
+export interface DashboardCommandProductLinksRequest {
+  productUrls: string[];
 }
 
 // [추가] 대시보드 모니터링 목록 API 응답의 기본 형태다.
