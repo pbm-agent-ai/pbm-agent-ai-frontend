@@ -80,18 +80,12 @@ export function Sidebar() {
     setIsLoggingOut(true);
 
     try {
-      const message = await logoutAuth();
-      alert(message);
-      logout();
-      navigate('/login', { replace: true });
-    } catch (error) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
-
-      logout();
-      navigate('/login', { replace: true });
+      await logoutAuth();
+    } catch {
+      // 서버 에러여도 로컬 토큰은 비우고 로그인 화면으로 이동
     } finally {
+      logout();
+      navigate('/login', { replace: true });
       setIsLoggingOut(false);
     }
   };
@@ -259,7 +253,7 @@ export function Sidebar() {
         {/* 2026-05-08: 모바일 메뉴를 스크롤형 드로어가 아닌, 화면 전체를 덮는 고정 풀스크린 메뉴로 전환한다. */}
         {/* Mobile Fullscreen Menu */}
         <div 
-          className={`fixed inset-0 z-[70] h-screen overflow-hidden bg-white dark:bg-[#0F172A] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
+          className={`fixed inset-0 z-[70] h-screen overflow-y-auto bg-white dark:bg-[#0F172A] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
             isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 translate-y-2'
           }`}
         >
@@ -282,8 +276,8 @@ export function Sidebar() {
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col justify-between bg-white dark:bg-[#0F172A] px-4 py-6">
-          <section className="shrink-0">
+        <div className="flex flex-1 flex-col px-4 py-6">
+          <section>
             <div className="mb-3 px-4 py-2 text-xs font-bold tracking-[0.08em] text-[#64748B] dark:text-[#94A3B8] uppercase">
               메뉴
             </div>
@@ -308,7 +302,7 @@ export function Sidebar() {
             </nav>
           </section>
 
-          <section className="mt-8 shrink-0 border-t border-[#E2E8F0] dark:border-[#1E293B] pt-6">
+          <section className="mt-8 border-t border-[#E2E8F0] dark:border-[#1E293B] pt-6">
             <div className="px-4 py-2 text-xs font-bold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
               화면 테마
             </div>

@@ -80,7 +80,7 @@ export async function parseDashboardCommand(
 }
 
 export async function submitDashboardClarification(
-  commandId: number,
+  commandId: string,
   payload: DashboardClarificationSubmissionRequest,
 ): Promise<DashboardClarificationSubmissionResponse> {
   const { data } = await shoppingApiClient.post<DashboardClarificationSubmissionResponse>(
@@ -92,7 +92,7 @@ export async function submitDashboardClarification(
 
 // 2026-05-20 수정: 명령 세션 조회 (상품 후보 목록)
 export async function fetchCommandDetail(
-  commandId: string | number,
+  commandId: string,
 ): Promise<DashboardCommandDetailResponse> {
   const { data } = await shoppingApiClient.get<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}`,
@@ -102,7 +102,7 @@ export async function fetchCommandDetail(
 
 // 2026-05-20 수정: 상품 URL 제출
 export async function submitCommandProductLinks(
-  commandId: string | number,
+  commandId: string,
   payload: DashboardCommandProductLinksRequest,
 ): Promise<DashboardCommandDetailResponse> {
   const { data } = await shoppingApiClient.post<DashboardCommandDetailResponse>(
@@ -114,7 +114,7 @@ export async function submitCommandProductLinks(
 
 // 2026-05-20 수정: 상품 선택 전송
 export async function submitCommandSelection(
-  commandId: string | number,
+  commandId: string,
   payload: DashboardCommandSelectionRequest,
 ): Promise<DashboardCommandSelectionResponse> {
   const { data } = await shoppingApiClient.post<DashboardCommandSelectionResponse>(

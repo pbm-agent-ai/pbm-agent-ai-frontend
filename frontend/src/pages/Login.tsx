@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { authApiClient } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
+import Toast from '../components/ui/toast';
 
 type FieldErrors = {
   form?: string;
@@ -64,6 +65,7 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
 
   const resetForm = () => {
     setEmail('');
@@ -78,6 +80,7 @@ export default function Login() {
     setErrors({});
     setSuccessMessage('');
     setAuthErrorMessage(null);
+    setToastVisible(false);
   };
 
   const goToSignup = () => {
@@ -255,6 +258,7 @@ export default function Login() {
       resetForm();
       setErrors({});
       setSuccessMessage(data.message ?? '회원가입이 완료되었습니다. 로그인해 주세요.');
+      setToastVisible(true);
     } catch (error) {
       setErrors(getSignupApiErrorFieldsFromUnknown(error, '회원가입에 실패했습니다.'));
     } finally {
@@ -290,12 +294,6 @@ export default function Login() {
           </div>
 
           <div className="px-6 sm:px-8 pb-8 pt-2">
-            {successMessage ? (
-              <div className="mb-5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                {successMessage}
-              </div>
-            ) : null}
-
             {errors.form ? (
               <div className="mb-5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 px-4 py-3 text-sm font-medium text-rose-600 dark:text-rose-400">
                 {errors.form}
@@ -512,6 +510,15 @@ export default function Login() {
           PBM 지갑 주소는 <span className="text-[#6366F1] dark:text-indigo-400">설정</span>에서 등록하세요
         </p>
       </div>
+
+      <Toast
+        message={successMessage}
+        visible={toastVisible}
+        onClose={() => {
+          setToastVisible(false);
+          setSuccessMessage('');
+        }}
+      />
     </div>
   );
 }

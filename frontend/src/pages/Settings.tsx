@@ -71,6 +71,7 @@ export default function Settings() {
   // 2026-05-18 수정 12: 비밀번호 변경 요청 중에는 중복 제출을 막기 위해 로딩 상태를 둔다.
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [visiblePwd, setVisiblePwd] = useState<Record<string, boolean>>({});
+  const [passwordError, setPasswordError] = useState('');
   // ── Delete account ──
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -160,25 +161,25 @@ export default function Settings() {
     }
 
     if (newPassword !== confirmPassword) {
-      alert('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      setPasswordError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
       return;
     }
+
+    setPasswordError('');
 
     setIsPasswordSaving(true);
 
     try {
-      const message = await changeAuthPassword({
+      await changeAuthPassword({
         currentPassword,
         newPassword,
       });
 
-      // 2026-05-18 수정 15: 비밀번호 변경 완료 안내도 서버가 내려준 message를 그대로 화면에 띄운다.
-      alert(message);
       setShowPasswordDialog(false);
       resetPasswordFields();
     } catch (error) {
       if (error instanceof Error) {
-        alert(error.message);
+        setPasswordError(error.message);
       }
     } finally {
       setIsPasswordSaving(false);
@@ -187,6 +188,7 @@ export default function Settings() {
 
   const handlePasswordCancel = () => {
     setShowPasswordDialog(false);
+    setPasswordError('');
     resetPasswordFields();
   };
 
@@ -747,7 +749,7 @@ export default function Settings() {
       </Dialog>
 
       {/* ═══════════ Password Change Dialog ═══════════ */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => { setShowPasswordDialog(open); if (!open) { setPasswordError(''); } }}>
         <DialogContent className="max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
           {/* Header */}
           <div className="px-6 pt-6 pb-2">
@@ -815,6 +817,14 @@ export default function Settings() {
               </div>
             </div>
           </div>
+
+          {passwordError && (
+            <div className="px-6 pb-2">
+              <p className="text-sm font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50">
+                {passwordError}
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 px-6 pb-6 pt-2">
