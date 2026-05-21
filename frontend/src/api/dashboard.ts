@@ -1,16 +1,19 @@
 import apiClient from './axios';
-import shoppingApiClient from './shoppingAxios';
 import type {
-  DashboardMonitoringCreateRequest,
-  DashboardMonitoringCreateResponse,
+  DashboardClarificationSubmissionRequest,
+  DashboardClarificationSubmissionResponse,
+  DashboardCommandDetailResponse,
+  DashboardCommandParseRequest,
+  DashboardCommandParseResponse,
+  DashboardCommandProductLinksRequest,
+  DashboardCommandSelectionRequest,
+  DashboardCommandSelectionResponse,
   DashboardStatsSummary,
 } from '../types/dashboard';
 
-// [추가] 대시보드 관련 API 호출을 한 곳에 모아두는 서비스 레이어다.
-// [추가] 실제 백엔드 경로가 확정되면 이 파일만 수정하면 되도록 분리했다.
+// [추가] 대시보드 관련 API 호출을 한 곳에 모아둔 서비스 레이어다.
 
 export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummary> {
-  // TODO: 백엔드 stats summary 응답 필드가 확정되면 여기서 고정 매핑한다.
   const { data } = await apiClient.get<
     | DashboardStatsSummary
     | {
@@ -67,18 +70,55 @@ export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummar
   };
 }
 
-export async function createMonitoringCondition(commandText: string): Promise<DashboardMonitoringCreateResponse> {
-  // 자연어 명령은 파싱하지 않고 텍스트 그대로 서버에 넘긴다.
-  // 서버가 GPT 파싱 결과를 함께 주면 프론트는 그 값을 그대로 배지로 표시한다.
-  const { data } = await shoppingApiClient.post<DashboardMonitoringCreateResponse>('/api/commands', {
-    text: commandText,
-  });
+// 2026-05-19 수정: 명령 파싱 전용 엔드포인트를 Dashboard에서 재사용할 수 있게 분리한다.
+export async function parseDashboardCommand(
+  payload: DashboardCommandParseRequest,
+): Promise<DashboardCommandParseResponse> {
+  const { data } = await apiClient.post<DashboardCommandParseResponse>('/api/v1/commands/parse', payload);
   return data;
 }
 
-export async function createDashboardMonitoringItem(
-  payload: DashboardMonitoringCreateRequest,
-): Promise<DashboardMonitoringCreateResponse> {
-  const { data } = await shoppingApiClient.post<DashboardMonitoringCreateResponse>('/api/conditions', payload);
+export async function submitDashboardClarification(
+  commandId: number,
+  payload: DashboardClarificationSubmissionRequest,
+): Promise<DashboardClarificationSubmissionResponse> {
+  const { data } = await apiClient.post<DashboardClarificationSubmissionResponse>(
+    `/api/v1/commands/${commandId}/clarifications`,
+    payload,
+  );
+  return data;
+}
+
+// 2026-05-20 수정: 명령 세션 조회 (상품 후보 목록)
+export async function fetchCommandDetail(
+  commandId: string | number,
+): Promise<DashboardCommandDetailResponse> {
+  const { data } = await apiClient.get<DashboardCommandDetailResponse>(
+    `/api/v1/commands/${commandId}`,
+  );
+  return data;
+}
+
+// 2026-05-20 수정: 상품 URL 제출
+export async function submitCommandProductLinks(
+  commandId: string | number,
+  payload: DashboardCommandProductLinksRequest,
+): Promise<DashboardCommandDetailResponse> {
+  const { data } = await apiClient.post<DashboardCommandDetailResponse>(
+    `/api/v1/commands/${commandId}/product-links`,
+    payload,
+  );
+  return data;
+}
+
+// 2026-05-20 수정: 상품 선택 전송
+export async function submitCommandSelection(
+  commandId: string | number,
+  payload: DashboardCommandSelectionRequest,
+): Promise<DashboardCommandSelectionResponse> {
+  const { data } = await apiClient.post<DashboardCommandSelectionResponse>(
+    `/api/v1/commands/${commandId}/selection`,
+    payload,
+  );
   return data;
 }

@@ -159,9 +159,9 @@ export default function PriceHistory() {
     MOCK_PRICE_HISTORY.find((h) => h.conditionId === MOCK_CONDITIONS[0].conditionId) ?? null,
   );
   // 초기 mock으로 채워뒀으므로 로딩 없이 바로 렌더링
-  const [conditionsLoading, setConditionsLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [conditionsLoading] = useState(false);
+  const [historyLoading] = useState(false);
+  const [error] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
