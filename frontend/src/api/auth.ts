@@ -1,9 +1,9 @@
 import { createApiClient } from './apiClientFactory';
 import type { User } from '@/types';
 
-const authApiClient = createApiClient({
+export const authApiClient = createApiClient({
   // 2026-05-18 수정 9: 인증 서버 기본 주소는 8081로 두고, 환경변수가 있으면 그 값을 우선 사용한다.
-  baseURL: import.meta.env.VITE_AUTH_API_BASE_URL ?? 'http://localhost:8081',
+  baseURL: import.meta.env.VITE_AUTH_API_BASE_URL,
 });
 
 // 2026-05-18 수정 1: auth/me 성공 응답은 닉네임/이메일을 화면에 바로 쓰기 위해 서버 스펙 그대로 고정 타입으로 둔다.
@@ -18,14 +18,10 @@ export type AuthMeSuccessResponse = {
   message: string;
 };
 
-// 2026-05-18 수정 2: auth/me 실패 응답은 AUTH007 만료 케이스를 포함해 에러 코드/메시지 구조를 그대로 반영한다.
 export type AuthMeErrorResponse = {
   success: false;
-  error: {
-    code?: string;
-    message: string;
-    detail: null;
-  };
+  data: null;
+  message: string;
 };
 
 type AuthMeResponse = AuthMeSuccessResponse | AuthMeErrorResponse;
@@ -37,14 +33,10 @@ export type AuthPasswordSuccessResponse = {
   message: string;
 };
 
-// 2026-05-18 수정 11: 비밀번호 변경 실패 응답은 AUTH008 메시지를 그대로 노출할 수 있도록 서버 형식 그대로 둔다.
 export type AuthPasswordErrorResponse = {
   success: false;
-  error: {
-    code?: string;
-    message: string;
-    detail: null;
-  };
+  data: null;
+  message: string;
 };
 
 type AuthPasswordResponse = AuthPasswordSuccessResponse | AuthPasswordErrorResponse;
@@ -56,14 +48,10 @@ export type AuthLogoutSuccessResponse = {
   message: string;
 };
 
-// 2026-05-18 수정 17: 로그아웃 실패 응답은 AUTH004 같은 인증 에러 메시지를 그대로 전달할 수 있게 서버 형식 그대로 둔다.
 export type AuthLogoutErrorResponse = {
   success: false;
-  error: {
-    code?: string;
-    message: string;
-    detail: null;
-  };
+  data: null;
+  message: string;
 };
 
 type AuthLogoutResponse = AuthLogoutSuccessResponse | AuthLogoutErrorResponse;
@@ -95,10 +83,9 @@ export async function changeAuthPassword(payload: {
   const { data } = await authApiClient.patch<AuthPasswordResponse>('/api/v1/auth/password', payload);
 
   if (!data.success) {
-    throw new Error(data.error.message);
+    throw new Error(data.message);
   }
 
-  // 2026-05-18 수정 14: 비밀번호 변경 성공 문구도 서버 응답 message를 그대로 반환해 프론트 하드코딩을 없앤다.
   return data.message;
 }
 
@@ -106,7 +93,7 @@ export async function logoutAuth(): Promise<string> {
   const { data } = await authApiClient.post<AuthLogoutResponse>('/api/v1/auth/logout');
 
   if (!data.success) {
-    throw new Error(data.error.message);
+    throw new Error(data.message);
   }
 
   return data.message;

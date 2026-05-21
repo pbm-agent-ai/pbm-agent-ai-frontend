@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Zap, Mail, Lock, User as UserIcon, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import apiClient from '../api/axios';
+import { authApiClient } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 
 type FieldErrors = {
@@ -26,25 +26,19 @@ interface LoginSuccessResponse {
 interface SignupSuccessResponse {
   success: true;
   data: {
-    userId: number;
+    id: number;
     email: string;
-    name: string;
+    nickname: string;
+    role: string;
   };
   message: string;
 }
 
-interface AuthLockDetail {
-  lockedUntil?: string;
-}
-
-// 실패 응답은 code/message/detail 구조로 고정한다.
+// 실패 응답은 success/data/message 구조로 변경됨
 interface ApiErrorResponse {
   success: false;
-  error: {
-    code: string;
-    message: string;
-    detail: unknown;
-  };
+  data: null;
+  message: string;
 }
 
 type LoginResponse = LoginSuccessResponse | ApiErrorResponse;
@@ -70,53 +64,6 @@ export default function Login() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // 2026-04-29 수정: AUTH003 응답의 lockedUntil 시각까지 로그인 UI를 잠금 처리
-  const [lockedUntil, setLockedUntil] = useState<string | null>(null);
-  // 2026-04-29 수정: 서버 잠금 남은 시간을 1초마다 갱신해 로그인 버튼 문구에 반영
-  const [lockRemainingText, setLockRemainingText] = useState('');
-
-  // 2026-04-29 수정: AUTH003 응답의 lockedUntil 문자열을 읽어 로그인 잠금 상태 여부를 계산
-  const isLoginLocked =
-    mode === 'login' && Boolean(lockedUntil) && new Date(lockedUntil as string).getTime() > Date.now();
-
-  // 2026-04-29 수정: 서버가 내려준 lockedUntil 기준으로 남은 잠금 시간을 mm:ss 형식으로 표시
-  const formatLockRemaining = (target: string): string => {
-    const remainingMs = new Date(target).getTime() - Date.now();
-
-    if (remainingMs <= 0) {
-      return '';
-    }
-
-    const totalSeconds = Math.ceil(remainingMs / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${String(seconds).padStart(2, '0')}`;
-  };
-
-  useEffect(() => {
-    if (!lockedUntil) {
-      setLockRemainingText('');
-      return undefined;
-    }
-
-    const syncLockState = () => {
-      const nextRemainingText = formatLockRemaining(lockedUntil);
-
-      if (!nextRemainingText) {
-        setLockedUntil(null);
-        setLockRemainingText('');
-        return;
-      }
-
-      setLockRemainingText(nextRemainingText);
-    };
-
-    // 2026-04-29 수정: 로그인 잠금 남은 시간을 1초 간격으로 갱신하고 만료 시 자동 해제
-    syncLockState();
-    const intervalId = window.setInterval(syncLockState, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [lockedUntil]);
 
   const resetForm = () => {
     setEmail('');
@@ -163,32 +110,22 @@ export default function Login() {
     setErrors({ form: authErrorMessage });
   }, [authErrorMessage]);
 
-  // 2026-04-30 수정: 로그인 API는 에러코드로 부가 동작만 분기하고, 사용자 메시지는 서버가 내려준 message를 그대로 form에 표시
+  // 로그인 실패 시 서버가 내려준 message를 그대로 form에 표시
   const handleLoginErrorResponse = (
     responseData: ApiErrorResponse | undefined,
     fallback: string,
   ): FieldErrors => {
-    const errorCode = responseData?.error.code;
-    const errorMessage = responseData?.error.message ?? fallback;
-    const detail = responseData?.error.detail as AuthLockDetail | null | undefined;
-
-    // 2026-04-30 수정: 로그인 AUTH003은 계정 잠금 상태이므로 lockedUntil 기준으로 로그인 UI를 함께 잠금 처리
-    if (errorCode === 'AUTH003' && detail?.lockedUntil) {
-      setLockedUntil(detail.lockedUntil);
-    } else {
-      setLockedUntil(null);
-    }
+    const errorMessage = responseData?.message ?? fallback;
 
     return { form: errorMessage };
   };
 
-  // 2026-04-30 수정: 회원가입 API는 동일한 에러코드가 와도 별도 부가 동작 없이 서버 message를 그대로 form에 표시
+  // 회원가입 실패 시 서버가 내려준 message를 그대로 form에 표시
   const handleSignupErrorResponse = (
     responseData: ApiErrorResponse | undefined,
     fallback: string,
   ): FieldErrors => {
-    const errorMessage = responseData?.error.message ?? fallback;
-
+    const errorMessage = responseData?.message ?? fallback;
     return { form: errorMessage };
   };
 
@@ -197,10 +134,10 @@ export default function Login() {
     return {};
   };
 
-  // 2026-04-29 수정: 회원가입의 이름/비밀번호 확인 검증 메시지도 form 공통 에러로 표시
+  // 2026-04-29 수정: 회원가입의 닉네임/비밀번호 확인 검증 메시지도 form 공통 에러로 표시
   const validateSignup = (): FieldErrors => {
     if (!name.trim()) {
-      return { form: '이름을 입력해 주세요.' };
+      return { form: '닉네임을 입력해 주세요.' };
     }
 
     if (!confirmPassword) {
@@ -214,7 +151,7 @@ export default function Login() {
     return {};
   };
 
-  // 2026-04-30 수정: 로그인 예외 응답도 로그인 API 에러코드 처리문을 재사용
+  // Axios 에러 응답에서 message를 추출해 form 에러로 표시
   const getLoginApiErrorFieldsFromUnknown = (error: unknown, fallback: string): FieldErrors => {
     if (!axios.isAxiosError(error)) {
       return { form: error instanceof Error && error.message ? error.message : fallback };
@@ -224,7 +161,7 @@ export default function Login() {
     return handleLoginErrorResponse(responseData, fallback);
   };
 
-  // 2026-04-30 수정: 회원가입 예외 응답도 회원가입 API 에러코드 처리문을 재사용
+  // Axios 에러 응답에서 message를 추출해 form 에러로 표시
   const getSignupApiErrorFieldsFromUnknown = (error: unknown, fallback: string): FieldErrors => {
     if (!axios.isAxiosError(error)) {
       return { form: error instanceof Error && error.message ? error.message : fallback };
@@ -237,7 +174,7 @@ export default function Login() {
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (isSubmitting || isLoginLocked) {
+    if (isSubmitting) {
       return;
     }
 
@@ -255,12 +192,12 @@ export default function Login() {
 
     try {
       // 로그인 성공 응답의 accessToken을 메모리에만 저장하고, refresh는 쿠키로 처리한다.
-      const { data } = await apiClient.post<LoginResponse>('/api/v1/auth/login', {
+      const { data } = await authApiClient.post<LoginResponse>('/api/v1/auth/login', {
         email: email.trim(),
         password,
       });
 
-      // 2026-04-29 수정: 로그인 실패 시 로그인 API 에러코드 처리문으로 부가 동작과 공통 에러 표시를 함께 처리
+      // 로그인 실패 시 서버 메시지를 form 에러로 표시
       if (!data.success) {
         setErrors(handleLoginErrorResponse(data, '로그인에 실패했습니다.'));
         return;
@@ -271,7 +208,6 @@ export default function Login() {
       void refreshToken;
       void expiresIn;
       setAccessToken(accessToken, tokenType);
-      setLockedUntil(null);
 
       navigate('/dashboard', { replace: true });
     } catch (error) {
@@ -302,8 +238,8 @@ export default function Login() {
 
     try {
       // 회원가입은 계정 생성까지만 처리하고, 로그인은 별도 단계로 분리한다.
-      const { data } = await apiClient.post<SignupResponse>('/api/v1/auth/signup', {
-        name: name.trim(),
+      const { data } = await authApiClient.post<SignupResponse>('/api/v1/auth/signup', {
+        nickname: name.trim(),
         email: email.trim(),
         password,
       });
@@ -366,13 +302,6 @@ export default function Login() {
               </div>
             ) : null}
 
-            {mode === 'login' && isLoginLocked && lockRemainingText ? (
-              <div className="mb-5 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm font-medium text-amber-700 dark:text-amber-400">
-                {/* 2026-04-29 수정: AUTH003 잠금 상태일 때 남은 로그인 제한 시간을 사용자에게 표시 */}
-                {`로그인 제한 해제까지 ${lockRemainingText} 남았습니다.`}
-              </div>
-            ) : null}
-
             {mode === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -389,7 +318,7 @@ export default function Login() {
                       placeholder="your@email.com"
                       className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] dark:placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#6366F1]/30 dark:focus-visible:ring-indigo-400/30 focus-visible:border-[#6366F1]/40 dark:focus-visible:border-indigo-400/50 transition-colors"
                       autoComplete="email"
-                      disabled={isSubmitting || isLoginLocked}
+                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -408,7 +337,7 @@ export default function Login() {
                       placeholder="••••••••"
                       className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] dark:placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#6366F1]/30 dark:focus-visible:ring-indigo-400/30 focus-visible:border-[#6366F1]/40 dark:focus-visible:border-indigo-400/50 transition-colors"
                       autoComplete="current-password"
-                      disabled={isSubmitting || isLoginLocked}
+                      disabled={isSubmitting}
                     />
                     <button
                       type="button"
@@ -425,15 +354,13 @@ export default function Login() {
                   <Button
                     type="submit"
                     className="w-full h-12 rounded-xl bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] dark:hover:from-indigo-400 hover:to-[#4338CA] dark:hover:to-indigo-500 hover:-translate-y-0.5 font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300 border-none flex items-center justify-center"
-                    disabled={isSubmitting || isLoginLocked}
+                    disabled={isSubmitting}
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         처리 중...
                       </>
-                    ) : isLoginLocked ? (
-                      `로그인 제한 (${lockRemainingText})`
                     ) : (
                       '로그인'
                     )}
@@ -455,7 +382,8 @@ export default function Login() {
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-[#475569] dark:text-slate-300">이름</label>
+                  <label className="text-sm font-bold text-[#475569] dark:text-slate-300">닉네임
+                  </label>
                   <div className="relative">
                     <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8] dark:text-slate-500" />
                     <Input
