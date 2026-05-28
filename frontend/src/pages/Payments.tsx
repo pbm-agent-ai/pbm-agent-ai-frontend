@@ -187,11 +187,11 @@ const getPlatformColor = (platform: string): string => {
     'naver-flights': '#03c75a',
     naver_flight: '#03c75a',
   };
-  return map[platform] || '#6366F1';
+  return map[platform] || '#1E4D8C';
 };
 
 const statusStyleMap: Record<OrderGroup['status'], { label: string; dot: string; bg: string }> = {
-  결제완료: { label: '결제완료', dot: 'bg-[#6366F1]', bg: 'bg-[#EEF2FF] dark:bg-indigo-500/10' },
+  결제완료: { label: '결제완료', dot: 'bg-[#1E4D8C]', bg: 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10' },
 
   절약완료: { label: '절약완료', dot: 'bg-[#D97706]', bg: 'bg-[#FEF3C7] dark:bg-amber-500/10' },
 };
@@ -208,30 +208,30 @@ export default function Payments() {
   const [selectedAmount, setSelectedAmount] = useState('전체 금액');
 
   return (
-    <div className="w-full bg-[#F8FAFC] dark:bg-slate-950 min-h-screen font-sans text-[#0F172A] dark:text-slate-50">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto">
           {/* ═══════════ Page Header ═══════════ */}
           <div className="mb-8 md:mb-12 flex items-start gap-4 md:gap-5">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#4F46E5] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)] text-white shrink-0">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
               <CreditCard className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0F172A] dark:text-slate-50">결제 내역</h1>
-              <p className="text-[#475569] dark:text-slate-400 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">결제 내역</h1>
+              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
             </div>
           </div>
 
           {/* ═══════════ My Page Summary Stats (Musinsa-style) ═══════════ */}
-          <div className="mb-5 bg-white dark:bg-slate-800 rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-            <div className="grid grid-cols-3 divide-x divide-[#E2E8F0] dark:divide-slate-700">
+          <div className="mb-5 bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
+            <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-700">
               <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-[#94A3B8] dark:text-slate-500 tracking-wide">결제 건수</p>
-                <p className="text-xl font-extrabold text-[#0F172A] dark:text-slate-50 mt-1.5">{orderGroups.length}건</p>
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 건수</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">{orderGroups.length}건</p>
               </div>
               <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-[#94A3B8] dark:text-slate-500 tracking-wide">결제 금액</p>
-                <p className="text-xl font-extrabold text-[#0F172A] dark:text-slate-50 mt-1.5">{formatPrice(totalPayment)}</p>
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 금액</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">{formatPrice(totalPayment)}</p>
               </div>
               <div className="py-5 text-center">
                 <p className="text-[11px] font-medium text-[#D97706] dark:text-amber-400 tracking-wide">절약 금액</p>
@@ -243,11 +243,11 @@ export default function Payments() {
           {/* ═══════════ Search Bar ═══════════ */}
           <div className="mb-5">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
                 type="text"
                 placeholder="상품명 검색"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 dark:text-slate-300 rounded-xl outline-none focus:border-[#6366F1] dark:focus:border-indigo-400 transition-colors placeholder:text-[#94A3B8]"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 dark:text-zinc-300 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400"
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function Payments() {
           {/* ═══════════ Filters ═══════════ */}
           <div className="flex items-center gap-2 mb-6 flex-wrap">
             <Select value={selectedDate} onValueChange={setSelectedDate}>
-              <SelectTrigger className="w-[120px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[120px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 기간" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[140px]">
@@ -266,7 +266,7 @@ export default function Payments() {
             </Select>
 
             <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-              <SelectTrigger className="w-[130px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[130px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 플랫폼" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[150px]">
@@ -277,7 +277,7 @@ export default function Payments() {
             </Select>
 
             <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-              <SelectTrigger className="w-[140px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 금액" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[160px]">
@@ -298,17 +298,17 @@ export default function Payments() {
               return (
                 <div
                   key={group.orderNumber}
-                  className="rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden"
+                  className="rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden"
                 >
                   {/* ── Order Header ── */}
-                  <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#E2E8F0] dark:border-slate-700 gap-2">
+                  <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-700 gap-2">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <span className="text-sm font-bold text-[#0F172A] dark:text-slate-50 shrink-0">{group.date}</span>
-                      <span className="text-[10px] sm:text-[11px] text-[#94A3B8] dark:text-slate-500 font-mono truncate">{group.orderNumber}</span>
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50 shrink-0">{group.date}</span>
+                      <span className="text-[10px] sm:text-[11px] text-zinc-400 dark:text-zinc-400 font-mono truncate">{group.orderNumber}</span>
                     </div>
                     <div className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 ${statusStyle.bg}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                      <span className="text-[#0F172A] dark:text-slate-100">{statusStyle.label}</span>
+                      <span className="text-zinc-900 dark:text-zinc-100">{statusStyle.label}</span>
                     </div>
                   </div>
 
@@ -317,11 +317,11 @@ export default function Payments() {
                     {group.items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 border-b border-[#F1F5F9] dark:border-slate-700/50 last:border-b-0 hover:bg-[#F8FAFC] dark:hover:bg-slate-900/50 transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 border-b border-[#F1F5F9] dark:border-zinc-700/50 last:border-b-0 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {/* Thumbnail */}
-                          <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-[#F8FAFC] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                          <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                             {item.emoji}
                           </div>
 
@@ -338,10 +338,10 @@ export default function Payments() {
                             >
                               {getPlatformName(item.platform)}
                             </Badge>
-                            <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 truncate leading-snug">
+                            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate leading-snug">
                               {item.product}
                             </p>
-                            <p className="text-xs text-[#64748B] dark:text-slate-500 mt-0.5 truncate">
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
                               {item.option}
                             </p>
                           </div>
@@ -349,7 +349,7 @@ export default function Payments() {
 
                         {/* Price */}
                         <div className="text-left sm:text-right shrink-0 pl-[72px] sm:pl-0">
-                          <p className="text-sm font-extrabold text-[#0F172A] dark:text-slate-50">
+                          <p className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">
                             {formatPrice(item.amount)}
                           </p>
                           <p className="text-[11px] font-semibold text-[#D97706] dark:text-amber-400">
@@ -361,17 +361,17 @@ export default function Payments() {
                   </div>
 
                   {/* ── Order Footer ── */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#F8FAFC] dark:bg-slate-900 border-t border-[#E2E8F0] dark:border-slate-700">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700">
                     <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                      <span className="text-xs text-[#64748B] dark:text-slate-500 whitespace-nowrap">
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
                         총 결제금액
                       </span>
-                      <span className="text-sm font-extrabold text-[#0F172A] dark:text-slate-50 whitespace-nowrap">
+                      <span className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50 whitespace-nowrap">
                         {formatPrice(groupTotal)}
                       </span>
                       {groupSavings > 0 && (
                         <>
-                          <span className="text-[#CBD5E1] dark:text-slate-700 text-xs shrink-0">|</span>
+                          <span className="text-[#CBD5E1] dark:text-zinc-700 text-xs shrink-0">|</span>
                           <span className="text-xs font-semibold text-[#D97706] dark:text-amber-400 whitespace-nowrap">
                             -{formatPrice(groupSavings)} 절약
                           </span>
@@ -384,7 +384,7 @@ export default function Payments() {
                           href={`https://etherscan.io/tx/${group.items[0].txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#6366F1] dark:text-indigo-400 border border-[#E2E8F0] dark:border-slate-700 rounded-lg hover:bg-[#EEF2FF] dark:hover:bg-indigo-500/10 hover:border-[#6366F1]/30 dark:hover:border-indigo-400/30 transition-all"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 transition-all"
                         >
                           TX 상세
                           <ExternalLink className="w-2.5 h-2.5" />
@@ -392,7 +392,7 @@ export default function Payments() {
                       )}
                       <button
                         type="button"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#64748B] dark:text-slate-400 border border-[#E2E8F0] dark:border-slate-700 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-slate-800 hover:border-[#CBD5E1] dark:hover:border-slate-600 transition-all"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all"
                       >
                         상세보기
                         <ChevronDown className="w-3 h-3" />
@@ -406,12 +406,12 @@ export default function Payments() {
 
           {/* ── Empty State ── */}
           {orderGroups.length === 0 && (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
-              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
-                <CreditCard className="w-7 h-7 text-[#6366F1] dark:text-indigo-400" />
+            <div className="rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
+                <CreditCard className="w-7 h-7 text-[#1E4D8C] dark:text-[#7BAEDA]" />
               </div>
-              <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-1">결제 내역이 없습니다</p>
-              <p className="text-xs text-[#475569] dark:text-slate-400">조건 매칭이 완료되면 내역이 여기에 표시됩니다.</p>
+              <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">결제 내역이 없습니다</p>
+              <p className="text-xs text-zinc-700 dark:text-zinc-300">조건 매칭이 완료되면 내역이 여기에 표시됩니다.</p>
             </div>
           )}
         </div>

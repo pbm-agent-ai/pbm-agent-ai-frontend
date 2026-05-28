@@ -1,0 +1,421 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Bot, Sparkles, ArrowRight, Play, Star, Activity,
+  CheckCircle, ShoppingBag, Search, TrendingUp,
+} from "lucide-react";
+import { LogoIcon } from "../components/ui/LogoIcon";
+import { Button } from "../components/ui/button";
+import { FadeIn } from "../components/ui/FadeIn";
+
+const TYPED_TEXT = '쿠팡에서 갤럭시 버즈 FE 8만원 이하';
+
+export default function Landing() {
+  const [typedChars, setTypedChars] = useState(0);
+  const [logoMouth, setLogoMouth] = useState<'auto' | 'smile' | 'open'>('auto');
+
+  useEffect(() => {
+    const html = document.documentElement;
+    const prev = html.style.colorScheme;
+    html.style.colorScheme = "light";
+    return () => { html.style.colorScheme = prev; };
+  }, []);
+
+  // ── 타이핑 애니메이션 (반복) ──
+  useEffect(() => {
+    if (typedChars >= TYPED_TEXT.length) {
+      const timeout = setTimeout(() => setTypedChars(0), 4000);
+      return () => clearTimeout(timeout);
+    }
+    const timeout = setTimeout(() => setTypedChars(typedChars + 1), 180);
+    return () => clearTimeout(timeout);
+  }, [typedChars]);
+
+  const typingDone = typedChars >= TYPED_TEXT.length;
+  const [buttonReady, setButtonReady] = useState(false);
+
+  useEffect(() => {
+    if (typingDone) {
+      const t = setTimeout(() => setButtonReady(true), 800);
+      return () => clearTimeout(t);
+    }
+    setButtonReady(false);
+  }, [typingDone]);
+
+  return (
+    <div className="min-h-screen bg-white font-sans text-zinc-900" style={{ colorScheme: "light" }}>
+      {/* ═══════ Top Navigation ═══════ */}
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-zinc-200">
+        <div className="max-w-[1200px] mx-auto h-[72px] px-4 md:px-8 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group"
+            onMouseEnter={() => setLogoMouth('open')}
+            onMouseLeave={() => setLogoMouth('auto')}>
+            <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
+              <LogoIcon mouth={logoMouth} />
+            </div>
+            <span className="text-zinc-900 font-extrabold text-[17px] tracking-tight">나의 구매 비서</span>
+          </Link>
+          <Link to="/login" className="text-sm font-semibold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl border border-zinc-200 hover:border-zinc-300 px-4 py-2 transition-all">로그인</Link>
+        </div>
+      </header>
+
+      {/* ═══════ Hero ═══════ */}
+      <section className="relative flex flex-col items-center px-6 pt-20 pb-28 overflow-hidden bg-[#F9F7F7]">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF] animate-gradient-shift" />
+        <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#1E4D8C]/[0.06] blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-[5%] left-[15%] w-40 h-40 bg-[#DBE2EF]/40 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[15%] right-[10%] w-48 h-48 bg-[#1E4D8C]/[0.03] blur-[100px] rounded-full pointer-events-none" />
+        <div className="flex flex-col items-center text-center max-w-2xl mx-auto relative z-10">
+          <h1 className="text-[2rem] sm:text-[2.5rem] md:text-[3.2rem] font-bold tracking-tight leading-[1.3] mb-5 text-[#112D4E] break-keep">
+            원하는 가격에 <span className="text-[#1E4D8C]">AI가</span> 찾아드려요
+          </h1>
+          <p className="text-base text-zinc-500 leading-relaxed mb-10 max-w-md">
+            자연어로 쇼핑 조건을 말하면<span className="md:hidden"><br /></span> AI가 분석하고, 조건에 맞는 상품을<span className="md:hidden"><br /></span> 실시간으로 모니터링해 알려드립니다.
+          </p>
+          <div className="mb-10">
+            <Link to="/login?mode=signup">
+              <Button className="bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-12 px-8 text-base font-bold border-none cursor-pointer transition-all shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)]">
+                시작하기 <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+          {/* ── Hero Preview (simple) ── */}
+          <div className="w-full max-w-3xl bg-white rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-zinc-200 relative overflow-hidden text-left animate-card-glow">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]" />
+            <div className="p-4 pt-5 flex flex-col gap-3">
+              <div className="bg-white rounded-2xl p-2 ring-1 ring-[#E2E8F0]">
+                <div className="w-full bg-transparent px-4 py-3 text-zinc-900 text-lg min-h-[60px]">
+                  <span className="text-zinc-400">예: </span>
+                  <span className="font-medium">쿠팡에서 갤럭시 버즈 FE 8만원 이하면 알림</span>
+                  <span className="animate-cursor" />
+                </div>
+              </div>
+              <div className="flex justify-end px-2" style={{ animation: 'fade-slide-up 0.5s ease-out 1s forwards', opacity: 0 }}>
+                <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white rounded-xl h-12 px-8 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] cursor-default opacity-90">
+                  <Bot className="w-4 h-4" /> 조건 분석하기
+                </div>
+              </div>
+              <div className="mx-2 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 text-left shadow-sm" style={{ animation: 'fade-slide-up 0.5s ease-out 2s forwards', opacity: 0 }}>
+                <p className="text-sm font-semibold text-zinc-800">
+                  <Sparkles className="w-3.5 h-3.5 text-[#1E4D8C] inline mr-1.5 animate-icon-pulse" /> 분석 완료
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">플랫폼: 쿠팡 · 상품: 갤럭시 버즈 FE · 목표가: 80,000원 이하</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════ 조건 등록 ═══════ */}
+      <FadeIn delay={100}>
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col lg:flex-row items-start gap-12 lg:gap-20">
+            <div className="flex-1 max-w-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#F9F7F7] border border-[#DBE2EF] px-3.5 py-1.5 text-xs font-bold text-[#1E4D8C] tracking-wide mb-5">
+                <Search className="w-3 h-3" /> STEP 1
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
+                자연어로 조건을<br />입력하고 등록하세요
+              </h2>
+              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+                원하는 상품과 가격을 말하듯이 입력하면<span className="md:hidden"><br /></span> AI가 플랫폼, 상품명, 목표 가격을<span className="md:hidden"><br /></span> 자동으로 분석합니다.
+              </p>
+              <div className="flex flex-col gap-2">
+                {["자연어로 쇼핑 조건 입력", "AI가 플랫폼/상품/가격 자동 분석", "분석 결과 확인 후 조건 등록"].map((t) => (
+                  <div key={t} className="flex items-center gap-2.5">
+                    <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
+                    <span className="text-sm text-zinc-600">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm relative">
+                <div className="bg-[#F9F7F7] rounded-xl p-3 ring-1 ring-[#E2E8F0] mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center shrink-0">
+                      <Search className="w-3.5 h-3.5 text-[#1E4D8C]" />
+                    </div>
+                    <div className="flex-1 text-sm text-zinc-800 font-medium min-w-0">
+                      <span>{TYPED_TEXT.slice(0, typedChars)}</span>
+                      {typedChars < TYPED_TEXT.length && <span className="inline-block w-[2px] h-[1.1em] bg-[#1E4D8C] ml-0.5 align-text-bottom animate-cursor-blink" />}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <div className={`relative inline-flex items-center gap-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white rounded-lg h-8 px-4 text-[11px] font-bold shadow-sm cursor-default opacity-90${buttonReady ? ' animate-button-press' : ''}`}>
+                    조건 분석하기
+                    {buttonReady && <span className="animate-demo-cursor absolute -top-1 -left-1">👆</span>}
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+      </section>
+      </FadeIn>
+
+      {/* ═══════ 상품 후보 선택 ═══════ */}
+      <FadeIn delay={200}>
+      <section className="py-20 px-6 bg-[#F9F7F7]">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col lg:flex-row-reverse items-start gap-12 lg:gap-20">
+            <div className="flex-1 max-w-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-[#DBE2EF] px-3.5 py-1.5 text-xs font-bold text-[#1E4D8C] tracking-wide mb-5">
+                <Star className="w-3 h-3" /> STEP 2
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
+                분석된 조건에 맞는<br />상품을 선택하세요
+              </h2>
+              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+                AI가 입력한 조건에 맞는<span className="md:hidden"><br /></span> 상품 후보를 보여줍니다. 모니터링할 상품을 선택하고<span className="md:hidden"><br /></span> 조건 충족 여부를 한눈에 확인하세요.
+              </p>
+              <div className="flex flex-col gap-2">
+                {["조건에 맞는 상품 후보 목록 제공", "각 상품별 조건 충족 상태 표시", "원하는 상품 선택 후 모니터링 시작"].map((t) => (
+                  <div key={t} className="flex items-center gap-2.5">
+                    <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
+                    <span className="text-sm text-zinc-600">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-xs font-bold text-zinc-800">상품 목록</h3>
+                  <span className="text-[10px] text-zinc-400">최대 3개</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {[
+                    { badge: "모니터링 중", cls: "bg-blue-100 text-blue-700" },
+                    { badge: "조건 충족", cls: "bg-emerald-100 text-emerald-700" },
+                    { badge: null, cls: "" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                      <div className="w-10 h-10 rounded-lg bg-zinc-200 animate-pulse flex items-center justify-center shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-36 rounded bg-zinc-200" />
+                          {item.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.cls}`}>{item.badge}</span>}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="h-3 w-14 rounded bg-zinc-200" />
+                          <div className="h-3 w-12 rounded bg-zinc-100" />
+                        </div>
+                      </div>
+                      <div className="shrink-0 w-4 h-4 rounded border-2 border-zinc-300" />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3">
+                  <span className="text-[10px] text-zinc-400">3개 선택됨</span>
+                  <div className="inline-flex items-center bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white rounded-lg h-7 px-4 text-[10px] font-bold shadow-sm cursor-default opacity-90">선택 완료</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </FadeIn>
+
+      {/* ═══════ URL 직접 입력 ═══════ */}
+      <FadeIn delay={300}>
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col lg:flex-row items-start gap-12 lg:gap-20">
+            <div className="flex-1 max-w-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-[#F9F7F7] border border-[#DBE2EF] px-3.5 py-1.5 text-xs font-bold text-[#1E4D8C] tracking-wide mb-5">
+                <ShoppingBag className="w-3 h-3" /> 추가 기능
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
+                원하는 상품이 없다면<br />URL로 직접 등록하세요
+              </h2>
+              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+                후보 목록에 원하는 상품이 없어도 걱정하지 마세요.<span className="md:hidden"><br /></span> 상품 페이지의 URL을 직접 입력하면<span className="md:hidden"><br /></span> AI가 해당 상품을 분석하여<span className="md:hidden"><br /></span> 모니터링 조건을 등록해 드립니다.
+              </p>
+              <div className="flex flex-col gap-2">
+                {["상품 URL 직접 입력 (최대 5개)", "URL에서 상품 정보 자동 추출", "별도 검색 없이 바로 조건 등록"].map((t) => (
+                  <div key={t} className="flex items-center gap-2.5">
+                    <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
+                    <span className="text-sm text-zinc-600">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <span className="text-[10px] font-bold text-zinc-500">원하는 상품이 목록에 없나요?</span>
+                  <svg className="w-3 h-3 text-zinc-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] text-zinc-400">상품 URL을 입력하세요</div>
+                    <div className="rounded-lg bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-3 py-2.5 text-[10px] font-bold cursor-default opacity-80">+</div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400">최대 5개까지 추가할 수 있습니다</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </FadeIn>
+
+      {/* ═══════ Step 2: 가격 히스토리 & 모니터링 ═══════ */}
+      <FadeIn delay={400}>
+      <section className="py-20 px-6 bg-gradient-to-br from-[#F9F7F7] via-white to-[#DBE2EF]/30 overflow-hidden">
+        <div className="max-w-[1200px] mx-auto">
+          <div className="flex flex-col lg:flex-row items-start gap-12 lg:gap-20">
+            <div className="flex-1 max-w-lg">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-[#DBE2EF] px-3.5 py-1.5 text-xs font-bold text-[#1E4D8C] tracking-wide mb-5">
+                <Activity className="w-3 h-3" /> STEP 3
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
+                가격 변동을 실시간으로<br />추적하고 최저가를 포착하세요
+              </h2>
+              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+                조건이 등록되면 AI가 24시간 가격을 추적합니다.<span className="md:hidden"><br /></span> 가격 히스토리 차트로 변동 추이를 확인하고,<span className="md:hidden"><br /></span> 최저가를 포착하여 목표가를 수정할 수 있어요.
+              </p>
+              <div className="flex flex-col gap-2 mb-8">
+                {[
+                  "실시간 가격 모니터링 (24시간)",
+                  "가격 변동 히스토리 차트 제공",
+                  "최저가 도달 시점 확인",
+                  "목표가 수정으로 구매 타이밍 최적화",
+                ].map((t) => (
+                  <div key={t} className="flex items-center gap-2.5">
+                    <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
+                    <span className="text-sm text-zinc-600">{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 w-full">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                {/* ── Condition selector mockup ── */}
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100">
+                  <div className="flex items-center gap-2 bg-[#F9F7F7] rounded-lg px-3 py-2 border border-zinc-200 cursor-default">
+                    <span className="text-[9px] font-bold text-[#1E4D8C] bg-white rounded px-1.5 py-0.5 border border-zinc-200">쿠O</span>
+                    <span className="text-[11px] font-semibold text-zinc-300 tracking-wide">다○슨 V15 디텍트</span>
+                  </div>
+                  <div className="flex gap-1 ml-auto">
+                    {["7D", "30D"].map((p) => (
+                      <span key={p} className={`text-[9px] font-bold px-2 py-1 rounded-md ${p === '1M' ? 'bg-[#1E4D8C] text-white' : 'bg-zinc-50 text-zinc-500 border border-zinc-200'}`}>{p}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── 4 Stats (matches Price History page) ── */}
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {[
+                    { label: "현재가", bg: "bg-[#F9F7F7]" },
+                    { label: "최저가", bg: "bg-[#FEF2F2]" },
+                    { label: "최고가", bg: "bg-[#FFF7ED]" },
+                    { label: "평균가", bg: "bg-zinc-50" },
+                  ].map((s) => (
+                    <div key={s.label} className={`rounded-lg ${s.bg} px-2 py-2 text-center`}>
+                      <p className="text-[8px] text-zinc-400 font-medium">{s.label}</p>
+                      <div className="h-3 w-12 mx-auto mt-1 rounded bg-zinc-200 animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Chart ── */}
+                <div className="rounded-xl bg-[#F9F7F7] border border-zinc-100 p-3 mb-3">
+                  <svg viewBox="0 0 200 50" className="w-full h-12 overflow-visible">
+                    <line x1="0" y1="0" x2="200" y2="0" stroke="#E2E8F0" strokeWidth="0.5" />
+                    <line x1="0" y1="25" x2="200" y2="25" stroke="#E2E8F0" strokeWidth="0.5" />
+                    <line x1="0" y1="50" x2="200" y2="50" stroke="#E2E8F0" strokeWidth="0.5" />
+                    <defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1E4D8C" stopOpacity="0.15" /><stop offset="100%" stopColor="#1E4D8C" stopOpacity="0.01" /></linearGradient></defs>
+                    <path d="M0,35 L15,30 L30,38 L45,28 L60,32 L75,22 L90,25 L105,18 L120,20 L135,12 L150,16 L165,8 L180,10 L200,6 L200,50 L0,50 Z" fill="url(#sparkGrad)" />
+                    <path d="M0,35 L15,30 L30,38 L45,28 L60,32 L75,22 L90,25 L105,18 L120,20 L135,12 L150,16 L165,8 L180,10 L200,6" fill="none" stroke="#1E4D8C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="200" cy="6" r="3" fill="#1E4D8C" />
+                    <line x1="0" y1="18" x2="200" y2="18" stroke="#EF4444" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.5" />
+                  </svg>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[7px] text-zinc-300">4/10</span>
+                    <span className="text-[7px] text-zinc-400 font-medium">최저가 ₩71,000 도달</span>
+                    <span className="text-[7px] text-zinc-300">4/16</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </FadeIn>
+
+      {/* ═══════ YouTuber (부가) ═══════ */}
+      <FadeIn delay={500}>
+      <section className="py-16 px-6 bg-white overflow-hidden">
+        <div className="max-w-[900px] mx-auto">
+          <div className="flex flex-col md:flex-row items-start gap-8">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-1.5 rounded-xl bg-white border border-[#DBE2EF] px-3.5 py-1.5 text-xs font-bold text-[#1E4D8C] tracking-wide mb-4">
+                <Play className="w-3 h-3" /> 유튜버 추천
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[#112D4E] mb-3">유튜버 리뷰를 한눈에 확인하세요</h2>
+              <p className="text-sm text-zinc-500 leading-relaxed max-w-sm">
+                유튜버가 직접 리뷰한 상품의<span className="md:hidden"><br /></span> 장점과 단점을 요약해서 보여줍니다.<span className="md:hidden"><br /></span> 영상을 보지 않아도 상품 정보를<span className="md:hidden"><br /></span> 한눈에 파악할 수 있고,<span className="md:hidden"><br /></span> 영상 링크를 통해<span className="md:hidden"><br /></span> 직접 리뷰를 확인할 수 있어요.
+              </p>
+            </div>
+            <div className="w-full md:w-80 shrink-0">
+              {/* ── Product card ── */}
+              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#1E4D8C] text-white">
+                    <TrendingUp className="w-3 h-3" /> 1
+                  </span>
+                  <span className="text-[11px] font-semibold text-zinc-400 tracking-wide">로○락</span>
+                </div>
+                <p className="text-sm font-bold text-zinc-300 tracking-wide mb-4">로○락 S8 Pro 로봇청소기</p>
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-start gap-2 bg-green-50 rounded-lg px-3 py-2">
+                    <span className="text-xs text-green-700 font-bold shrink-0 mt-0.5">👍</span>
+                    <p className="text-xs text-green-800 leading-relaxed">강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높음</p>
+                  </div>
+                  <div className="flex items-start gap-2 bg-red-50 rounded-lg px-3 py-2">
+                    <span className="text-xs text-red-600 font-bold shrink-0 mt-0.5">👎</span>
+                    <p className="text-xs text-red-700 leading-relaxed">가격대가 높음. 유지보수 비용 발생</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-[10px] text-zinc-400 tracking-wide">유OO IT PLUS</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1 bg-[#1E4D8C] text-white rounded-lg px-3 py-1.5 text-[10px] font-bold shadow-sm cursor-default opacity-90">
+                    <Play className="w-3 h-3" /> 리뷰 보기
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </FadeIn>
+
+      {/* ═══════ CTA ═══════ */}
+      <FadeIn delay={600}>
+      <section className="py-24 px-6 bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/[0.04] blur-[100px] rounded-full pointer-events-none" />
+        <div className="max-w-xl mx-auto text-center relative z-10">
+          <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-white/10">
+            <Bot className="w-6 h-6 text-white" />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-white">지금 시작해보세요</h2>
+          <p className="text-base text-[#DBE2EF] mb-8 leading-relaxed">3분만에 가입하고 AI 쇼핑 비서의 편리함을 경험해보세요.</p>
+          <Link to="/login?mode=signup">
+            <Button className="bg-white text-[#1E4D8C] hover:bg-[#DBE2EF] rounded-xl h-14 px-10 text-lg font-bold border-none cursor-pointer transition-all shadow-[0_8px_24px_rgba(0,0,0,0.2)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.3)]">
+              무료로 시작하기 <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </Link>
+          <p className="mt-4 text-xs text-[#DBE2EF]/60">별도 카드 등록 없이 시작할 수 있어요</p>
+        </div>
+      </section>
+      </FadeIn>
+    </div>
+  );
+}

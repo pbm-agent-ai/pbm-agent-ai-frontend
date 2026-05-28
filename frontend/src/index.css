@@ -4,24 +4,24 @@
 
 @theme {
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
+  --color-foreground: hsl(240 10% 4%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
+  --color-card-foreground: hsl(240 10% 4%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+  --color-popover-foreground: hsl(240 10% 4%);
+  --color-primary: hsl(215 65% 33%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(240 5% 96%);
+  --color-secondary-foreground: hsl(240 6% 10%);
+  --color-muted: hsl(240 5% 96%);
+  --color-muted-foreground: hsl(240 4% 46%);
+  --color-accent: hsl(240 5% 96%);
+  --color-accent-foreground: hsl(240 6% 10%);
   --color-destructive: hsl(0 84.2% 60.2%);
   --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
+  --color-border: hsl(240 6% 90%);
+  --color-input: hsl(240 6% 90%);
+  --color-ring: hsl(208 56% 67%);
   --radius: 0.5rem;
 
   /* Sidebar */
@@ -31,7 +31,7 @@
   --color-sidebar-primary-foreground: hsl(0 0% 98%);
   --color-sidebar-accent: hsl(240 4.8% 95.9%);
   --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --color-sidebar-border: hsl(220 13% 91%);
+  --color-sidebar-border: hsl(240 6% 90%);
   --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
@@ -42,30 +42,55 @@
 
   .dark {
     color-scheme: dark;
-    --color-background: hsl(222.2 47.4% 11.2%);
-    --color-foreground: hsl(210 40% 98%);
-    --color-card: hsl(222.2 47.4% 13.2%);
-    --color-card-foreground: hsl(210 40% 98%);
-    --color-popover: hsl(222.2 47.4% 13.2%);
-    --color-popover-foreground: hsl(210 40% 98%);
-    --color-primary: hsl(238 83% 67%);
-    --color-primary-foreground: hsl(210 40% 98%);
-    --color-secondary: hsl(217.2 32.6% 17.5%);
-    --color-secondary-foreground: hsl(210 40% 98%);
-    --color-muted: hsl(217.2 32.6% 17.5%);
-    --color-muted-foreground: hsl(215 20.2% 65.1%);
-    --color-accent: hsl(217.2 32.6% 17.5%);
-    --color-accent-foreground: hsl(210 40% 98%);
+    /* Navy Dark - 브랜드 컬러와 조화되는 다크모드 배경 */
+    --color-background: hsl(225 15% 6%);
+    --color-foreground: hsl(0 0% 98%);
+    --color-card: hsl(225 12% 12%);
+    --color-card-foreground: hsl(0 0% 98%);
+    --color-popover: hsl(225 12% 12%);
+    --color-popover-foreground: hsl(0 0% 98%);
+    --color-primary: hsl(215 65% 33%);
+    --color-primary-foreground: hsl(0 0% 100%);
+    --color-secondary: hsl(225 10% 18%);
+    --color-secondary-foreground: hsl(0 0% 98%);
+    --color-muted: hsl(225 10% 18%);
+    --color-muted-foreground: hsl(225 8% 60%);
+    --color-accent: hsl(225 10% 18%);
+    --color-accent-foreground: hsl(0 0% 98%);
     --color-destructive: hsl(0 62.8% 30.6%);
-    --color-destructive-foreground: hsl(210 40% 98%);
-    --color-border: hsl(217.2 32.6% 22%);
-    --color-input: hsl(217.2 32.6% 22%);
-    --color-ring: hsl(238 83% 67%);
+    --color-destructive-foreground: hsl(0 0% 98%);
+    --color-border: hsl(225 10% 18%);
+    --color-input: hsl(225 10% 18%);
+    --color-ring: hsl(208 56% 67%);
+
+    /* Tailwind zinc 색상 재정의 — 다크모드 배경에 은은한 블루 캐스트 */
+    --color-zinc-950: #080C18;
+    --color-zinc-900: #141A2A;
+    --color-zinc-800: #222A3E;
+    --color-zinc-700: #38415A;
   }
 
   * {
     border-color: var(--color-border);
     outline-color: var(--color-ring);
+  }
+  /* ── 접근성: 키보드 포커스 링 ── */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  button:focus:not(:focus-visible),
+  input:focus:not(:focus-visible),
+  select:focus:not(:focus-visible),
+  textarea:focus:not(:focus-visible) {
+    outline: none;
   }
   body {
     background-color: var(--color-background);
@@ -85,5 +110,106 @@
   .no-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+  }
+
+  /* ── 로고 애니메이션 ── */
+  @keyframes logo-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+  @keyframes logo-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes logo-blink {
+    0%, 85%, 100% { transform: scale(1, 1); }
+    92%, 96% { transform: scale(3, 0.3); }
+  }
+  .animate-logo-eye {
+    animation: logo-blink 3s ease-in-out infinite;
+  }
+  .animate-logo-bot {
+    animation: logo-float 2.5s ease-in-out infinite;
+  }
+  .animate-logo-antenna {
+    animation: logo-pulse 2s ease-in-out infinite;
+  }
+  .animate-logo-eye {
+    animation: logo-blink 3s ease-in-out infinite;
+  }
+
+  /* ── 랜딩 페이지 애니메이션 ── */
+  @keyframes card-glow {
+    0%, 100% { box-shadow: 0 8px 40px rgba(30,77,140,0.08); }
+    50% { box-shadow: 0 8px 56px rgba(30,77,140,0.15); }
+  }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .animate-card-glow {
+    animation: card-glow 3s ease-in-out infinite;
+  }
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 6s ease-in-out infinite;
+  }
+
+  /* ── 프리뷰 카드 데모 애니메이션 ── */
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @keyframes fade-slide-up {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes icon-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+  }
+  .animate-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: #1E4D8C;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: cursor-blink 0.8s step-end infinite;
+  }
+  .animate-fade-slide-up {
+    animation: fade-slide-up 0.6s ease-out forwards;
+  }
+  .animate-icon-pulse {
+    animation: icon-pulse 2s ease-in-out infinite;
+  }
+
+  /* ── STEP 1 데모 애니메이션 ── */
+  @keyframes button-press {
+    0%, 85% { transform: scale(1); box-shadow: 0 4px 14px rgba(30,77,140,0.25); }
+    92% { transform: scale(0.96); box-shadow: 0 2px 8px rgba(30,77,140,0.15); }
+    100% { transform: scale(1); box-shadow: 0 4px 14px rgba(30,77,140,0.25); }
+  }
+  .animate-button-press {
+    animation: button-press 0.7s ease-out forwards;
+  }
+  .animate-cursor-blink {
+    animation: cursor-blink 0.8s step-end infinite;
+  }
+
+  /* ── 마우스 커서 이동 애니메이션 ── */
+  @keyframes tap-cursor {
+    0% { opacity: 0; transform: scale(0.5); }
+    20% { opacity: 1; transform: scale(1.2); }
+    40% { opacity: 1; transform: scale(0.85); }
+    55% { opacity: 1; transform: scale(1); }
+    70% { opacity: 0; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1); }
+  }
+  .animate-demo-cursor {
+    font-size: 16px;
+    pointer-events: none;
+    animation: tap-cursor 1.2s ease-out forwards;
   }
 }

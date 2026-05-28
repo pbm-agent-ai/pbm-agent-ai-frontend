@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Plus, X, Search, Circle, ChevronRight } from 'lucide-react';
+import { Plus, X, Search, Circle, ChevronRight, ListChecks } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
 import { Button } from '../components/ui/button';
@@ -339,7 +339,7 @@ export default function Conditions() {
       naver_flight: '#03c75a',
       aliexpress: '#ff6b6b',
     };
-    return map[platform] || '#6366F1';
+    return map[platform] || '#1E4D8C';
   };
 
 
@@ -519,13 +519,13 @@ export default function Conditions() {
     const areaPath = `${linePath} L ${getX(points.length - 1)} ${height - padding} L ${getX(0)} ${height - padding} Z`;
 
     return (
-      <div className="rounded-2xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <p className="text-sm font-bold text-[#111827] dark:text-slate-50">최근 수집 가격</p>
-            <p className="text-xs text-[#64748b]">최근 3개 가격 흐름 미니 차트</p>
+            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">최근 수집 가격</p>
+            <p className="text-xs text-zinc-500">최근 3개 가격 흐름 미니 차트</p>
           </div>
-          <div className="text-right text-xs text-[#64748b]">
+          <div className="text-right text-xs text-zinc-500">
             <p>최저 {formatPrice(minPrice)}</p>
             <p>최고 {formatPrice(maxPrice)}</p>
           </div>
@@ -534,19 +534,19 @@ export default function Conditions() {
         <svg className="h-[120px] w-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
           <defs>
             <linearGradient id="recentPriceAreaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#6366F1" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#6366F1" stopOpacity="0.03" />
+              <stop offset="0%" stopColor="#1E4D8C" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#1E4D8C" stopOpacity="0.03" />
             </linearGradient>
           </defs>
           <path d={areaPath} fill="url(#recentPriceAreaGradient)" />
-          <path d={linePath} fill="none" stroke="#6366F1" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={linePath} fill="none" stroke="#1E4D8C" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
           {points.map((item, index) => {
             const x = getX(index);
             const y = getY(item.price);
 
             return (
               <g key={`${item.collectedAt}-${index}`}>
-                <circle cx={x} cy={y} r="4.5" fill="#6366F1" stroke="white" className="dark:stroke-slate-800" strokeWidth="2" />
+                <circle cx={x} cy={y} r="4.5" fill="#1E4D8C" stroke="white" className="dark:stroke-zinc-800" strokeWidth="2" />
               </g>
             );
           })}
@@ -554,9 +554,9 @@ export default function Conditions() {
 
         <div className="mt-3 grid grid-cols-3 gap-2">
           {points.map((item, index) => (
-            <div key={`${item.collectedAt}-${index}`} className="rounded-xl bg-[#F8FAFC] dark:bg-slate-900 px-3 py-2 text-center">
-              <p className="text-[11px] font-semibold text-[#64748b]">{item.collectedAt.slice(11, 16)}</p>
-              <p className="text-sm font-bold text-[#0f172a] dark:text-slate-50">{formatPrice(item.price)}</p>
+            <div key={`${item.collectedAt}-${index}`} className="rounded-xl bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-center">
+              <p className="text-[11px] font-semibold text-zinc-500">{item.collectedAt.slice(11, 16)}</p>
+              <p className="text-sm font-bold text-[#0f172a] dark:text-zinc-50">{formatPrice(item.price)}</p>
             </div>
           ))}
         </div>
@@ -980,29 +980,34 @@ export default function Conditions() {
     : undefined;
 
   return (
-    <div className="w-full bg-[#F8FAFC] dark:bg-slate-950 min-h-screen font-sans">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans">
       <div className="p-4 md:p-8 max-w-[1200px] mx-auto flex flex-col h-full">
         
         {/* 헤더 및 검색 */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between px-2 gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-[#111827] dark:text-slate-50 tracking-tight">조건 관리</h1>
-            <p className="text-[#6b7280] dark:text-slate-400 mt-1 font-medium">모니터링 조건을 세밀하게 설정하고 관리하세요.</p>
+          <div className="flex items-start gap-4 md:gap-5">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
+              <ListChecks className="w-6 h-6 md:w-7 md:h-7" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">조건 관리</h1>
+              <p className="text-zinc-500 dark:text-zinc-300 mt-1 font-medium">모니터링 조건을 세밀하게 설정하고 관리하세요.</p>
+            </div>
           </div>
           <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
             <form className="relative w-full md:w-80" onSubmit={handleSearchSubmit}>
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#94A3B8] dark:text-slate-500" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-400" />
               <input
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="상품명 검색"
-                className="w-full pl-9 pr-10 py-2.5 text-sm bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl outline-none focus:border-[#6366F1] dark:focus:border-indigo-400 transition-colors placeholder:text-[#94A3B8] dark:placeholder:text-slate-500 dark:text-slate-50 h-10"
+                className="w-full pl-9 pr-10 py-2.5 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-50 h-10"
               />
               {searchKeyword.trim() && (
                 <button
                   type="button"
                   onClick={() => void handleClearSearch()}
-                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-[#94A3B8] transition-colors hover:bg-slate-100 hover:text-[#475569] dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
                   aria-label="검색어 지우기"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -1021,7 +1026,7 @@ export default function Conditions() {
               void loadConditions({ platform: value });
             }}
           >
-            <SelectTrigger className="w-[130px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3">
+            <SelectTrigger className="w-[130px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3">
               <SelectValue placeholder="전체 플랫폼" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -1043,7 +1048,7 @@ export default function Conditions() {
               void loadConditions({ isActive: value as 'ALL' | 'true' | 'false' });
             }}
           >
-            <SelectTrigger className="w-[110px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3">
+            <SelectTrigger className="w-[110px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3">
               <SelectValue placeholder="전체 상태" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -1060,7 +1065,7 @@ export default function Conditions() {
               void loadConditions({ mode: value as 'ALL' | 'AUTO_PAYMENT' | 'ALERT_ONLY' });
             }}
           >
-            <SelectTrigger className="w-[125px] bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 text-xs sm:text-sm rounded-xl h-9 px-3">
+            <SelectTrigger className="w-[125px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3">
               <SelectValue placeholder="전체 모드" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -1075,7 +1080,7 @@ export default function Conditions() {
               type="button"
               variant="outline"
               onClick={() => void handleResetFilters()}
-              className="h-9 rounded-xl border-[#CBD5E1] bg-white px-3 text-sm font-semibold text-[#475569] hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="h-9 rounded-xl border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               필터 초기화
             </Button>
@@ -1083,8 +1088,8 @@ export default function Conditions() {
         </div>
 
         {isConditionsLoading && (
-          <div className="mb-4 flex items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm font-medium text-[#475569] shadow-[0_2px_12px_rgb(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-[#6366F1]" />
+          <div className="mb-4 flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#1E4D8C]" />
             조건을 불러오는 중입니다...
           </div>
         )}
@@ -1099,12 +1104,14 @@ export default function Conditions() {
         <div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
             {/* [수정] 필터 결과가 없을 때 안내 문구 표시 */}
             {!isConditionsLoading && conditions.length === 0 && (
-              <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-800 rounded-[1.5rem] border-2 border-dashed border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
-                <div className="w-16 h-16 rounded-full bg-[#EEF2FF] dark:bg-indigo-500/10 border border-[#6366F1]/10 flex items-center justify-center mb-4 text-[#9ca3af] dark:text-slate-500">
-                  <Search className="w-8 h-8" />
+              <div className="col-span-full">
+                <div className="py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-zinc-800 rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
+                  <div className="w-16 h-16 rounded-full bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 border border-[#1E4D8C]/10 flex items-center justify-center mb-4 text-zinc-400 dark:text-zinc-400">
+                    <Search className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 mb-1">조건이 없습니다</h4>
+                  <p className="text-zinc-500 dark:text-zinc-300">검색/필터 조건에 맞는 모니터링 항목을 찾을 수 없습니다.</p>
                 </div>
-                <h4 className="text-lg font-bold text-[#111827] dark:text-slate-50 mb-1">조건이 없습니다</h4>
-                <p className="text-[#6b7280] dark:text-slate-400">검색/필터 조건에 맞는 모니터링 항목을 찾을 수 없습니다.</p>
               </div>
             )}
 
@@ -1112,31 +1119,28 @@ export default function Conditions() {
               Array.from({ length: 3 }).map((_, index) => (
                 <div
                   key={`condition-skeleton-${index}`}
-                  className="h-full min-h-[280px] animate-pulse rounded-[1.5rem] border border-[#E2E8F0] bg-white p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] dark:border-slate-700 dark:bg-slate-800"
+                  className="h-full min-h-[280px] animate-pulse rounded-[1.5rem] border border-zinc-200 bg-white p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] dark:border-zinc-700 dark:bg-zinc-800"
                 >
-                  <div className="mb-4 flex items-center justify-between border-b border-[#E2E8F0] pb-3 dark:border-slate-700/60">
-                    <div className="h-5 w-20 rounded-full bg-slate-200 dark:bg-slate-700" />
+                  <div className="mb-4 flex items-center justify-between border-b border-zinc-200 pb-3 dark:border-zinc-700/60">
+                    <div className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700" />
                     <div className="flex gap-2">
-                      <div className="h-5 w-16 rounded-md bg-slate-200 dark:bg-slate-700" />
-                      <div className="h-5 w-14 rounded-md bg-slate-200 dark:bg-slate-700" />
+                      <div className="h-5 w-16 rounded-md bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-5 w-14 rounded-md bg-zinc-200 dark:bg-zinc-700" />
                     </div>
                   </div>
-                  <div className="space-y-3 px-1">
-                    <div className="h-5 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
-                    <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="mb-6 flex items-center justify-center">
+                    <div className="h-24 w-full rounded-xl bg-zinc-200 dark:bg-zinc-700" />
                   </div>
-                  <div className="mt-6 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-900/70">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="h-3 w-16 rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="h-7 w-24 rounded bg-slate-200 dark:bg-slate-700" />
-                      </div>
-                      <div className="space-y-2 text-right">
-                        <div className="ml-auto h-3 w-12 rounded bg-slate-200 dark:bg-slate-700" />
-                        <div className="ml-auto h-5 w-20 rounded bg-slate-200 dark:bg-slate-700" />
-                      </div>
+                  <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700/60">
+                    <div className="space-y-2">
+                      <div className="h-3 w-16 rounded bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-5 w-20 rounded bg-zinc-200 dark:bg-zinc-700" />
                     </div>
-                    <div className="mt-4 h-6 w-24 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-700" />
+                    <div className="space-y-2 text-right">
+                      <div className="h-3 w-16 ml-auto rounded bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-5 w-20 ml-auto rounded bg-zinc-200 dark:bg-zinc-700" />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1144,16 +1148,16 @@ export default function Conditions() {
             {/* 새 조건 추가 카드 */}
             <button
               type="button"
-              className="h-full min-h-[280px] bg-[#F8FAFC] dark:bg-slate-900 border-2 border-dashed border-[#d1d5db] rounded-[1.5rem] p-6 flex flex-col items-center justify-center hover:border-[#6366F1]/50 hover:bg-[#EEF2FF]/50 transition-all cursor-pointer group shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F8FAFC] dark:focus-visible:ring-offset-slate-950"
+              className="h-full min-h-[280px] bg-zinc-50 dark:bg-zinc-900 border-2 border-dashed border-zinc-300 rounded-[1.5rem] p-6 flex flex-col items-center justify-center hover:border-[#1E4D8C]/50 hover:bg-[#F9F7F7]/50 dark:hover:bg-[#1E4D8C]/20 transition-all cursor-pointer group shadow-sm hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 dark:focus-visible:ring-offset-zinc-950"
               onClick={() => setIsModalOpen(true)}
             >
-              <div className="w-14 h-14 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center mb-4 group-hover:bg-[#6366F1] group-hover:border-[#6366F1] transition-colors">
-                <Plus className="w-6 h-6 text-[#9ca3af] dark:text-slate-500 group-hover:text-white transition-colors" />
+              <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700 flex items-center justify-center mb-4 group-hover:bg-[#1E4D8C] group-hover:border-[#1E4D8C] transition-colors">
+                <Plus className="w-6 h-6 text-zinc-400 dark:text-zinc-400 group-hover:text-white transition-colors" />
               </div>
-              <p className="text-[#4b5563] dark:text-slate-300 font-bold text-base group-hover:text-[#4F46E5] transition-colors">
+              <p className="text-zinc-700 dark:text-zinc-300 font-bold text-base group-hover:text-[#0F3460] transition-colors">
                 새 조건 등록
               </p>
-              <p className="text-[#9ca3af] dark:text-slate-500 text-xs mt-1 group-hover:text-[#6366F1]/80">클릭하여 모니터링 직접 설정</p>
+              <p className="text-zinc-400 dark:text-zinc-400 text-xs mt-1 group-hover:text-[#1E4D8C]/80">클릭하여 모니터링 직접 설정</p>
             </button>
 
             {/* 카드 렌더링 (Dashboard 리스트와 동일한 스타일 사용) */}
@@ -1164,16 +1168,16 @@ export default function Conditions() {
               return (
                 <div
                   key={condition.conditionId}
-                  className="bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[1.5rem] p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15,23,42,0.08)] transition-all duration-200 flex h-full flex-col group relative"
+                  className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-[1.5rem] p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15,23,42,0.08)] transition-all duration-200 flex h-full flex-col group relative"
                 >
-                  <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#E2E8F0] pb-3 dark:border-slate-700/60">
+                  <div className="mb-4 flex items-center justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-zinc-700/60">
                     <div className="flex items-center gap-2.5">
                       <Switch
                         checked={condition.isActive}
                         disabled={isTogglingConditionId === condition.conditionId}
                         onCheckedChange={(checked) => handleToggleCondition(condition.conditionId, Boolean(checked))}
                       />
-                      <span className={`text-xs font-bold ${condition.isActive ? 'text-[#059669] dark:text-emerald-400' : 'text-[#94A3B8] dark:text-slate-500'}`}>
+                      <span className={`text-xs font-bold ${condition.isActive ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : 'text-zinc-400 dark:text-zinc-400'}`}>
                         <Circle className="mr-1 inline-block h-2 w-2" fill="currentColor" />
                         {condition.isActive ? '가동 중' : '중지됨'}
                       </span>
@@ -1192,7 +1196,7 @@ export default function Conditions() {
                       </Badge>
                       <Badge
                         variant="outline"
-                        className={`border-transparent px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap ${condition.mode === 'AUTO_PAYMENT' ? 'bg-[#EEF2FF] text-[#6366F1] dark:bg-indigo-500/10 dark:text-indigo-400' : 'bg-[#fef3c7] text-[#b45309] dark:bg-[#b45309]/10 dark:text-[#fef3c7]'}`}
+                        className={`border-transparent px-2 py-0.5 rounded-md text-[10px] font-bold whitespace-nowrap ${condition.mode === 'AUTO_PAYMENT' ? 'bg-[#F9F7F7] text-[#1E4D8C] dark:bg-[#1E4D8C]/10 dark:text-[#7BAEDA]' : 'bg-[#fef3c7] text-[#b45309] dark:bg-[#b45309]/10 dark:text-[#fef3c7]'}`}
                       >
                         {condition.mode === 'AUTO_PAYMENT' ? '자동 결제' : '알람'}
                       </Badge>
@@ -1201,23 +1205,23 @@ export default function Conditions() {
 
                   <div className="flex flex-1 flex-col rounded-2xl text-left">
                     <div className="mb-5 px-1">
-                      <p className="h-[3.25rem] line-clamp-2 text-lg font-bold leading-snug text-[#111827] transition-colors group-hover:text-[#6366F1] dark:text-slate-50">{condition.keyword}</p>
-                      <p className="mt-1.5 min-h-[1.25rem] line-clamp-1 text-sm text-[#6b7280] dark:text-slate-400">{formatOptions(condition.options)}</p>
+                      <p className="h-[3.25rem] line-clamp-2 text-lg font-bold leading-snug text-zinc-900 transition-colors group-hover:text-[#1E4D8C] dark:text-zinc-50">{condition.keyword}</p>
+                      <p className="mt-1.5 min-h-[1.25rem] line-clamp-1 text-sm text-zinc-500 dark:text-zinc-300">{formatOptions(condition.options)}</p>
                     </div>
 
-                    <div className="mt-auto rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4 dark:border-slate-700 dark:bg-slate-900/70">
+                    <div className="mt-auto rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900/70">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <p className="text-[#6366F1] text-[10px] uppercase font-bold tracking-wider mb-1">현재 수집가</p>
-                          <p className="text-[#111827] dark:text-slate-50 font-black text-2xl">
+                          <p className="text-[#1E4D8C] text-[10px] uppercase font-bold tracking-wider mb-1">현재 수집가</p>
+                          <p className="text-zinc-900 dark:text-zinc-50 font-black text-2xl">
                             {condition.currentPrice != null ? formatPrice(condition.currentPrice) : '수집 전'}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[#9ca3af] dark:text-slate-500 text-[10px] uppercase font-bold tracking-wider mb-1">목표가</p>
-                          <p className="text-[#475569] dark:text-slate-300 font-semibold text-base">{formatPrice(condition.maxPrice)}</p>
+                          <p className="text-zinc-400 dark:text-zinc-400 text-[10px] uppercase font-bold tracking-wider mb-1">목표가</p>
+                          <p className="text-zinc-700 dark:text-zinc-300 font-semibold text-base">{formatPrice(condition.maxPrice)}</p>
                           {condition.currentPrice != null && priceDiff != null && (
-                            <p className={`mt-2 text-xs font-bold ${isSatisfied ? 'text-[#059669] dark:text-emerald-400' : 'text-[#D97706] dark:text-amber-300'}`}>
+                            <p className={`mt-2 text-xs font-bold ${isSatisfied ? 'text-[#059669] dark:text-emerald-500' : 'text-[#D97706] dark:text-amber-400'}`}>
                               {getPriceDiffSummaryText(priceDiff)}
                             </p>
                           )}
@@ -1230,8 +1234,8 @@ export default function Conditions() {
                             variant="outline"
                             className={`border-none px-3 py-1 rounded-lg text-xs font-bold ${
                               isSatisfied
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-600/10 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-600/10 dark:text-amber-400'
                             }`}
                           >
                             {getConditionStatusLabel(priceDiff)}
@@ -1242,11 +1246,11 @@ export default function Conditions() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-[#E2E8F0] pt-3 dark:border-slate-700/60">
+                  <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-700/60">
                     <button
                       type="button"
                       onClick={() => void openDetailModal(condition)}
-                      className="group/btn -ml-2 flex items-center gap-1 rounded-lg bg-transparent px-2 py-1.5 text-sm font-bold text-[#475569] transition-colors hover:bg-[#EEF2FF] hover:text-[#6366F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-slate-300 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 dark:focus-visible:ring-offset-slate-800"
+                      className="group/btn -ml-2 flex items-center gap-1 rounded-lg bg-transparent px-2 py-1.5 text-sm font-bold text-zinc-700 transition-colors hover:bg-[#F9F7F7] hover:text-[#1E4D8C] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:text-zinc-300 dark:hover:bg-[#1E4D8C]/10 dark:hover:text-[#7BAEDA] dark:focus-visible:ring-offset-zinc-800"
                     >
                       상세 보기
                       <ChevronRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-0.5" />
@@ -1255,7 +1259,7 @@ export default function Conditions() {
                       type="button"
                       aria-label="조건 삭제"
                       onClick={() => void handleDeleteCondition(condition.conditionId)}
-                      className="-mr-2 inline-flex items-center rounded-lg px-2 py-1.5 text-xs font-medium text-[#94A3B8] transition-colors hover:bg-red-50 hover:text-red-600 dark:text-slate-500 dark:hover:bg-red-500/10"
+                      className="-mr-2 inline-flex items-center rounded-lg px-2 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-500/10"
                     >
                       삭제
                     </button>
@@ -1271,67 +1275,67 @@ export default function Conditions() {
 
       {/* 모달 공통/기존 로직 유지 */}
       <Dialog open={isModalOpen} onOpenChange={(open) => { if(!open) closeModal(); }}>
-        <DialogContent className="max-w-lg bg-white dark:bg-slate-800 rounded-3xl p-0 overflow-hidden border-[#E2E8F0] dark:border-slate-700">
+        <DialogContent className="max-w-lg bg-white dark:bg-zinc-800 rounded-3xl p-0 overflow-hidden border-zinc-200 dark:border-zinc-700">
           <form onSubmit={handleAddCondition}>
             <DialogHeader className="px-6 pt-6 pb-2">
-              <DialogTitle className="text-[#0F172A] dark:text-slate-50 text-xl font-bold">새 조건 등록</DialogTitle>
-              <DialogDescription className="text-[#475569] dark:text-slate-400">
+              <DialogTitle className="text-zinc-900 dark:text-zinc-50 text-xl font-bold">새 조건 등록</DialogTitle>
+              <DialogDescription className="text-zinc-700 dark:text-zinc-300">
                 새로운 모니터링 조건을 설정합니다.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5 px-6 pb-2 mt-2 max-h-[60vh] overflow-y-auto">
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">플랫폼</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">플랫폼</Label>
                 <input
                   value={newCondition.platform}
                   onChange={(e) => handlePlatformChange(e.target.value)}
-                  className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                  className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                   placeholder="예: 네이버 항공권"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">검색 키워드</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">검색 키워드</Label>
                 <input
                   value={newCondition.keyword}
                   onChange={(e) => setNewCondition((prev) => ({ ...prev, keyword: e.target.value }))}
-                  className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                  className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                   placeholder="예: 인천-도쿄"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">목표가</Label>
+                  <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">목표가</Label>
                   <div className="relative">
                     <input
                       type="number"
                       value={newCondition.maxPrice}
                       onChange={(e) => setNewCondition((prev) => ({ ...prev, maxPrice: e.target.value }))}
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                       placeholder="예: 250000"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-slate-500 font-semibold">원</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400 dark:text-zinc-400 font-semibold">원</span>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">최대 결제 횟수</Label>
+                  <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">최대 결제 횟수</Label>
                   <div className="relative">
                     <input
                       type="number"
                       value={newCondition.maxExecutionCount}
                       onChange={(e) => setNewCondition((prev) => ({ ...prev, maxExecutionCount: e.target.value }))}
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                       placeholder="미입력 시 무제한"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-slate-500 font-semibold">회</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400 dark:text-zinc-400 font-semibold">회</span>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">알림 모드</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">알림 모드</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
@@ -1345,7 +1349,7 @@ export default function Conditions() {
                     className={
                       newCondition.mode === 'ALERT_ONLY'
                         ? 'border-[#f0a040] bg-[#f0a040]/10 text-[#b45309] hover:bg-[#f0a040]/20 rounded-xl h-11'
-                        : 'border-[#E2E8F0] dark:border-slate-700 bg-[#F1F5F9] dark:bg-slate-900 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl h-11'
+                        : 'border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-xl h-11'
                     }
                   >
                     알람 전용
@@ -1361,8 +1365,8 @@ export default function Conditions() {
                     }
                     className={
                       newCondition.mode === 'AUTO_PAYMENT'
-                        ? 'border-[#6366F1] bg-[#EEF2FF] text-[#6366F1] dark:bg-indigo-500/10 rounded-xl h-11'
-                        : 'border-[#E2E8F0] dark:border-slate-700 bg-[#F1F5F9] dark:bg-slate-900 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl h-11'
+                        ? 'border-[#1E4D8C] bg-[#F9F7F7] text-[#1E4D8C] dark:bg-[#1E4D8C]/10 rounded-xl h-11'
+                        : 'border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-xl h-11'
                     }
                   >
                     자동 결제
@@ -1371,7 +1375,7 @@ export default function Conditions() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">만료일</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">만료일</Label>
                 <div className="grid grid-cols-3 gap-3">
                   <Select
                     value={newCondition.expiryYear}
@@ -1382,7 +1386,7 @@ export default function Conditions() {
                       }))
                     }
                   >
-                    <SelectTrigger className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11">
+                    <SelectTrigger className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11">
                       <SelectValue placeholder="연도" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
@@ -1404,7 +1408,7 @@ export default function Conditions() {
                     }
                   >
                     <SelectTrigger
-                      className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11"
+                      className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11"
                       disabled={!newCondition.expiryYear}
                     >
                       <SelectValue placeholder="월" />
@@ -1427,7 +1431,7 @@ export default function Conditions() {
                     }
                   >
                     <SelectTrigger
-                      className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11"
+                      className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11"
                       disabled={!newCondition.expiryYear || !newCondition.expiryMonth}
                     >
                       <SelectValue placeholder="일" />
@@ -1446,20 +1450,20 @@ export default function Conditions() {
               {isAirlinePlatform(newCondition.platform) && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">비행 종류</Label>
+                    <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">비행 종류</Label>
                     <input
                       value={newCondition.flightType}
                       onChange={(e) => setNewCondition((prev) => ({ ...prev, flightType: e.target.value }))}
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                       placeholder="예: 직항"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">여정 유형</Label>
+                    <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">여정 유형</Label>
                     <input
                       value={newCondition.tripType}
                       onChange={(e) => setNewCondition((prev) => ({ ...prev, tripType: e.target.value }))}
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                       placeholder="예: 왕복"
                     />
                   </div>
@@ -1467,14 +1471,14 @@ export default function Conditions() {
               )}
             </div>
 
-            <DialogFooter className="bg-[#F1F5F9] dark:bg-slate-900 px-6 py-4 mt-4 border-t border-[#E2E8F0] dark:border-slate-700">
-              <Button type="button" variant="outline" onClick={closeModal} className="rounded-xl px-6 py-2 bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700">
+            <DialogFooter className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
+              <Button type="button" variant="outline" onClick={closeModal} className="rounded-xl px-6 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
                 취소
               </Button>
               <Button
                 type="submit"
                 disabled={isAddButtonDisabled}
-                className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] dark:hover:from-indigo-400 hover:to-[#4338CA] dark:hover:to-indigo-500 shadow-[0_4px_10px_rgba(99,102,241,0.25)] border-none font-bold"
+                className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] shadow-[0_4px_10px_rgba(30,77,140,0.25)] border-none font-bold"
               >
                 {isAddButtonDisabled ? '등록 중...' : '등록'}
               </Button>
@@ -1484,20 +1488,20 @@ export default function Conditions() {
       </Dialog>
 
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
-        <DialogContent className="max-w-sm bg-white dark:bg-slate-800 rounded-3xl p-0 overflow-hidden border-[#E2E8F0] dark:border-slate-700">
+        <DialogContent className="max-w-sm bg-white dark:bg-zinc-800 rounded-3xl p-0 overflow-hidden border-zinc-200 dark:border-zinc-700">
           <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle className="text-[#0F172A] dark:text-slate-50 text-xl font-bold">조건 삭제</DialogTitle>
-            <DialogDescription className="text-[#475569] dark:text-slate-400">
+            <DialogTitle className="text-zinc-900 dark:text-zinc-50 text-xl font-bold">조건 삭제</DialogTitle>
+            <DialogDescription className="text-zinc-700 dark:text-zinc-300">
               {deleteTarget ? `'${deleteTarget.keyword}' 조건을 삭제할까요?` : '선택한 조건을 삭제할까요?'}
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="bg-[#F1F5F9] dark:bg-slate-900 px-6 py-4 mt-4 border-t border-[#E2E8F0] dark:border-slate-700">
+          <DialogFooter className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
             <Button
               type="button"
               variant="outline"
               onClick={() => setDeleteTarget(null)}
-              className="rounded-xl px-6 py-2 bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+              className="rounded-xl px-6 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
             >
               취소
             </Button>
@@ -1515,16 +1519,16 @@ export default function Conditions() {
       {/* 상세 정보 확인 (읽기 전용 모달) */}
       {editingCondition && !isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70 p-4 transition-all">
-          <div className="w-full max-w-2xl rounded-3xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#F1F5F9] dark:border-slate-800 px-8 py-5 bg-[#F8FAFC] dark:bg-slate-900">
-              <h2 className="text-xl font-bold text-[#111827] dark:text-slate-50">상세 보기</h2>
-              <button type="button" onClick={closeEditModal} className="text-[#9ca3af] dark:text-slate-500 hover:text-[#111827] dark:text-slate-50 transition-colors">
+          <div className="w-full max-w-2xl rounded-3xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[#F1F5F9] dark:border-zinc-700 px-8 py-5 bg-zinc-50 dark:bg-zinc-900">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">상세 보기</h2>
+              <button type="button" onClick={closeEditModal} className="text-zinc-400 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-50 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="space-y-6 px-8 py-6 max-h-[80vh] overflow-y-auto overflow-x-hidden">
-              <div className="flex flex-col gap-4 pb-4 border-b border-[#E2E8F0] dark:border-slate-700/60 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-700/60 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2.5">
                     <span
@@ -1537,103 +1541,103 @@ export default function Conditions() {
                     >
                       {getPlatformName(editingCondition.platform)}
                     </span>
-                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold ${editingCondition.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-[#94a3b8] text-[#94a3b8] dark:text-slate-500 bg-white dark:bg-slate-800'}`}>
+                    <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold ${editingCondition.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/30 dark:bg-emerald-600/10 dark:text-emerald-400' : 'border-[#94a3b8] text-[#94a3b8] dark:text-zinc-400 bg-white dark:bg-zinc-800'}`}>
                       {editingCondition.isActive ? '모니터링 활성' : '모니터링 비활성'}
                     </Badge>
                   </div>
-                  <h3 className="text-lg font-black text-[#0f172a] dark:text-slate-50 leading-snug">{editingCondition.keyword}</h3>
+                  <h3 className="text-lg font-black text-[#0f172a] dark:text-zinc-50 leading-snug">{editingCondition.keyword}</h3>
                 </div>
 
                 <div className="flex flex-col items-start gap-2 sm:items-end">
-                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 uppercase tracking-wider">알람 모드</p>
+                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 uppercase tracking-wider">알람 모드</p>
                   <div className="flex gap-2">
                     {editingCondition.mode === 'ALERT_ONLY' ? (
                       <Badge className="border-[#f0a040] bg-[#f0a040]/10 text-[#b45309] rounded-xl h-8 px-4 text-xs font-bold border">알람 전용</Badge>
                     ) : (
-                      <Badge className="border-[#6366F1] bg-[#EEF2FF] text-[#6366F1] dark:bg-indigo-500/10 rounded-xl h-8 px-4 text-xs font-bold border">자동 결제</Badge>
+                      <Badge className="border-[#1E4D8C] bg-[#F9F7F7] text-[#1E4D8C] dark:bg-[#1E4D8C]/10 rounded-xl h-8 px-4 text-xs font-bold border">자동 결제</Badge>
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl border border-[#E2E8F0] dark:border-slate-700 p-5">
+              <div className="flex items-center justify-between bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
                 <div className="text-center flex-1">
-                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 mb-1 uppercase tracking-wide">현재 수집가</p>
-                  <p className="text-lg font-black text-[#6366F1]">{editingCondition.currentPrice != null ? formatPrice(editingCondition.currentPrice) : '수집 전'}</p>
+                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 mb-1 uppercase tracking-wide">현재 수집가</p>
+                  <p className="text-lg font-black text-[#1E4D8C]">{editingCondition.currentPrice != null ? formatPrice(editingCondition.currentPrice) : '수집 전'}</p>
                 </div>
-                <div className="w-px h-10 bg-[#E2E8F0] dark:border-slate-700"></div>
+                <div className="w-px h-10 bg-[#E2E8F0] dark:border-zinc-700"></div>
                 <div className="text-center flex-1">
-                  <p className="text-[10px] font-bold text-[#64748b] mb-1 uppercase tracking-wide">목표 최대가</p>
-                  <p className="text-lg font-black text-[#0f172a] dark:text-slate-50">{formatPrice(Number(editingCondition.maxPrice))}</p>
+                  <p className="text-[10px] font-bold text-zinc-500 mb-1 uppercase tracking-wide">목표 최대가</p>
+                  <p className="text-lg font-black text-[#0f172a] dark:text-zinc-50">{formatPrice(Number(editingCondition.maxPrice))}</p>
                 </div>
-                <div className="w-px h-10 bg-[#E2E8F0] dark:border-slate-700"></div>
+                <div className="w-px h-10 bg-[#E2E8F0] dark:border-zinc-700"></div>
                 <div className="text-center flex-1 flex flex-col items-center">
-                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 mb-1 uppercase tracking-wide">목표가 차이</p>
-                  <p className={`text-base font-black ${isConditionSatisfied(liveEditingPriceDiff) ? 'text-[#059669] dark:text-emerald-400' : 'text-[#D97706] dark:text-amber-300'}`}>
+                  <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 mb-1 uppercase tracking-wide">목표가 차이</p>
+                  <p className={`text-base font-black ${isConditionSatisfied(liveEditingPriceDiff) ? 'text-[#059669] dark:text-emerald-500' : 'text-[#D97706] dark:text-amber-400'}`}>
                     {liveEditingPriceDiff != null ? formatPrice(liveEditingPriceDiff) : '계산 불가'}
                   </p>
                   {liveEditingPriceDiff != null && (
-                    <Badge variant="outline" className={`mt-2 border-none px-3 py-1 rounded-lg text-xs font-bold ${isConditionSatisfied(liveEditingPriceDiff) ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
+                    <Badge variant="outline" className={`mt-2 border-none px-3 py-1 rounded-lg text-xs font-bold ${isConditionSatisfied(liveEditingPriceDiff) ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-600/10 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
                       {getConditionStatusLabel(liveEditingPriceDiff)}
                     </Badge>
                   )}
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-slate-800 rounded-xl border border-[#E2E8F0] dark:border-slate-700 p-5">
+              <div className="bg-white dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700 p-5">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 uppercase tracking-wide mb-1">결제 회수</p>
-                    <p className="text-sm font-bold text-[#0f172a] dark:text-slate-50">현재 {editingCondition.currentExecutionCount ?? 0}회 / 최대 {editingCondition.maxExecutionCount.trim() ? `${editingCondition.maxExecutionCount}회` : '제한 없음'}</p>
+                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 uppercase tracking-wide mb-1">결제 회수</p>
+                    <p className="text-sm font-bold text-[#0f172a] dark:text-zinc-50">현재 {editingCondition.currentExecutionCount ?? 0}회 / 최대 {editingCondition.maxExecutionCount.trim() ? `${editingCondition.maxExecutionCount}회` : '제한 없음'}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 uppercase tracking-wide mb-1">만료일</p>
-                    <p className="text-sm font-bold text-[#0f172a] dark:text-slate-50">{editingCondition.expiredAt ? formatDateTimeText(editingCondition.expiredAt) : '만료일 없음'}</p>
-                    <p className="text-[11px] text-[#64748b] mt-0.5">최근 확인: {formatDateTimeText(editingCondition.lastCheckedAt)}</p>
+                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 uppercase tracking-wide mb-1">만료일</p>
+                    <p className="text-sm font-bold text-[#0f172a] dark:text-zinc-50">{editingCondition.expiredAt ? formatDateTimeText(editingCondition.expiredAt) : '만료일 없음'}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">최근 확인: {formatDateTimeText(editingCondition.lastCheckedAt)}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-slate-500 uppercase tracking-wide mb-1">메타</p>
-                    <p className="text-[11px] text-[#64748b]">생성일: {formatDateTimeText(editingCondition.createdAt)}</p>
-                    <p className="text-[11px] text-[#64748b]">수정일: {formatDateTimeText(editingCondition.updatedAt)}</p>
+                    <p className="text-[10px] font-bold text-[#94a3b8] dark:text-zinc-400 uppercase tracking-wide mb-1">메타</p>
+                    <p className="text-[11px] text-zinc-500">생성일: {formatDateTimeText(editingCondition.createdAt)}</p>
+                    <p className="text-[11px] text-zinc-500">수정일: {formatDateTimeText(editingCondition.updatedAt)}</p>
                   </div>
                 </div>
               </div>
 
               {isAirlinePlatform(editingCondition.platform) && (
-                <div className="rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-900 p-4">
-                  <p className="text-[10px] font-bold text-[#64748b] mb-3 uppercase tracking-wide">세부 옵션</p>
+                <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-4">
+                  <p className="text-[10px] font-bold text-zinc-500 mb-3 uppercase tracking-wide">세부 옵션</p>
                   <div className="flex gap-4">
-                    <p className="text-sm font-bold text-[#0f172a] dark:text-slate-50">
-                      <span className="text-[#64748b] mr-2 font-normal">비행 종류:</span>
+                    <p className="text-sm font-bold text-[#0f172a] dark:text-zinc-50">
+                      <span className="text-zinc-500 mr-2 font-normal">비행 종류:</span>
                       {editingCondition.flightTypeText || editingCondition.options?.flight_type || '-'}
                     </p>
-                    <p className="text-sm font-bold text-[#0f172a] dark:text-slate-50">
-                      <span className="text-[#64748b] mr-2 font-normal">여정 종류:</span>
+                    <p className="text-sm font-bold text-[#0f172a] dark:text-zinc-50">
+                      <span className="text-zinc-500 mr-2 font-normal">여정 종류:</span>
                       {editingCondition.tripTypeText || editingCondition.options?.trip_type || '-'}
                     </p>
                   </div>
                 </div>
               )}
 
-              <div className="pt-5 border-t border-[#F1F5F9] dark:border-slate-800">
-                <label className="mb-3 block text-sm font-bold text-[#4b5563] dark:text-slate-300">가격 변동 추이</label>
+              <div className="pt-5 border-t border-[#F1F5F9] dark:border-zinc-700">
+                <label className="mb-3 block text-sm font-bold text-zinc-700 dark:text-zinc-300">가격 변동 추이</label>
                 <div className="space-y-4">
                   <MiniPriceChart recentPrices={editingCondition.recentPrices} />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t border-[#F1F5F9] dark:border-slate-800 pt-6">
+              <div className="flex justify-end gap-3 border-t border-[#F1F5F9] dark:border-zinc-700 pt-6">
                 <button
                   type="button"
                   onClick={closeEditModal}
-                  className="rounded-full px-6 py-2.5 bg-[#F1F5F9] dark:bg-slate-900 text-[#4b5563] dark:text-slate-300 font-bold hover:bg-[#e5e7eb] transition-colors"
+                  className="rounded-full px-6 py-2.5 bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 font-bold hover:bg-[#e5e7eb] transition-colors"
                 >
                   닫기
                 </button>
                 <button
                   type="button"
                   onClick={handleOpenEdit}
-                  className="rounded-full px-6 py-2.5 bg-[#6366F1] text-white font-bold hover:bg-[#4F46E5] shadow-[0_2px_10px_rgba(99,102,241,0.3)] transition-colors"
+                  className="rounded-full px-6 py-2.5 bg-[#1E4D8C] text-white font-bold hover:bg-[#0F3460] shadow-[0_2px_10px_rgba(30,77,140,0.3)] transition-colors"
                 >
                   수정하기
                 </button>
@@ -1645,12 +1649,12 @@ export default function Conditions() {
 
       {/* 조건 수정 모달 */}
       <Dialog open={!!editingCondition && isEditModalOpen} onOpenChange={(open) => { if(!open) handleCancelEdit(); }}>
-        <DialogContent className="max-w-lg bg-white dark:bg-slate-800 rounded-3xl p-0 overflow-hidden border-[#E2E8F0] dark:border-slate-700">
+        <DialogContent className="max-w-lg bg-white dark:bg-zinc-800 rounded-3xl p-0 overflow-hidden border-zinc-200 dark:border-zinc-700">
           {editingCondition && (
           <form onSubmit={handleSaveEditCondition}>
             <DialogHeader className="px-6 pt-6 pb-2">
-              <DialogTitle className="text-[#0F172A] dark:text-slate-50 text-xl font-bold">조건 수정</DialogTitle>
-              <DialogDescription className="text-[#475569] dark:text-slate-400">
+              <DialogTitle className="text-zinc-900 dark:text-zinc-50 text-xl font-bold">조건 수정</DialogTitle>
+              <DialogDescription className="text-zinc-700 dark:text-zinc-300">
                 선택한 모니터링 조건을 수정합니다.
               </DialogDescription>
             </DialogHeader>
@@ -1667,19 +1671,19 @@ export default function Conditions() {
                 >
                   {getPlatformName(editingCondition.platform)}
                 </span>
-                <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold ${editingCondition.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300' : 'border-[#94a3b8] text-[#94a3b8] dark:text-slate-500 bg-white dark:bg-slate-800'}`}>
+                <Badge variant="outline" className={`px-2 py-0.5 text-[10px] font-bold ${editingCondition.isActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-600/30 dark:bg-emerald-600/10 dark:text-emerald-400' : 'border-[#94a3b8] text-[#94a3b8] dark:text-zinc-400 bg-white dark:bg-zinc-800'}`}>
                   {editingCondition.isActive ? '모니터링 활성' : '모니터링 비활성'}
                 </Badge>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">알람 모드</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">알람 모드</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setEditingCondition((prev) => (prev ? { ...prev, mode: 'ALERT_ONLY' } : prev))}
-                    className={editingCondition.mode === 'ALERT_ONLY' ? 'border-[#f0a040] bg-[#f0a040]/10 text-[#b45309] hover:bg-[#f0a040]/20 rounded-xl h-11' : 'border-[#E2E8F0] dark:border-slate-700 bg-[#F1F5F9] dark:bg-slate-900 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl h-11'}
+                    className={editingCondition.mode === 'ALERT_ONLY' ? 'border-[#f0a040] bg-[#f0a040]/10 text-[#b45309] hover:bg-[#f0a040]/20 rounded-xl h-11' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-xl h-11'}
                   >
                     알람 전용
                   </Button>
@@ -1687,7 +1691,7 @@ export default function Conditions() {
                     type="button"
                     variant="outline"
                     onClick={() => setEditingCondition((prev) => (prev ? { ...prev, mode: 'AUTO_PAYMENT' } : prev))}
-                    className={editingCondition.mode === 'AUTO_PAYMENT' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#6366F1] dark:bg-indigo-500/10 hover:bg-[#EEF2FF]/80 dark:hover:bg-indigo-500/20 rounded-xl h-11' : 'border-[#E2E8F0] dark:border-slate-700 bg-[#F1F5F9] dark:bg-slate-900 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl h-11'}
+                    className={editingCondition.mode === 'AUTO_PAYMENT' ? 'border-[#1E4D8C] bg-[#F9F7F7] text-[#1E4D8C] dark:bg-[#1E4D8C]/10 hover:bg-[#F9F7F7]/80 dark:hover:bg-[#1E4D8C]/20 rounded-xl h-11' : 'border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded-xl h-11'}
                   >
                     자동 결제
                   </Button>
@@ -1695,36 +1699,36 @@ export default function Conditions() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">목표 최대가</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">목표 최대가</Label>
                 <div className="relative">
                   <input
                     type="number"
                     step="1000"
                     value={editingCondition.maxPrice}
                     onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, maxPrice: e.target.value } : prev))}
-                    className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#6366F1]/40 rounded-xl px-4 py-3 pr-8 text-sm font-black text-[#4F46E5] focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                    className="w-full bg-zinc-100 dark:bg-zinc-900 border border-[#1E4D8C]/40 rounded-xl px-4 py-3 pr-8 text-sm font-black text-[#0F3460] focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-slate-500 font-semibold">원</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400 dark:text-zinc-400 font-semibold">원</span>
                 </div>
-                <p className="mt-1 text-xs text-[#64748b]">현재 기준가: {editingCondition.currentPrice != null ? formatPrice(editingCondition.currentPrice) : '수집 전'}</p>
+                <p className="mt-1 text-xs text-zinc-500">현재 기준가: {editingCondition.currentPrice != null ? formatPrice(editingCondition.currentPrice) : '수집 전'}</p>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">최대 결제 횟수</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">최대 결제 횟수</Label>
                 <div className="relative">
                   <input
                     type="number"
                     value={editingCondition.maxExecutionCount}
                     onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, maxExecutionCount: e.target.value } : prev))}
                     placeholder="미입력 시 무제한"
-                    className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                    className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 pr-8 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] dark:text-slate-500 font-semibold">회</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400 dark:text-zinc-400 font-semibold">회</span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">만료일</Label>
+                <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">만료일</Label>
                 <div className="grid grid-cols-3 gap-3">
                   <Select
                     value={editingCondition.editExpiryYearText ?? ''}
@@ -1740,7 +1744,7 @@ export default function Conditions() {
                       )
                     }
                   >
-                    <SelectTrigger className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11">
+                    <SelectTrigger className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11">
                       <SelectValue placeholder="연도" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
@@ -1766,7 +1770,7 @@ export default function Conditions() {
                     }
                   >
                     <SelectTrigger
-                      className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11"
+                      className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11"
                       disabled={!editingCondition.editExpiryYearText}
                     >
                       <SelectValue placeholder="월" />
@@ -1786,7 +1790,7 @@ export default function Conditions() {
                     }
                   >
                     <SelectTrigger
-                      className="bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0f172a] dark:text-slate-50 rounded-xl h-11"
+                      className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-[#0f172a] dark:text-zinc-50 rounded-xl h-11"
                       disabled={!editingCondition.editExpiryYearText || !editingCondition.editExpiryMonthText}
                     >
                       <SelectValue placeholder="일" />
@@ -1805,21 +1809,21 @@ export default function Conditions() {
               {isAirlinePlatform(editingCondition.platform) && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">비행 종류</Label>
+                    <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">비행 종류</Label>
                     <input
                       value={editingCondition.flightTypeText ?? ''}
                       onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, flightTypeText: e.target.value } : prev))}
                       placeholder="예: 직항"
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[#475569] dark:text-slate-400 text-sm font-semibold">여정 유형</Label>
+                    <Label className="text-zinc-700 dark:text-zinc-300 text-sm font-semibold">여정 유형</Label>
                     <input
                       value={editingCondition.tripTypeText ?? ''}
                       onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, tripTypeText: e.target.value } : prev))}
                       placeholder="예: 왕복"
-                      className="w-full bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#6366F1] dark:focus:border-indigo-400 focus:ring-1 focus:ring-[#6366F1]/30 dark:focus:ring-indigo-400/30 transition-all outline-none"
+                      className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-zinc-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -1827,14 +1831,14 @@ export default function Conditions() {
               
             </div>
 
-            <DialogFooter className="bg-[#F1F5F9] dark:bg-slate-900 px-6 py-4 mt-4 border-t border-[#E2E8F0] dark:border-slate-700">
-              <Button type="button" variant="outline" onClick={handleCancelEdit} className="rounded-xl px-6 py-2 bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700">
+            <DialogFooter className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
+              <Button type="button" variant="outline" onClick={handleCancelEdit} className="rounded-xl px-6 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700">
                 취소
               </Button>
               <Button
                 type="submit"
                 disabled={isSavingEdit}
-                className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] dark:hover:from-indigo-400 hover:to-[#4338CA] dark:hover:to-indigo-500 shadow-[0_4px_10px_rgba(99,102,241,0.25)] border-none font-bold"
+                className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] shadow-[0_4px_10px_rgba(30,77,140,0.25)] border-none font-bold"
               >
                 {isSavingEdit ? '저장 중...' : '저장'}
               </Button>
