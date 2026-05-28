@@ -91,7 +91,7 @@ export default function BottomSheet({ open, onClose, children }: BottomSheetProp
       {/* Sheet Panel */}
       <div
         ref={sheetRef}
-        className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-800 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col transition-transform duration-250 ease-out will-change-transform ${
+        className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-800 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col transition-transform duration-250 ease-out will-change-transform ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
         onTouchStart={handleTouchStart}
@@ -100,7 +100,7 @@ export default function BottomSheet({ open, onClose, children }: BottomSheetProp
       >
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-2 shrink-0">
-          <div className="w-10 h-1.5 rounded-full bg-gray-300 dark:bg-slate-600" />
+          <div className="w-10 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
         </div>
 
         {/* Content */}

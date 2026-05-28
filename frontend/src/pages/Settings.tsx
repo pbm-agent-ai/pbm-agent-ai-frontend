@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon } from 'lucide-react';
+import { LogoIcon } from '../components/ui/LogoIcon';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -74,6 +75,7 @@ export default function Settings() {
   const [passwordError, setPasswordError] = useState('');
   // ── Delete account ──
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
 
@@ -127,8 +129,14 @@ export default function Settings() {
   }, []);
 
   const handleDeleteAccount = () => {
-    // TODO: call DELETE /api/v1/members/{id} with { password: deletePassword, reason: deleteReason }
+    // 비밀번호+사유 입력 완료 → 확인 다이얼로그로 이동
     setShowDeleteDialog(false);
+    setShowConfirmDelete(true);
+  };
+
+  const handleConfirmDelete = () => {
+    // TODO: call DELETE /api/v1/members/{id} with { password: deletePassword, reason: deleteReason }
+    setShowConfirmDelete(false);
     resetDeleteFields();
   };
 
@@ -201,24 +209,24 @@ export default function Settings() {
   };
 
   return (
-    <div className="w-full bg-[#F8FAFC] dark:bg-slate-950 min-h-screen font-sans text-[#0F172A] dark:text-slate-50">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto space-y-6">
 
           {/* ═══════════ Page Header ═══════════ */}
           <div className="mb-8 md:mb-12 flex items-start gap-4 md:gap-5">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#4F46E5] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)] text-white shrink-0">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
               <SettingsIcon className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0F172A] dark:text-slate-50">설정</h1>
-              <p className="text-[#475569] dark:text-slate-400 mt-1 font-medium">계정 정보와 서비스 환경을 설정합니다</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">설정</h1>
+              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">계정 정보와 서비스 환경을 설정합니다</p>
             </div>
           </div>
 
           {/* ═══════════ Tab Bar ═══════════ */}
           <div className="relative">
-            <div className="flex bg-white dark:bg-slate-800 rounded-t-[1.5rem]">
+            <div className="flex bg-white dark:bg-zinc-800 rounded-t-[1.5rem]">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -228,20 +236,20 @@ export default function Settings() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-4 text-sm font-bold transition-all duration-200 ${
                       isActive
-                        ? 'text-[#6366F1] dark:text-indigo-400'
-                        : 'text-[#94A3B8] dark:text-slate-500 hover:text-[#64748b] dark:hover:text-slate-300'
+                        ? 'text-[#1E4D8C] dark:text-[#7BAEDA]'
+                        : 'text-zinc-400 dark:text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#6366F1] dark:text-indigo-400' : ''}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : ''}`} />
                     {tab.label}
                   </button>
                 );
               })}
             </div>
             {/* Active underline */}
-            <div className="relative h-0.5 bg-[#E2E8F0] dark:bg-slate-700">
+            <div className="relative h-0.5 bg-[#E2E8F0] dark:bg-zinc-700">
               <div
-                className="absolute bottom-0 h-0.5 bg-[#6366F1] dark:bg-indigo-400 rounded-full transition-all duration-300"
+                className="absolute bottom-0 h-0.5 bg-[#1E4D8C] dark:bg-[#7BAEDA] rounded-full transition-all duration-300"
                 style={{
                   left: `${(tabs.findIndex(t => t.id === activeTab) / tabs.length) * 100 + 10 / tabs.length}%`,
                   width: `${80 / tabs.length}%`,
@@ -254,24 +262,24 @@ export default function Settings() {
           {activeTab === 'account' && (
             <>
               {/* ═══════════ Summary Stats ═══════════ */}
-              <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-                <div className="grid grid-cols-3 divide-x divide-[#E2E8F0] dark:divide-slate-700">
+              <div className="bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
+                <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-700">
                   <div className="py-5 text-center">
-                    <p className="text-[11px] font-medium text-[#94A3B8] dark:text-slate-500 tracking-wide">지갑 상태</p>
-                    <p className="text-xl font-extrabold text-[#0F172A] dark:text-slate-50 mt-1.5 flex items-center justify-center gap-1.5">
+                    <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑 상태</p>
+                    <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5 flex items-center justify-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-[#5bf0c0]" />
                       연결됨
                     </p>
                   </div>
                   <div className="py-5 text-center">
-                    <p className="text-[11px] font-medium text-[#94A3B8] dark:text-slate-500 tracking-wide">건당 한도</p>
-                    <p className="text-xl font-extrabold text-[#0F172A] dark:text-slate-50 mt-1.5">
+                    <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">건당 한도</p>
+                    <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
                       {formatPrice(perTxLimit)}
                     </p>
                   </div>
                   <div className="py-5 text-center">
-                    <p className="text-[11px] font-medium text-[#94A3B8] dark:text-slate-500 tracking-wide">월간 한도</p>
-                    <p className="text-xl font-extrabold text-[#0F172A] dark:text-slate-50 mt-1.5">
+                    <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">월간 한도</p>
+                    <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
                       {formatPrice(monthlyLimit)}
                     </p>
                   </div>
@@ -279,25 +287,25 @@ export default function Settings() {
               </div>
 
               {/* Profile Card */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] overflow-hidden">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] overflow-hidden">
                 <div className="flex items-center gap-4 px-6 py-5">
-                  <Avatar className="w-14 h-14 rounded-2xl border-2 border-[#E2E8F0] dark:border-slate-700">
-                    <AvatarFallback className="bg-gradient-to-br from-[#6366F1] to-[#4F46E5] text-white text-lg font-bold rounded-2xl">
+                  <Avatar className="w-14 h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-700">
+                    <AvatarFallback className="bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] text-white text-lg font-bold rounded-2xl">
                       {getInitials(profileName)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-[#0F172A] dark:text-slate-50">
+                    <p className="text-base font-bold text-zinc-900 dark:text-zinc-50">
                       {isProfileLoading ? '불러오는 중...' : profileName || '닉네임 없음'}
                     </p>
-                    <p className="text-sm text-[#64748b] dark:text-slate-400 truncate">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-300 truncate">
                       {isProfileLoading ? '이메일을 불러오는 중...' : profileEmail || '이메일 없음'}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowProfileSheet(true)}
-                    className="inline-flex items-center gap-1.5 px-4 h-9 text-xs font-bold text-[#6366F1] dark:text-indigo-400 bg-[#EEF2FF] dark:bg-indigo-500/10 rounded-xl hover:bg-[#E0E7FF] dark:hover:bg-indigo-500/20 transition-colors shrink-0"
+                    className="inline-flex items-center gap-1.5 px-4 h-9 text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 rounded-xl hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 transition-colors shrink-0"
                   >
                     프로필 편집
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -306,30 +314,30 @@ export default function Settings() {
               </Card>
 
               {/* Security Card */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] gap-4">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] gap-4">
                 <CardHeader className="px-6 pt-5 pb-0">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-[#6366F1]" />
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50">보안</CardTitle>
+                    <Shield className="w-5 h-5 text-[#1E4D8C]" />
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50">보안</CardTitle>
                   </div>
-                  <CardDescription className="text-[#64748b] dark:text-slate-400">
+                  <CardDescription className="text-zinc-500 dark:text-zinc-300">
                     계정 보안 설정을 관리합니다
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="px-6 pt-0 pb-5 space-y-0">
                   <div className="flex items-center justify-between py-2.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
+                      <div className="w-9 h-9 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
                         <span className="text-sm">🔒</span>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50">비밀번호</p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">비밀번호</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setShowPasswordDialog(true)}
-                    className="inline-flex items-center gap-1.5 px-4 h-9 text-xs font-bold text-[#6366F1] dark:text-indigo-400 bg-[#EEF2FF] dark:bg-indigo-500/10 rounded-xl hover:bg-[#E0E7FF] dark:hover:bg-indigo-500/20 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-4 h-9 text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 rounded-xl hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 transition-colors"
                   >
                     변경
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -339,7 +347,7 @@ export default function Settings() {
               </Card>
 
               {/* ═══════════ Delete Account ═══════════ */}
-              <Card className="bg-white dark:bg-slate-800 border border-red-200 dark:border-red-900/50 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] overflow-hidden">
+              <Card className="bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/50 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] overflow-hidden">
                 <div className="px-6 py-5">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center border border-red-200 dark:border-red-500/20 shrink-0">
@@ -347,7 +355,7 @@ export default function Settings() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-[#EF4444] dark:text-red-400">회원 탈퇴</p>
-                      <p className="text-[12px] text-[#94A3B8] dark:text-slate-500 mt-0.5">계정을 삭제하면 모든 데이터가 영구 소멸됩니다</p>
+                      <p className="text-[12px] text-zinc-400 dark:text-zinc-400 mt-0.5">계정을 삭제하면 모든 데이터가 영구 소멸됩니다</p>
                     </div>
                     <button
                       onClick={() => setShowDeleteDialog(true)}
@@ -364,13 +372,13 @@ export default function Settings() {
           {/* ═══════════ Notifications Tab ═══════════ */}
           {activeTab === 'notifications' && (
             <>
-            <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
+            <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-[#6366F1]" />
-                  <CardTitle className="text-[#0F172A] dark:text-slate-50">알림 설정</CardTitle>
+                  <Bell className="w-5 h-5 text-[#1E4D8C]" />
+                  <CardTitle className="text-zinc-900 dark:text-zinc-50">알림 설정</CardTitle>
                 </div>
-                <CardDescription className="text-[#64748b] dark:text-slate-400">
+                <CardDescription className="text-zinc-500 dark:text-zinc-300">
                   알림을 받을 채널을 설정하세요
                 </CardDescription>
               </CardHeader>
@@ -379,12 +387,12 @@ export default function Settings() {
                 <div className="py-4 first:pt-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
-                        <MessageSquare className="w-4 h-4 text-[#6366F1] dark:text-indigo-400" />
+                      <div className="w-9 h-9 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
+                        <MessageSquare className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50">텔레그램</p>
-                        <p className="text-[11px] text-[#94A3B8] dark:text-slate-500">Chat ID로 알림 수신</p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">텔레그램</p>
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-400">Chat ID로 알림 수신</p>
                       </div>
                     </div>
                     <Switch checked={telegramEnabled} onCheckedChange={setTelegramEnabled} />
@@ -397,12 +405,12 @@ export default function Settings() {
                         value={telegramChatId}
                         onChange={(e) => setTelegramChatId(e.target.value)}
                         placeholder="Chat ID"
-                        className="flex-1 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="flex-1 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-[#E2E8F0] dark:border-slate-700 text-[#6366F1] dark:text-indigo-400 bg-[#EEF2FF] dark:bg-indigo-500/10 hover:bg-[#E0E7FF] dark:hover:bg-indigo-500/20 rounded-xl h-9 text-xs"
+                        className="border-zinc-200 dark:border-zinc-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
                       >
                         <Send className="w-3 h-3 mr-1.5" />
                         테스트
@@ -411,18 +419,18 @@ export default function Settings() {
                   )}
                 </div>
 
-                <Separator className="bg-[#F1F5F9] dark:bg-slate-700/50" />
+                <Separator className="bg-zinc-100 dark:bg-zinc-700/50" />
 
                 {/* ── Email ── */}
                 <div className="py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
-                        <Mail className="w-4 h-4 text-[#6366F1] dark:text-indigo-400" />
+                      <div className="w-9 h-9 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
+                        <Mail className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50">이메일</p>
-                        <p className="text-[11px] text-[#94A3B8] dark:text-slate-500">등록된 이메일로 알림 수신</p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">이메일</p>
+                        <p className="text-[11px] text-zinc-400 dark:text-zinc-400">등록된 이메일로 알림 수신</p>
                       </div>
                     </div>
                     <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
@@ -435,12 +443,12 @@ export default function Settings() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="your@email.com"
-                        className="flex-1 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="flex-1 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-[#E2E8F0] dark:border-slate-700 text-[#6366F1] dark:text-indigo-400 bg-[#EEF2FF] dark:bg-indigo-500/10 hover:bg-[#E0E7FF] dark:hover:bg-indigo-500/20 rounded-xl h-9 text-xs"
+                        className="border-zinc-200 dark:border-zinc-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
                       >
                         <Send className="w-3 h-3 mr-1.5" />
                         테스트
@@ -449,18 +457,18 @@ export default function Settings() {
                   )}
               </div>
 
-              <Separator className="bg-[#F1F5F9] dark:bg-slate-700/50" />
+              <Separator className="bg-zinc-100 dark:bg-zinc-700/50" />
 
               {/* ── DND ── */}
               <div className="py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
-                      <Moon className="w-4 h-4 text-[#6366F1] dark:text-indigo-400" />
+                    <div className="w-9 h-9 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
+                      <Moon className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50">방해 금지</p>
-                      <p className="text-[11px] text-[#94A3B8] dark:text-slate-500">설정된 시간 동안 알림을 차단합니다</p>
+                      <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50">방해 금지</p>
+                      <p className="text-[11px] text-zinc-400 dark:text-zinc-400">설정된 시간 동안 알림을 차단합니다</p>
                     </div>
                   </div>
                   <Switch checked={dndEnabled} onCheckedChange={setDndEnabled} />
@@ -469,22 +477,22 @@ export default function Settings() {
                 {dndEnabled && (
                   <div className="mt-3 ml-12 flex items-end gap-3">
                     <div className="flex-1">
-                      <label className="text-[11px] font-medium text-[#64748b] dark:text-slate-400 mb-1 block">시작 시간</label>
+                      <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-300 mb-1 block">시작 시간</label>
                       <Input
                         type="time"
                         value={dndStart}
                         onChange={(e) => setDndStart(e.target.value)}
-                        className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                     </div>
-                    <span className="text-[#94A3B8] dark:text-slate-500 pb-2 text-sm">~</span>
+                    <span className="text-zinc-400 dark:text-zinc-400 pb-2 text-sm">~</span>
                     <div className="flex-1">
-                      <label className="text-[11px] font-medium text-[#64748b] dark:text-slate-400 mb-1 block">종료 시간</label>
+                      <label className="text-[11px] font-medium text-zinc-500 dark:text-zinc-300 mb-1 block">종료 시간</label>
                       <Input
                         type="time"
                         value={dndEnd}
                         onChange={(e) => setDndEnd(e.target.value)}
-                        className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                     </div>
                   </div>
@@ -497,7 +505,7 @@ export default function Settings() {
           {/* ── Save Button (tab bottom) ── */}
           <Button
             onClick={handleNotificationsSave}
-            className="w-full bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] hover:to-[#4338CA] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300 border-none"
+            className="w-full bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 border-none"
           >
             저장
           </Button>
@@ -507,13 +515,13 @@ export default function Settings() {
           {/* ═══════════ Payment Tab ═══════════ */}
           {activeTab === 'payment' && (
             <>
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-[#6366F1]" />
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50">기본 결제 모드</CardTitle>
+                    <CreditCard className="w-5 h-5 text-[#1E4D8C]" />
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50">기본 결제 모드</CardTitle>
                   </div>
-                  <CardDescription className="text-[#64748b] dark:text-slate-400">
+                  <CardDescription className="text-zinc-500 dark:text-zinc-300">
                     조건 충족 시 결제 여부를 전역으로 설정합니다
                   </CardDescription>
                 </CardHeader>
@@ -521,30 +529,30 @@ export default function Settings() {
                   {/* ── 알림만 ── */}
                   <button
                     onClick={() => setPaymentMode('alert')}
-                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-[#F8FAFC] dark:hover:bg-slate-900/50"
+                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
                       paymentMode === 'alert'
-                        ? 'bg-[#6366F1] text-white shadow-[0_4px_10px_-4px_rgba(99,102,241,0.4)]'
-                        : 'bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 border border-[#6366F1]/10'
+                        ? 'bg-[#1E4D8C] text-white shadow-[0_4px_10px_-4px_rgba(30,77,140,0.4)]'
+                        : 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/10'
                     }`}>
                       <Bell className="w-5 h-5" />
                     </div>
                     <div className="flex-1 text-left">
                       <p className={`text-sm font-bold transition-colors ${
-                        paymentMode === 'alert' ? 'text-[#6366F1] dark:text-indigo-400' : 'text-[#0F172A] dark:text-slate-50'
+                        paymentMode === 'alert' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : 'text-zinc-900 dark:text-zinc-50'
                       }`}>
                         알림만
                       </p>
-                      <p className="text-[12px] text-[#64748b] dark:text-slate-400 mt-0.5">조건 충족 시 알림만 발송하고 결제는 직접 진행</p>
+                      <p className="text-[12px] text-zinc-500 dark:text-zinc-300 mt-0.5">조건 충족 시 알림만 발송하고 결제는 직접 진행</p>
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                       paymentMode === 'alert'
-                        ? 'border-[#6366F1]'
-                        : 'border-[#CBD5E1] dark:border-slate-600'
+                        ? 'border-[#1E4D8C]'
+                        : 'border-zinc-300 dark:border-zinc-700'
                     }`}>
                       {paymentMode === 'alert' && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E4D8C]" />
                       )}
                     </div>
                   </button>
@@ -552,30 +560,30 @@ export default function Settings() {
                   {/* ── 자동결제 ── */}
                   <button
                     onClick={() => setPaymentMode('auto')}
-                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-[#F8FAFC] dark:hover:bg-slate-900/50"
+                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                   >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
                       paymentMode === 'auto'
-                        ? 'bg-[#6366F1] text-white shadow-[0_4px_10px_-4px_rgba(99,102,241,0.4)]'
-                        : 'bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 border border-[#6366F1]/10'
+                        ? 'bg-[#1E4D8C] text-white shadow-[0_4px_10px_-4px_rgba(30,77,140,0.4)]'
+                        : 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/10'
                     }`}>
                       <Zap className="w-5 h-5" />
                     </div>
                     <div className="flex-1 text-left">
                       <p className={`text-sm font-bold transition-colors ${
-                        paymentMode === 'auto' ? 'text-[#6366F1] dark:text-indigo-400' : 'text-[#0F172A] dark:text-slate-50'
+                        paymentMode === 'auto' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : 'text-zinc-900 dark:text-zinc-50'
                       }`}>
                         자동결제
                       </p>
-                      <p className="text-[12px] text-[#64748b] dark:text-slate-400 mt-0.5">조건 충족 시 즉시 결제가 실행됩니다</p>
+                      <p className="text-[12px] text-zinc-500 dark:text-zinc-300 mt-0.5">조건 충족 시 즉시 결제가 실행됩니다</p>
                     </div>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
                       paymentMode === 'auto'
-                        ? 'border-[#6366F1]'
-                        : 'border-[#CBD5E1] dark:border-slate-600'
+                        ? 'border-[#1E4D8C]'
+                        : 'border-zinc-300 dark:border-zinc-700'
                     }`}>
                       {paymentMode === 'auto' && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#6366F1]" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E4D8C]" />
                       )}
                     </div>
                   </button>
@@ -583,61 +591,61 @@ export default function Settings() {
               </Card>
 
               {/* ── 결제 한도 ── */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-[#6366F1]" />
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50">결제 한도</CardTitle>
+                    <CreditCard className="w-5 h-5 text-[#1E4D8C]" />
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50">결제 한도</CardTitle>
                   </div>
-                  <CardDescription className="text-[#64748b] dark:text-slate-400">
+                  <CardDescription className="text-zinc-500 dark:text-zinc-300">
                     건당 및 월간 결제 한도를 설정하세요
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-0">
                   {/* ── Per-Transaction Limit ── */}
                   <div className="py-4 first:pt-0">
-                    <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-2">건당 결제 한도</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-2">건당 결제 한도</p>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] dark:text-slate-400 font-medium text-sm">₩</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-medium text-sm">₩</span>
                       <Input
                         type="text"
                         value={perTxLimit}
                         onChange={(e) => setPerTxLimit(e.target.value)}
                         placeholder="1,000,000"
-                        className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="pl-7 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                     </div>
-                    <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-1.5">1회 결제 시 최대 금액을 설정합니다</p>
+                    <p className="text-[11px] text-zinc-400 dark:text-zinc-400 mt-1.5">1회 결제 시 최대 금액을 설정합니다</p>
                   </div>
 
-                  <Separator className="bg-[#F1F5F9] dark:bg-slate-700/50" />
+                  <Separator className="bg-zinc-100 dark:bg-zinc-700/50" />
 
                   {/* ── Monthly Limit ── */}
                   <div className="py-4">
-                    <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-2">월간 결제 한도</p>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-2">월간 결제 한도</p>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b] dark:text-slate-400 font-medium text-sm">₩</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-medium text-sm">₩</span>
                       <Input
                         type="text"
                         value={monthlyLimit}
                         onChange={(e) => setMonthlyLimit(e.target.value)}
                         placeholder="5,000,000"
-                        className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl h-9 text-sm"
+                        className="pl-7 bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
                       />
                     </div>
-                    <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-1.5">설정된 한도를 초과하면 결제가 제한됩니다</p>
+                    <p className="text-[11px] text-zinc-400 dark:text-zinc-400 mt-1.5">설정된 한도를 초과하면 결제가 제한됩니다</p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* ── 허용 플랫폼 ── */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
                 <CardHeader>
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🛒</span>
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50">허용 플랫폼</CardTitle>
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50">허용 플랫폼</CardTitle>
                   </div>
-                  <CardDescription className="text-[#64748b] dark:text-slate-400">
+                  <CardDescription className="text-zinc-500 dark:text-zinc-300">
                     결제를 허용할 쇼핑 플랫폼을 선택하세요
                   </CardDescription>
                 </CardHeader>
@@ -651,8 +659,8 @@ export default function Settings() {
                           onClick={() => togglePlatform(platform.id)}
                           className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
                             isSelected
-                              ? 'bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 border-2 border-[#6366F1] dark:border-indigo-400'
-                              : 'bg-[#F8FAFC] dark:bg-slate-900 text-[#64748b] dark:text-slate-400 border-2 border-[#E2E8F0] dark:border-slate-700 hover:border-[#6366F1]/40 hover:text-[#6366F1]'
+                              ? 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border-2 border-[#1E4D8C] dark:border-[#7BAEDA]'
+                              : 'bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-300 border-2 border-zinc-200 dark:border-zinc-700 hover:border-[#1E4D8C]/40 hover:text-[#1E4D8C]'
                           }`}
                         >
                           {isSelected && <Check className="w-3.5 h-3.5" />}
@@ -665,11 +673,11 @@ export default function Settings() {
               </Card>
 
               {/* PBM Wallet */}
-              <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
+              <Card className="bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    <Wallet className="w-5 h-5 text-[#6366F1]" />
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50">PBM 지갑 설정</CardTitle>
+                    <Wallet className="w-5 h-5 text-[#1E4D8C]" />
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50">PBM 지갑 설정</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-0">
@@ -686,7 +694,7 @@ export default function Settings() {
               {/* ── Save Button (tab bottom) ── */}
               <Button
                 onClick={handleSettingsSave}
-                className="w-full bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] hover:to-[#4338CA] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300 border-none"
+                className="w-full bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 border-none"
               >
                 저장
               </Button>
@@ -698,33 +706,33 @@ export default function Settings() {
 
       {/* ═══════════ Profile Edit Dialog ═══════════ */}
       <Dialog open={showProfileSheet} onOpenChange={setShowProfileSheet}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-800 rounded-2xl shadow-xl">
           {/* Header */}
           <div className="px-6 pt-6 pb-2">
-            <h2 className="text-lg font-extrabold text-[#0F172A] dark:text-slate-50">프로필 편집</h2>
-            <p className="text-sm text-[#64748b] dark:text-slate-400 mt-1">이름과 이메일을 변경할 수 있습니다</p>
+            <h2 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50">프로필 편집</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-300 mt-1">이름과 이메일을 변경할 수 있습니다</p>
           </div>
 
           {/* Form */}
           <div className="px-6 py-4 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">닉네임</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">닉네임</label>
               <Input
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
                 placeholder="닉네임을 입력하세요"
-                className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl"
+                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl"
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">PBM 지갑 주소</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">PBM 지갑 주소</label>
               <Input
                 type="text"
                 value={profileWalletAddress}
                 onChange={(e) => setProfileWalletAddress(e.target.value)}
                 placeholder="지갑 주소를 입력하세요"
-                className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl"
+                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl"
               />
             </div>
           </div>
@@ -734,13 +742,13 @@ export default function Settings() {
             <Button
               variant="outline"
               onClick={() => setShowProfileSheet(false)}
-              className="flex-1 border-[#E2E8F0] dark:border-slate-700 text-[#64748b] dark:text-slate-400 hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl h-11 text-sm font-bold"
+              className="flex-1 border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl h-11 text-sm font-bold"
             >
               취소
             </Button>
             <Button
               onClick={handleProfileSave}
-              className="flex-1 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] hover:to-[#4338CA] rounded-xl h-11 text-sm font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300"
+              className="flex-1 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-11 text-sm font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300"
             >
               저장
             </Button>
@@ -750,67 +758,67 @@ export default function Settings() {
 
       {/* ═══════════ Password Change Dialog ═══════════ */}
       <Dialog open={showPasswordDialog} onOpenChange={(open) => { setShowPasswordDialog(open); if (!open) { setPasswordError(''); } }}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-800 rounded-2xl shadow-xl">
           {/* Header */}
           <div className="px-6 pt-6 pb-2">
-            <h2 className="text-lg font-extrabold text-[#0F172A] dark:text-slate-50">비밀번호 변경</h2>
-            <p className="text-sm text-[#64748b] dark:text-slate-400 mt-1">안전한 비밀번호로 정기적으로 변경해주세요</p>
+            <h2 className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50">비밀번호 변경</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-300 mt-1">안전한 비밀번호로 정기적으로 변경해주세요</p>
           </div>
 
           {/* Form */}
           <div className="px-6 py-4 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">현재 비밀번호</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">현재 비밀번호</label>
               <div className="relative">
                 <Input
                   type={visiblePwd['current'] ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="현재 비밀번호를 입력하세요"
-                  className="w-full bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl pr-10"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => togglePwdVisibility('current')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748b] dark:hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                 >
                   {visiblePwd['current'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">새 비밀번호</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">새 비밀번호</label>
               <div className="relative">
                 <Input
                   type={visiblePwd['new'] ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="8자 이상, 영문/숫자/특수문자 포함"
-                  className="w-full bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl pr-10"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => togglePwdVisibility('new')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748b] dark:hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                 >
                   {visiblePwd['new'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">새 비밀번호 확인</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">새 비밀번호 확인</label>
               <div className="relative">
                 <Input
                   type={visiblePwd['confirm'] ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="새 비밀번호를 다시 입력하세요"
-                  className="w-full bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl pr-10"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => togglePwdVisibility('confirm')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748b] dark:hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                 >
                   {visiblePwd['confirm'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -832,14 +840,14 @@ export default function Settings() {
               variant="outline"
               onClick={handlePasswordCancel}
               disabled={isPasswordSaving}
-              className="flex-1 border-[#E2E8F0] dark:border-slate-700 text-[#64748b] dark:text-slate-400 hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl h-11 text-sm font-bold"
+              className="flex-1 border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl h-11 text-sm font-bold"
             >
               취소
             </Button>
             <Button
               onClick={handlePasswordSave}
               disabled={isPasswordSaving}
-              className="flex-1 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] hover:to-[#4338CA] rounded-xl h-11 text-sm font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300"
+              className="flex-1 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-11 text-sm font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300"
             >
               {isPasswordSaving ? '변경 중...' : '변경'}
             </Button>
@@ -847,15 +855,45 @@ export default function Settings() {
         </DialogContent>
       </Dialog>
 
+      {/* ═══════════ Confirm Delete Dialog ═══════════ */}
+      <Dialog open={showConfirmDelete} onOpenChange={setShowConfirmDelete}>
+        <DialogContent className="max-w-sm bg-white dark:bg-zinc-800 rounded-2xl shadow-xl">
+          <div className="py-8 px-6 flex flex-col items-center gap-4 text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-500/15 rounded-2xl flex items-center justify-center border border-red-200 dark:border-red-500/30">
+              <LogoIcon crying className="w-10 h-10" />
+            </div>
+            <div>
+              <p className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50">정말로 탈퇴 하시겠습니까?</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-300 mt-1">모든 결제 내역과 설정 정보가 영구 삭제되며, 복구할 수 없습니다.</p>
+            </div>
+            <div className="flex gap-3 mt-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmDelete(false)}
+                className="flex-1 h-11 rounded-xl border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+              >
+                아니요
+              </Button>
+              <Button
+                onClick={handleConfirmDelete}
+                className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#EF4444] to-[#DC2626] text-white font-bold"
+              >
+                예, 탈퇴할게요
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* ═══════════ Delete Account Dialog ═══════════ */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-xl">
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-800 rounded-2xl shadow-xl">
           {/* Header */}
           <div className="px-6 pt-6 pb-2">
             <h2 className="text-lg font-extrabold text-[#EF4444] dark:text-red-400 flex items-center gap-2">
               ⚠️ 회원 탈퇴
             </h2>
-            <p className="text-sm text-[#64748b] dark:text-slate-400 mt-1 leading-relaxed">
+            <p className="text-sm text-zinc-500 dark:text-zinc-300 mt-1 leading-relaxed">
               삭제된 계정은 <span className="font-bold text-[#EF4444] dark:text-red-400">복구할 수 없으며</span>, 모든 결제 내역과 설정 정보가 영구적으로 소멸됩니다.
             </p>
           </div>
@@ -863,19 +901,19 @@ export default function Settings() {
           {/* Form */}
           <div className="px-6 py-4 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">비밀번호</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">비밀번호</label>
               <div className="relative">
                 <Input
                   type={visiblePwd['delete'] ? 'text' : 'password'}
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="현재 비밀번호를 입력하세요"
-                  className="w-full bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] focus-visible:border-[#6366F1] focus-visible:ring-[#6366F1]/50 rounded-xl pr-10"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => togglePwdVisibility('delete')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748b] dark:hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                 >
                   {visiblePwd['delete'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -883,19 +921,19 @@ export default function Settings() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">탈퇴 사유</label>
+              <label className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">탈퇴 사유</label>
               <div className="relative">
                 <select
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
-                  className="w-full h-10 px-3 bg-[#F8FAFC] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 rounded-xl text-sm appearance-none focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/50"
+                  className="w-full h-10 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 rounded-xl text-sm appearance-none focus:outline-none focus:border-[#1E4D8C] focus:ring-1 focus:ring-[#1E4D8C]/50"
                 >
                   <option value="" disabled>탈퇴 사유를 선택하세요</option>
                   {deleteReasonOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8] pointer-events-none" />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
               </div>
             </div>
           </div>
@@ -905,7 +943,7 @@ export default function Settings() {
             <Button
               variant="outline"
               onClick={handleDeleteCancel}
-              className="flex-1 border-[#E2E8F0] dark:border-slate-700 text-[#64748b] dark:text-slate-400 hover:bg-[#F8FAFC] dark:hover:bg-slate-800 rounded-xl h-11 text-sm font-bold"
+              className="flex-1 border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl h-11 text-sm font-bold"
             >
               취소
             </Button>

@@ -6,7 +6,7 @@ import {
 import {
   TrendingUp, TrendingDown, ExternalLink,
   RefreshCw, ChevronDown, DollarSign, BarChart3,
-  Activity, Clock, Search, ArrowUp, ArrowDown,
+  Activity, Clock, ArrowUp, ArrowDown, Search,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -123,7 +123,7 @@ const getPlatformColor = (platform: string): string => {
     'naver-flights': '#03c75a',
     naver_flight: '#03c75a',
   };
-  return map[platform] || '#6366F1';
+  return map[platform] || '#1E4D8C';
 };
 
 const formatPrice = (price: number, currency = 'KRW'): string => {
@@ -194,7 +194,10 @@ export default function PriceHistory() {
     const load = async () => {
       try {
         const data = await fetchPriceHistory(selectedConditionId, selectedPeriod);
-        setPriceData(data);
+        // 서버가 200에 data:null을 내려도 기존 데이터(초기 mock)를 유지하기 위해 유효성 검사 후 업데이트
+        if (data && Array.isArray(data.priceHistory)) {
+          setPriceData(data);
+        }
       } catch {
         // mock fallback
         const mock = MOCK_PRICE_HISTORY.find((h) => h.conditionId === selectedConditionId) ?? null;
@@ -227,29 +230,31 @@ export default function PriceHistory() {
 
   // ── 렌더링 ──────────────────────────────────────────────────
   return (
-    <div className="w-full bg-[#F8FAFC] dark:bg-slate-950 min-h-screen font-sans text-[#0F172A] dark:text-slate-50">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[1200px] mx-auto">
           {/* ═══════════ Page Header ═══════════ */}
           <div className="mb-8 md:mb-12 flex items-start gap-4 md:gap-5">
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#6366F1] to-[#4F46E5] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)] text-white shrink-0">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
               <TrendingUp className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0F172A] dark:text-slate-50">가격 히스토리</h1>
-              <p className="text-[#475569] dark:text-slate-400 mt-1 font-medium">조건별 가격 변동 추이를 확인합니다</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">가격 히스토리</h1>
+              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">조건별 가격 변동 추이를 확인합니다</p>
             </div>
           </div>
 
           {/* ═══════════ Condition Selector ═══════════ */}
           <div className="mb-6">
             {conditionsLoading ? (
-              <div className="h-12 w-72 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+              <div className="h-12 w-72 bg-zinc-200 dark:bg-zinc-800 rounded-xl animate-pulse" />
             ) : conditions.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-8 text-center">
-                <Search className="w-8 h-8 text-[#94A3B8] mx-auto mb-3" />
-                <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-1">등록된 조건이 없습니다</p>
-                <p className="text-xs text-[#475569] dark:text-slate-400">대시보드에서 모니터링 조건을 먼저 등록해주세요.</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-12 h-12 rounded-full bg-[#F9F7F7] border border-[#1E4D8C]/10 flex items-center justify-center mb-4">
+                  <Search className="w-6 h-6 text-[#1E4D8C]" />
+                </div>
+                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">등록된 조건이 없습니다</p>
+                <p className="text-xs text-zinc-500">대시보드에서 첫 조건을 등록해보세요.</p>
               </div>
             ) : (
               <div className="flex flex-row flex-wrap items-center gap-3">
@@ -258,7 +263,7 @@ export default function PriceHistory() {
                   <button
                     type="button"
                     onClick={() => setDropdownOpen((prev) => !prev)}
-                    className="flex items-center gap-3 px-5 py-3 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 transition-all min-w-0 sm:min-w-[260px] w-full sm:w-auto cursor-pointer"
+                    className="flex items-center gap-3 px-5 py-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 transition-all min-w-0 sm:min-w-[260px] w-full sm:w-auto cursor-pointer"
                   >
                     <div className="flex-1 text-left">
                       <div className="flex items-center gap-2">
@@ -272,18 +277,18 @@ export default function PriceHistory() {
                         >
                           {getPlatformName(selectedCondition.platform)}
                         </Badge>
-                        <span className="text-sm font-bold text-[#0F172A] dark:text-slate-50 truncate">
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
                           {selectedCondition.keyword}
                         </span>
                       </div>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-[#64748b] transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {dropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
-                      <div className="absolute top-full left-0 mt-1 z-50 w-full min-w-[320px] bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
+                      <div className="absolute top-full left-0 mt-1 z-50 w-full min-w-[320px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg overflow-hidden">
                         <div className="max-h-64 overflow-y-auto p-1.5">
                           {conditions.map((cond) => (
                             <button
@@ -295,8 +300,8 @@ export default function PriceHistory() {
                               }}
                               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer ${
                                 selectedConditionId === cond.conditionId
-                                  ? 'bg-[#EEF2FF] dark:bg-indigo-500/10'
-                                  : 'hover:bg-[#F8FAFC] dark:hover:bg-slate-900'
+                                  ? 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10'
+                                  : 'hover:bg-zinc-50 dark:hover:bg-zinc-900'
                               }`}
                             >
                               <Badge
@@ -310,8 +315,8 @@ export default function PriceHistory() {
                                 {getPlatformName(cond.platform)}
                               </Badge>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-[#0F172A] dark:text-slate-50 truncate">{cond.keyword}</p>
-                                <p className="text-xs text-[#64748b] dark:text-slate-400 mt-0.5">
+                                <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">{cond.keyword}</p>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-300 mt-0.5">
                                   목표가: {formatPrice(cond.maxPrice)}
                                 </p>
                               </div>
@@ -324,7 +329,7 @@ export default function PriceHistory() {
                 </div>
 
                 {/* Period Selector */}
-                <div className="flex gap-1 bg-[#F8FAFC] dark:bg-slate-950 border border-[#E2E8F0] dark:border-slate-700 rounded-lg p-1">
+                <div className="flex gap-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg p-1">
                   {periodOptions.map((opt) => (
                     <button
                       key={opt.value}
@@ -332,8 +337,8 @@ export default function PriceHistory() {
                       onClick={() => setSelectedPeriod(opt.value)}
                       className={`px-3 py-1.5 text-sm font-bold rounded-md transition-all duration-200 cursor-pointer ${
                         selectedPeriod === opt.value
-                          ? 'bg-[#6366F1] dark:bg-indigo-600 text-white shadow-sm'
-                          : 'text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-white hover:bg-white dark:hover:bg-slate-800'
+                          ? 'bg-[#1E4D8C] dark:bg-[#7BAEDA] dark:text-[#112D4E] text-white shadow-sm'
+                          : 'text-zinc-500 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-zinc-800'
                       }`}
                     >
                       {opt.label}
@@ -359,22 +364,22 @@ export default function PriceHistory() {
               {/* Skeleton: 4 stat cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="h-28 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[1.5rem] animate-pulse" />
+                  <div key={i} className="h-28 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-[1.5rem] animate-pulse" />
                 ))}
               </div>
               {/* Skeleton: chart */}
-              <div className="h-[400px] bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[1.5rem] animate-pulse" />
+              <div className="h-[400px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-[1.5rem] animate-pulse" />
             </div>
           )}
 
           {/* ═══════════ No Selection State ═══════════ */}
           {!selectedConditionId && !conditionsLoading && !error && (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
-              <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#EEF2FF] dark:bg-indigo-500/10 flex items-center justify-center border border-[#6366F1]/10">
-                <Activity className="w-7 h-7 text-[#6366F1] dark:text-indigo-400" />
+            <div className="rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
+                <Activity className="w-7 h-7 text-[#1E4D8C] dark:text-[#7BAEDA]" />
               </div>
-              <h3 className="text-lg font-bold text-[#0F172A] dark:text-slate-50 mb-2">가격 히스토리를 확인할 조건을 선택해주세요</h3>
-              <p className="text-sm text-[#475569] dark:text-slate-400 font-medium max-w-md mx-auto">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 mb-2">가격 히스토리를 확인할 조건을 선택해주세요</h3>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium max-w-md mx-auto">
                 위 드롭다운에서 모니터링 중인 조건을 선택하면 상세 가격 변동 내역을 확인할 수 있습니다.
               </p>
             </div>
@@ -398,8 +403,8 @@ export default function PriceHistory() {
                         : undefined
                   }
                   subColor={priceData.currentPrice <= priceData.maxPrice ? 'text-[#059669]' : 'text-[#DC2626]'}
-                  iconBg="bg-[#EEF2FF] dark:bg-indigo-500/10"
-                  iconColor="text-[#6366F1] dark:text-indigo-400"
+                  iconBg="bg-[#F9F7F7] dark:bg-[#1E4D8C]/10"
+                  iconColor="text-[#1E4D8C] dark:text-[#7BAEDA]"
                 />
                 {/* Lowest Price */}
                 <StatCard
@@ -438,35 +443,35 @@ export default function PriceHistory() {
               </div>
 
               {/* ── Price Chart ── */}
-              <Card className="rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] bg-white dark:bg-slate-900 overflow-hidden">
-                <CardHeader className="border-b border-[#E2E8F0] dark:border-slate-700 px-5 py-4 bg-white dark:bg-slate-900">
+              <Card className="rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] bg-white dark:bg-zinc-900 overflow-hidden">
+                <CardHeader className="border-b border-zinc-200 dark:border-zinc-700 px-5 py-4 bg-white dark:bg-zinc-900">
                   <div>
-                    <CardTitle className="text-[#0F172A] dark:text-slate-50 font-bold">가격 추이</CardTitle>
-                    <CardDescription className="text-[#475569] dark:text-slate-400 mt-1">
+                    <CardTitle className="text-zinc-900 dark:text-zinc-50 font-bold">가격 추이</CardTitle>
+                    <CardDescription className="text-zinc-700 dark:text-zinc-300 mt-1">
                       시간에 따른 가격 변동을 확인하세요
                     </CardDescription>
                   </div>
                 </CardHeader>
-                <CardContent className="bg-[#F8FAFC] dark:bg-slate-950 p-4 sm:p-5">
+                <CardContent className="bg-zinc-50 dark:bg-zinc-900 p-4 sm:p-5">
                   {chartData.length === 0 ? (
-                    <div className="py-16 text-center text-[#475569] dark:text-slate-400 font-medium">
-                      아직 수집된 가격 데이터가 없습니다.
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <p className="text-sm font-bold text-zinc-500 mb-1">아직 수집된 가격 데이터가 없습니다</p>
                     </div>
                   ) : (
                     <>
                       <ResponsiveContainer width="100%" height={320}>
                         <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} vertical={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272A" strokeOpacity={0.4} vertical={false} />
                           <XAxis
                             dataKey="date"
-                            stroke="#64748b"
+                            stroke="#71717A"
                             style={{ fontSize: '12px' }}
                             tickLine={false}
                             axisLine={false}
                             dy={10}
                           />
                           <YAxis
-                            stroke="#64748b"
+                            stroke="#71717A"
                             style={{ fontSize: '12px' }}
                             tickFormatter={(v) => `₩${(v / 10000).toFixed(0)}만`}
                             tickLine={false}
@@ -476,11 +481,11 @@ export default function PriceHistory() {
                           />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: '1px solid #e2e8f0',
+                              backgroundColor: '#18181B',
+                              border: '1px solid #27272A',
                               borderRadius: '0.75rem',
-                              color: '#0f172a',
-                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                              color: '#FAFAFA',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
                             }}
                             formatter={(value: any) => [`₩${Number(value).toLocaleString()}`, '가격']}
                           />
@@ -516,20 +521,20 @@ export default function PriceHistory() {
                           <Line
                             type="monotone"
                             dataKey="price"
-                            stroke="#6366F1"
+                            stroke="#1E4D8C"
                             strokeWidth={3}
                             dot={(props: any) => {
                               const { cx, cy, payload } = props;
                               if (payload?.isLowest) {
                                 return (
-                                  <circle cx={cx} cy={cy} r={7} fill="#DC2626" stroke="#ffffff" strokeWidth={3} />
+                                  <circle cx={cx} cy={cy} r={7} fill="#DC2626" stroke="#18181B" strokeWidth={3} />
                                 );
                               }
                               return (
-                                <circle cx={cx} cy={cy} r={4} fill="#6366F1" stroke="#ffffff" strokeWidth={2} />
+                                <circle cx={cx} cy={cy} r={4} fill="#1E4D8C" stroke="#18181B" strokeWidth={2} />
                               );
                             }}
-                            activeDot={{ r: 7, stroke: '#ffffff', strokeWidth: 2 }}
+                            activeDot={{ r: 7, stroke: '#18181B', strokeWidth: 2 }}
                             animationDuration={1200}
                           />
                         </LineChart>
@@ -539,20 +544,20 @@ export default function PriceHistory() {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-6 text-xs gap-3 px-2">
                         <div className="flex items-center gap-4 flex-wrap">
                           <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-[#6366F1] shadow-sm" />
-                            <span className="text-[#475569] dark:text-slate-400 font-medium">가격</span>
+                            <div className="w-3 h-3 rounded-full bg-[#1E4D8C] shadow-sm" />
+                            <span className="text-zinc-700 dark:text-zinc-300 font-medium">가격</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-[#DC2626] shadow-sm" />
-                            <span className="text-[#475569] dark:text-slate-400 font-medium">최저가</span>
+                            <span className="text-zinc-700 dark:text-zinc-300 font-medium">최저가</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-0.5 bg-[#f0a040]" />
-                            <span className="text-[#475569] dark:text-slate-400 font-medium">목표가</span>
+                            <span className="text-zinc-700 dark:text-zinc-300 font-medium">목표가</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-0.5 bg-[#9b59b6]" />
-                            <span className="text-[#475569] dark:text-slate-400 font-medium">평균가</span>
+                            <span className="text-zinc-700 dark:text-zinc-300 font-medium">평균가</span>
                           </div>
                         </div>
                         {priceData?.priceHistory.some((e) => e.productUrl) && (
@@ -560,7 +565,7 @@ export default function PriceHistory() {
                             href={priceData.priceHistory.find((e) => e.productUrl)?.productUrl ?? '#'}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E2E8F0] dark:border-slate-700 text-xs font-bold text-[#6366F1] dark:text-indigo-400 hover:bg-[#EEF2FF] dark:hover:bg-indigo-500/10 transition-colors self-start sm:self-auto"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 transition-colors self-start sm:self-auto"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                             상품 보기
@@ -573,35 +578,35 @@ export default function PriceHistory() {
               </Card>
 
               {/* ── Price History Table ── */}
-              <Card className="rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] bg-white dark:bg-slate-900 overflow-hidden">
-                <CardHeader className="border-b border-[#E2E8F0] dark:border-slate-700 px-5 py-4 bg-white dark:bg-slate-900">
+              <Card className="rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] bg-white dark:bg-zinc-900 overflow-hidden">
+                <CardHeader className="border-b border-zinc-200 dark:border-zinc-700 px-5 py-4 bg-white dark:bg-zinc-900">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-[#0F172A] dark:text-slate-50 font-bold">수집 히스토리</CardTitle>
-                      <CardDescription className="text-[#475569] dark:text-slate-400 mt-1">
+                      <CardTitle className="text-zinc-900 dark:text-zinc-50 font-bold">수집 히스토리</CardTitle>
+                      <CardDescription className="text-zinc-700 dark:text-zinc-300 mt-1">
                         기간별 가격 수집 내역입니다
                       </CardDescription>
                     </div>
-                    <Badge className="hidden sm:inline-flex bg-[#F1F5F9] dark:bg-slate-900 text-[#0F172A] dark:text-slate-50 hover:bg-[#F1F5F9] dark:hover:bg-slate-900 border-none font-semibold rounded-md px-2 py-0.5 text-xs">
+                    <Badge className="hidden sm:inline-flex bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-900 border-none font-semibold rounded-md px-2 py-0.5 text-xs">
                       총 {priceData.totalElements}건
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent className="bg-[#F8FAFC] dark:bg-slate-950 p-0">
+                <CardContent className="bg-zinc-50 dark:bg-zinc-900 p-0">
                   {sortedHistory.length === 0 ? (
-                    <div className="py-12 text-center text-[#475569] dark:text-slate-400 font-medium">
+                    <div className="py-12 text-center text-zinc-700 dark:text-zinc-300 font-medium">
                       수집된 가격 이력이 없습니다.
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-[#E2E8F0] dark:border-slate-700">
-                            <th className="text-left px-5 py-3.5 text-[#475569] dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
+                          <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                            <th className="text-left px-5 py-3.5 text-zinc-700 dark:text-zinc-300 text-xs font-bold uppercase tracking-wider">
                               <button
                                 type="button"
                                 onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                                className="inline-flex items-center gap-1 hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                               >
                                 날짜
                                 {sortOrder === 'asc' ? (
@@ -611,25 +616,25 @@ export default function PriceHistory() {
                                 )}
                               </button>
                             </th>
-                            <th className="text-right px-5 py-3.5 text-[#475569] dark:text-slate-400 text-xs font-bold uppercase tracking-wider">가격</th>
-                            <th className="text-right px-5 py-3.5 text-[#475569] dark:text-slate-400 text-xs font-bold uppercase tracking-wider">원가</th>
-                            <th className="text-right px-5 py-3.5 text-[#475569] dark:text-slate-400 text-xs font-bold uppercase tracking-wider">할인율</th>
+                            <th className="text-right px-5 py-3.5 text-zinc-700 dark:text-zinc-300 text-xs font-bold uppercase tracking-wider">가격</th>
+                            <th className="text-right px-5 py-3.5 text-zinc-700 dark:text-zinc-300 text-xs font-bold uppercase tracking-wider">원가</th>
+                            <th className="text-right px-5 py-3.5 text-zinc-700 dark:text-zinc-300 text-xs font-bold uppercase tracking-wider">할인율</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#E2E8F0] dark:divide-slate-700/50">
+                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700/50">
                           {sortedHistory.map((entry, idx) => {
                             const discountRate = calcDiscountRate(entry.price, entry.originalPrice);
                             return (
                               <tr
                                 key={`${entry.collectedAt}-${idx}`}
-                                className={`group transition-colors hover:bg-[#F1F5F9] dark:hover:bg-slate-900 ${
+                                className={`group transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900 ${
                                   entry.isLowestPrice ? 'bg-[#FEF2F2]/50 dark:bg-red-950/10' : ''
                                 }`}
                               >
                                 <td className="px-5 py-4 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
-                                    <Clock className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
-                                    <span className="text-[#0F172A] dark:text-slate-50 font-medium text-xs sm:text-sm">
+                                    <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                                    <span className="text-zinc-900 dark:text-zinc-50 font-medium text-xs sm:text-sm">
                                       {formatDateTime(entry.collectedAt)}
                                     </span>
                                   </div>
@@ -638,7 +643,7 @@ export default function PriceHistory() {
                                   <span className={`font-extrabold text-sm sm:text-base ${
                                     entry.isLowestPrice
                                       ? 'text-[#DC2626] dark:text-red-400'
-                                      : 'text-[#0F172A] dark:text-slate-50'
+                                      : 'text-zinc-900 dark:text-zinc-50'
                                   }`}>
                                     {formatPrice(entry.price, entry.currency)}
                                   </span>
@@ -648,11 +653,11 @@ export default function PriceHistory() {
                                 </td>
                                 <td className="px-5 py-4 text-right whitespace-nowrap">
                                   {entry.originalPrice !== entry.price ? (
-                                    <span className="text-[#64748b] dark:text-slate-400 text-xs sm:text-sm font-medium line-through">
+                                    <span className="text-zinc-500 dark:text-zinc-300 text-xs sm:text-sm font-medium line-through">
                                       {formatPrice(entry.originalPrice, entry.currency)}
                                     </span>
                                   ) : (
-                                    <span className="text-[#94A3B8] text-xs">-</span>
+                                    <span className="text-zinc-400 text-xs">-</span>
                                   )}
                                 </td>
                                 <td className="px-5 py-4 text-right whitespace-nowrap">
@@ -662,7 +667,7 @@ export default function PriceHistory() {
                                       {discountRate}%
                                     </span>
                                   ) : (
-                                    <span className="text-[#94A3B8] text-xs">-</span>
+                                    <span className="text-zinc-400 text-xs">-</span>
                                   )}
                                 </td>
                               </tr>
@@ -705,16 +710,16 @@ function StatCard({
   iconColor: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-[1.5rem] p-5 flex flex-col justify-center shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-lg hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 transition-all duration-300">
+    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-[1.5rem] p-5 flex flex-col justify-center shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-lg hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 transition-all duration-300">
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
           <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
-        <span className="text-[13px] font-bold text-[#475569] dark:text-slate-400">{label}</span>
+        <span className="text-[13px] font-bold text-zinc-700 dark:text-zinc-300">{label}</span>
       </div>
       <div className="flex flex-col items-center gap-1 self-center">
         <div className="flex items-center gap-2">
-          <span className="text-[28px] font-extrabold tracking-tight text-[#0F172A] dark:text-slate-50 text-center">
+          <span className="text-[28px] font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 text-center">
             {value}
           </span>
           {badge && (
@@ -724,7 +729,7 @@ function StatCard({
           )}
         </div>
         {sub && (
-          <p className={`text-xs font-medium ${subColor ?? 'text-[#64748b] dark:text-slate-400'}`}>
+          <p className={`text-xs font-medium ${subColor ?? 'text-zinc-500 dark:text-zinc-300'}`}>
             {sub}
           </p>
         )}

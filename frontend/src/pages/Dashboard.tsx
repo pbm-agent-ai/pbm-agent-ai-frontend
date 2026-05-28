@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Bot, Circle, Clock, CheckCircle, DollarSign, Loader2, MessageSquare, Search, Sparkles, TrendingUp } from 'lucide-react';
+import { Circle, Clock, CheckCircle, DollarSign, Search, Sparkles, TrendingUp } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection, submitCommandProductLinks } from '../api/dashboard';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import { LogoIcon } from '../components/ui/LogoIcon';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardCommandCandidateItem,
@@ -133,7 +134,7 @@ const getPlatformColor = (platform: string) => {
 const getMonitoringStatusColor = (status: DashboardMonitoringItem['status'], statusLabel?: string) => {
   if (status === 'waiting' || statusLabel?.trim() === '대기 중') return '#f97316';
   if (status === 'exploring' || statusLabel?.trim() === '탐색 중') return '#16a34a';
-  return '#6366F1';
+  return '#1E4D8C';
 };
 
 export default function Dashboard() {
@@ -147,6 +148,8 @@ export default function Dashboard() {
   const [isRotatingMessageVisible, setIsRotatingMessageVisible] = useState(true);
   // 설명: 입력창 포커스 상태를 저장합니다.
   const [isCommandInputFocused, setIsCommandInputFocused] = useState(false);
+  // ── 조건 분석 버튼 호버 시 로봇 입 O자로 변경 ──
+  const [isAnalyzeBtnHovered, setIsAnalyzeBtnHovered] = useState(false);
   // 설명: 분석된 명령 미리보기를 저장합니다.
   const [parsedPreview, setParsedPreview] = useState<DashboardCommandParseSuccessResponse | null>(null);
   // 설명: 후보 상품 목록을 저장합니다.
@@ -183,10 +186,10 @@ export default function Dashboard() {
 
   // 설명: 대시보드 카드에 보여줄 통계를 구성합니다.
   const stats: DashboardStat[] = [
-    { label: '모니터링 중', value: String(monitoringCount), color: 'text-[#0F172A] dark:text-slate-50', icon: TrendingUp },
-    { label: '완료된 결제', value: String(completedPaymentCount), color: 'text-[#334155] dark:text-slate-300', icon: CheckCircle },
-    { label: '조건 대기 중', value: String(waitingCount), color: 'text-[#475569] dark:text-slate-400', icon: Clock },
-    { label: '총 절약 금액', value: `₩${totalSavingsAmount.toLocaleString()}`, color: 'text-[#0F172A] dark:text-slate-50', icon: DollarSign },
+    { label: '모니터링 중', value: String(monitoringCount), color: 'text-zinc-900 dark:text-zinc-50', icon: TrendingUp },
+    { label: '완료된 결제', value: String(completedPaymentCount), color: 'text-zinc-700 dark:text-zinc-300', icon: CheckCircle },
+    { label: '조건 대기 중', value: String(waitingCount), color: 'text-zinc-700 dark:text-zinc-300', icon: Clock },
+    { label: '총 절약 금액', value: `₩${totalSavingsAmount.toLocaleString()}`, color: 'text-zinc-900 dark:text-zinc-50', icon: DollarSign },
   ];
 
   // 설명: 상단 안내 문구를 주기적으로 바꿉니다.
@@ -222,7 +225,7 @@ export default function Dashboard() {
   const handleAnalyzeClick = async (): Promise<void> => {
     const commandText = naturalLanguageInput.trim();
     if (!commandText) {
-      await Swal.fire({ icon: 'warning', title: '자연어 입력 필요', text: '명령어를 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#6366F1' });
+      await Swal.fire({ icon: 'warning', title: '자연어 입력 필요', text: '명령어를 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
       return;
     }
 
@@ -311,7 +314,7 @@ export default function Dashboard() {
         title: '서버 연결 실패',
         text: `${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`,
         confirmButtonText: '확인',
-        confirmButtonColor: '#6366F1',
+        confirmButtonColor: '#1E4D8C',
       });
     } finally {
       setIsAnalyzing(false);
@@ -376,13 +379,13 @@ export default function Dashboard() {
           icon: 'question',
           title: '기존 모니터링 확인',
           html: `
-            <p class="text-sm text-[#475569] mb-2">이미 모니터링 중인 상품이 있습니다.</p>
-            <p class="text-sm text-[#475569]">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
+            <p class="text-sm text-zinc-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
+            <p class="text-sm text-zinc-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
           `,
           showCancelButton: true,
           confirmButtonText: '재시작/갱신',
           cancelButtonText: '취소',
-          confirmButtonColor: '#6366F1',
+          confirmButtonColor: '#1E4D8C',
           cancelButtonColor: '#94A3B8',
           reverseButtons: true,
         });
@@ -403,7 +406,7 @@ export default function Dashboard() {
             title: '선택 유지',
             text: '기존 모니터링을 유지합니다. 새로운 조건을 다시 시도해보세요.',
             confirmButtonText: '확인',
-            confirmButtonColor: '#6366F1',
+            confirmButtonColor: '#1E4D8C',
           });
         }
       } else {
@@ -419,7 +422,7 @@ export default function Dashboard() {
         title: '전송 실패',
         text: errorMessage,
         confirmButtonText: '확인',
-        confirmButtonColor: '#6366F1',
+        confirmButtonColor: '#1E4D8C',
       });
     } finally {
       setSelectionSubmitting(false);
@@ -436,12 +439,12 @@ export default function Dashboard() {
     const urls = productUrlInputs.map((u) => u.trim()).filter(Boolean);
 
     if (urls.length === 0) {
-      await Swal.fire({ icon: 'warning', title: 'URL 입력 필요', text: '상품 URL을 하나 이상 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#6366F1' });
+      await Swal.fire({ icon: 'warning', title: 'URL 입력 필요', text: '상품 URL을 하나 이상 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
       return;
     }
 
     if (urls.length > 5) {
-      await Swal.fire({ icon: 'warning', title: '초과', text: '최대 5개의 URL만 입력 가능합니다.', confirmButtonText: '확인', confirmButtonColor: '#6366F1' });
+      await Swal.fire({ icon: 'warning', title: '초과', text: '최대 5개의 URL만 입력 가능합니다.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
       return;
     }
 
@@ -463,7 +466,7 @@ export default function Dashboard() {
       await showSuccessToast('URL 제출 완료');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'URL 전송에 실패했습니다.';
-      await Swal.fire({ icon: 'error', title: '전송 실패', text: errorMessage, confirmButtonText: '확인', confirmButtonColor: '#6366F1' });
+      await Swal.fire({ icon: 'error', title: '전송 실패', text: errorMessage, confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
     } finally {
       setProductUrlSubmitting(false);
     }
@@ -489,7 +492,7 @@ export default function Dashboard() {
         title: '보완 입력 필요',
         text: '추가 설명이나 항목별 답변을 입력해주세요.',
         confirmButtonText: '확인',
-        confirmButtonColor: '#6366F1',
+        confirmButtonColor: '#1E4D8C',
       });
       return;
     }
@@ -537,7 +540,7 @@ export default function Dashboard() {
         title: '전송 실패',
         text: errorMessage,
         confirmButtonText: '확인',
-        confirmButtonColor: '#6366F1',
+        confirmButtonColor: '#1E4D8C',
       });
     } finally {
       setClarificationSubmitting(false);
@@ -573,11 +576,12 @@ export default function Dashboard() {
   const renderMonitoringCard = (item: DashboardMonitoringItem) => (
     <div
       key={item.conditionId}
-      className="w-full min-w-0 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 rounded-xl p-3 sm:p-4 hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-[0_4px_12px_rgb(15,23,42,0.06)] hover:-translate-y-0.5 transition-all duration-200 cursor-default flex flex-col group relative"
+      className="w-full min-w-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 sm:p-4 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-[0_4px_12px_rgb(15,23,42,0.06)] hover:-translate-y-0.5 transition-all duration-200 cursor-default flex flex-col group relative overflow-hidden"
     >
+      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-[#1E4D8C]/30 to-transparent"></div>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-[#F8FAFC] dark:bg-slate-950 px-2 py-1 rounded border border-[#E2E8F0] dark:border-slate-700">
+          <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700">
             <Circle
               className="w-1.5 h-1.5"
               style={{
@@ -585,7 +589,7 @@ export default function Dashboard() {
                 fill: getMonitoringStatusColor(item.status, item.statusLabel),
               }}
             />
-            <span className="font-semibold text-[#0F172A] dark:text-slate-50 text-[11px] leading-none">{item.statusLabel}</span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-50 text-[11px] leading-none">{item.statusLabel}</span>
           </div>
         </div>
         <Badge
@@ -602,20 +606,20 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-3 flex-1">
-        <p className="text-[#0F172A] dark:text-slate-50 font-bold text-sm sm:text-[15px] leading-snug line-clamp-2 group-hover:text-[#0F172A] dark:group-hover:text-slate-50 transition-colors">
+        <p className="text-zinc-900 dark:text-zinc-50 font-bold text-sm sm:text-[15px] leading-snug line-clamp-2 group-hover:text-zinc-900 dark:group-hover:text-zinc-50 transition-colors">
           {item.product}
         </p>
       </div>
 
-      <div className="flex items-center justify-between pt-2.5 border-t border-[#F1F5F9] mt-auto">
+      <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 mt-auto">
         <div className="flex flex-col">
-          <span className="text-[#475569] dark:text-slate-400 text-[11px] font-medium mb-0.5">목표가</span>
-          <span className="text-[#0F172A] dark:text-slate-50 font-semibold text-[13px] sm:text-sm">{item.targetPrice}</span>
+          <span className="text-zinc-700 dark:text-zinc-300 text-[11px] font-medium mb-0.5">목표가</span>
+          <span className="text-zinc-900 dark:text-zinc-50 font-semibold text-[13px] sm:text-sm">{item.targetPrice}</span>
         </div>
-        <div className="flex items-center justify-center text-[#E2E8F0] font-light text-xl px-2">/</div>
+        <div className="flex items-center justify-center text-zinc-200 font-light text-xl px-2">/</div>
         <div className="flex flex-col items-end flex-1">
-          <span className="text-[#0F172A] dark:text-slate-50 text-[11px] font-medium mb-0.5">현재가</span>
-          <span className="text-[#0F172A] dark:text-slate-50 font-extrabold text-base sm:text-lg tracking-tight">{item.currentPrice}</span>
+          <span className="text-zinc-900 dark:text-zinc-50 text-[11px] font-medium mb-0.5">현재가</span>
+          <span className="text-zinc-900 dark:text-zinc-50 font-extrabold text-base sm:text-lg tracking-tight">{item.currentPrice}</span>
         </div>
       </div>
     </div>
@@ -630,22 +634,23 @@ export default function Dashboard() {
     isOpen: boolean,
     onToggle: () => void,
   ) => (
-    <div className="w-full min-w-0 self-start rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
+    <div className="w-full min-w-0 self-start rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden relative">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#DBE2EF]"></div>
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-4 border-b border-[#E2E8F0] dark:border-slate-700 px-5 py-4 text-left cursor-pointer"
+        className="flex w-full items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-700 px-5 py-4 pt-5 text-left cursor-pointer"
       >
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="text-base font-bold text-[#0F172A] dark:text-slate-50">{title}</h4>
+            <h4 className="text-base font-bold text-[#112D4E] dark:text-zinc-50">{title}</h4>
             <Badge className={countBadgeClassName}>{items.length}건</Badge>
           </div>
-          <p className="mt-1 text-sm text-[#475569] dark:text-slate-400">{description}</p>
+          <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{description}</p>
         </div>
         <svg
-          className={`w-5 h-5 text-[#64748B] dark:text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-zinc-500 dark:text-zinc-300 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -656,13 +661,13 @@ export default function Dashboard() {
       </button>
 
       {isOpen && (
-        <div className="bg-[#F8FAFC] dark:bg-slate-950 p-4 sm:p-5">
+        <div className="bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-5">
           {items.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{items.map(renderMonitoringCard)}</div>
           ) : (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-950 px-6 py-10 text-center">
-              <p className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">{title} 조건이 없습니다</p>
-              <p className="mt-1 text-sm text-[#475569] dark:text-slate-400">검색 조건을 바꾸거나 새 분석을 시도해보세요.</p>
+            <div className="rounded-[1.5rem] border-2 border-dashed border-[#DBE2EF]/60 dark:border-zinc-700 bg-[#F9F7F7]/50 dark:bg-zinc-950 px-6 py-10 text-center">
+              <p className="text-sm font-semibold text-[#112D4E] dark:text-zinc-50">{title} 조건이 없습니다</p>
+              <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">검색 조건을 바꾸거나 새 분석을 시도해보세요.</p>
             </div>
           )}
         </div>
@@ -672,12 +677,13 @@ export default function Dashboard() {
 
   // 설명: 대시보드의 전체 화면 레이아웃을 그립니다.
   return (
-    <div className="w-full bg-[#F8FAFC] dark:bg-slate-950 min-h-screen font-sans text-[#0F172A] dark:text-slate-50">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       {/* 설명: 상단 히어로와 자연어 입력 영역입니다. */}
-      <section className="bg-white dark:bg-slate-800 border-b border-[#E2E8F0] dark:border-slate-700 w-full pt-16 pb-20 px-4 md:px-8">
+      <section className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF]"></div>
         <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center relative z-10">
-          <div className="mb-4 flex h-12 items-center text-4xl font-medium text-[#475569] dark:text-slate-400 md:text-4xl">
-            <span className="relative inline-grid h-12 items-center overflow-hidden text-[#6366F1] dark:text-indigo-400 transition-[width] duration-300">
+          <div className="mb-4 flex h-12 items-center text-4xl font-medium text-zinc-700 dark:text-zinc-300 md:text-4xl">
+            <span className="relative inline-grid h-12 items-center overflow-hidden text-[#1E4D8C] dark:text-[#7BAEDA] transition-[width] duration-300">
               <span className="invisible whitespace-nowrap font-bold">{rotatingCommandMessages[rotatingMessageIndex]}</span>
               <span className={`absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap font-bold transition-all duration-300 ${isRotatingMessageVisible ? 'translate-y-[-50%] opacity-100' : 'translate-y-[-70%] opacity-0'}`}>
                 {rotatingCommandMessages[rotatingMessageIndex]}
@@ -685,13 +691,14 @@ export default function Dashboard() {
             </span>
             <span>&nbsp;찾고 계신가요?</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0F172A] dark:text-slate-50 mb-10">
-            원하는 가격, <span className="relative inline-block"><span className="relative z-10 text-[#6366F1] dark:text-indigo-400">알아서 척척</span><span className="absolute bottom-1 left-0 w-full h-3 bg-[#C7D2FE] dark:bg-indigo-500/30 -z-10 rounded-sm skew-x-[-10deg]"></span></span> 찾아드려요.
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-10">
+            원하는 가격, <span className="relative inline-block"><span className="relative z-10 text-[#1E4D8C] dark:text-[#7BAEDA]">알아서 척척</span><span className="absolute bottom-1 left-0 w-full h-3 bg-[#DBE2EF] dark:bg-[#1E4D8C]/30 -z-10 rounded-sm skew-x-[-10deg]"></span></span> 찾아드려요.
           </h1>
 
-          <div className="w-full max-w-3xl bg-white dark:bg-slate-800 rounded-[2rem] p-4 shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-[#E2E8F0] dark:border-slate-700">
-            <div className="flex flex-col gap-3">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 ring-1 ring-[#E2E8F0] focus-within:bg-[#F1F5F9] dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-[#6366F1]/30 dark:focus-within:ring-indigo-400/30 transition-all duration-300">
+          <div className="w-full max-w-3xl bg-white dark:bg-zinc-800 rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-zinc-200 dark:border-zinc-700 relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]"></div>
+            <div className="p-4 pt-5 flex flex-col gap-3">
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-2 ring-1 ring-[#E2E8F0] focus-within:bg-zinc-100 dark:focus-within:bg-zinc-900 focus-within:ring-2 focus-within:ring-[#1E4D8C]/30 dark:focus-within:ring-[#7BAEDA]/30 transition-all duration-300">
                 <textarea
                   rows={1}
                   placeholder="예: 쿠팡에서 탐사수 7000원 밑으로 알림"
@@ -703,20 +710,22 @@ export default function Dashboard() {
                     e.target.style.height = 'auto';
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
                   }}
-                  className="w-full bg-transparent border-none px-4 py-3 text-[#0F172A] dark:text-slate-50 text-lg placeholder:text-[#475569] dark:placeholder:text-slate-400 focus:outline-none resize-none min-h-[60px] font-medium"
+                  className="w-full bg-transparent border-none px-4 py-3 text-zinc-900 dark:text-zinc-50 text-lg placeholder:text-zinc-700 dark:placeholder:text-zinc-400 focus:outline-none resize-none min-h-[60px] font-medium"
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 px-2">
                 <Button
                   disabled={isAnalyzing}
-                  className="bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] dark:hover:from-indigo-400 hover:to-[#4338CA] dark:hover:to-indigo-500 hover:-translate-y-0.5 rounded-xl h-12 px-8 text-base font-bold shadow-[0_4px_14px_rgba(99,102,241,0.25)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.4)] transition-all duration-300 w-full sm:w-auto group border-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] hover:-translate-y-0.5 rounded-xl h-12 px-8 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 w-full sm:w-auto group border-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   onClick={() => void handleAnalyzeClick()}
+                  onMouseEnter={() => setIsAnalyzeBtnHovered(true)}
+                  onMouseLeave={() => setIsAnalyzeBtnHovered(false)}
                 >
                   {isAnalyzing ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <LogoIcon className="w-4 h-4 mr-2 animate-spin" animated={false} mouth="open" />
                   ) : (
-                    <Bot className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                    <LogoIcon className="w-4 h-4 mr-2" animated={false} mouth={isAnalyzeBtnHovered ? 'open' : 'auto'} />
                   )}
                   {isAnalyzing ? '분석 중...' : '조건 분석하기'}
                 </Button>
@@ -724,12 +733,12 @@ export default function Dashboard() {
 
               {/* 설명: 누락 항목 보완 안내를 보여줍니다. */}
               {parsedPreview?.data.needsClarification && (
-                <div className="mx-2 mt-2 flex flex-col items-start gap-2 rounded-[1.5rem] border border-[#C7D2FE] dark:border-indigo-500/30 bg-[#EEF2FF] dark:bg-indigo-500/10 px-4 py-3 text-left shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="mx-2 mt-2 flex flex-col items-start gap-2 rounded-[1.5rem] border border-[#DBE2EF] dark:border-[#1E4D8C]/30 bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 px-4 py-3 text-left shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#6366F1] dark:text-indigo-400 shrink-0" />
-                    <p className="text-sm font-medium text-[#6366F1] dark:text-indigo-400">혹시 빠뜨린 내용이 있나요?</p>
+                    <Sparkles className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA] shrink-0" />
+                    <p className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">혹시 빠뜨린 내용이 있나요?</p>
                   </div>
-                  <Button type="button" onClick={() => setShowClarificationModal(true)} className="rounded-xl bg-gradient-to-r from-[#6366F1] to-[#4F46E5] text-white">
+                  <Button type="button" onClick={() => setShowClarificationModal(true)} className="rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white">
                     입력 보완하기
                   </Button>
                 </div>
@@ -742,10 +751,10 @@ export default function Dashboard() {
                   setShowClarificationModal(open);
                 }}
               >
-                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl bg-white dark:bg-slate-800 rounded-3xl p-0 overflow-hidden border-[#E2E8F0] dark:border-slate-700 shadow-xl">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl bg-white dark:bg-zinc-800 rounded-3xl p-0 overflow-hidden border-zinc-200 dark:border-zinc-700 shadow-xl">
                   <DialogHeader className="px-6 pt-6 pb-2">
-                    <DialogTitle className="text-[#0F172A] dark:text-slate-50 text-xl font-bold">조건 보완</DialogTitle>
-                    <DialogDescription className="text-[#475569] dark:text-slate-400">
+                    <DialogTitle className="text-zinc-900 dark:text-zinc-50 text-xl font-bold">조건 보완</DialogTitle>
+                    <DialogDescription className="text-zinc-700 dark:text-zinc-300">
                       AI가 이해한 값은 유지되고, 누락된 항목만 추가로 입력합니다.
                     </DialogDescription>
                   </DialogHeader>
@@ -753,7 +762,7 @@ export default function Dashboard() {
                   <div className="space-y-5 px-6 pb-2 mt-2 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
                     <div>
                       <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-sm font-bold text-[#0F172A] dark:text-slate-50">누락된 항목 입력</h4>
+                        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">누락된 항목 입력</h4>
                       </div>
 
                       {missingFields.length > 0 ? (
@@ -764,20 +773,20 @@ export default function Dashboard() {
 
                             return (
                               <div key={field} className="space-y-2 md:col-span-2">
-                                <Label className="text-[#475569] dark:text-slate-400 text-sm">{config.label}</Label>
+                                <Label className="text-zinc-700 dark:text-zinc-300 text-sm">{config.label}</Label>
                                 <Input
                                   value={clarificationAnswers[field] ?? ''}
                                   onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
                                   placeholder={config.placeholder}
                                   inputMode={isNumericField ? 'numeric' : 'text'}
-                                  className="bg-[#F1F5F9] dark:bg-slate-950 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 focus-visible:ring-2 focus-visible:ring-[#6366F1]/30 focus-visible:border-[#6366F1]/40 dark:focus-visible:border-indigo-400/50"
+                                  className="bg-zinc-100 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 dark:focus-visible:border-[#7BAEDA]/50"
                                 />
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="mt-3 rounded-xl border border-dashed border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-950 px-4 py-3 text-sm text-[#475569] dark:text-slate-400">
+                        <div className="mt-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300">
                           구조화된 추가 입력은 필요하지 않아요.
                         </div>
                       )}
@@ -785,30 +794,30 @@ export default function Dashboard() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="text-[#475569] dark:text-slate-400 text-sm">추가 설명(선택)</Label>
-                        <span className="text-xs text-[#64748B] dark:text-slate-400">필요할 때만</span>
+                        <Label className="text-zinc-700 dark:text-zinc-300 text-sm">추가 설명(선택)</Label>
+                        <span className="text-xs text-zinc-500 dark:text-zinc-300">필요할 때만</span>
                       </div>
                       <textarea
                         value={clarificationInput}
                         onChange={(e) => setClarificationInput(e.target.value)}
                         placeholder="예: 블랙 모델이 아니라 화이트 모델입니다."
-                        className="min-h-[96px] w-full rounded-xl border border-[#E2E8F0] dark:border-slate-700 bg-[#F1F5F9] dark:bg-slate-950 px-4 py-3 text-sm text-[#0F172A] dark:text-slate-50 placeholder:text-[#475569] dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
+                        className="min-h-[96px] w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-950 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-700 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30"
                       />
                     </div>
                   </div>
 
-                  <DialogFooter className="bg-[#F1F5F9] dark:bg-slate-900 px-6 py-4 border-t border-[#E2E8F0] dark:border-slate-700 sm:justify-end gap-2">
+                  <DialogFooter className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 sm:justify-end gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
                         setShowClarificationModal(false);
                       }}
-                      className="rounded-xl px-6 py-2 bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-[#475569] dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700"
+                      className="rounded-xl px-6 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
                     >
                       닫기
                     </Button>
-                    <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 text-white hover:from-[#4F46E5] dark:hover:from-indigo-400 hover:to-[#4338CA] dark:hover:to-indigo-500 shadow-[0_4px_10px_rgba(99,102,241,0.25)] border-none font-bold">
+                    <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] shadow-[0_4px_10px_rgba(30,77,140,0.25)] border-none font-bold">
                       {clarificationSubmitting ? '전송 중...' : '보완 내용 보내기'}
                     </Button>
                   </DialogFooter>
@@ -817,9 +826,9 @@ export default function Dashboard() {
 
               {/* 설명: 분석 완료 상태를 표시합니다. */}
               {parsedPreview && !parsedPreview.data.needsClarification && (
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-950 p-4 text-left">
-                  <p className="text-sm font-semibold text-[#0F172A] dark:text-slate-50">분석 완료</p>
-                  <p className="mt-1 text-xs text-[#475569] dark:text-slate-400">추가 입력 없이도 조건 분석이 끝났어요.</p>
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 p-4 text-left">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">분석 완료</p>
+                  <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">추가 입력 없이도 조건 분석이 끝났어요.</p>
                 </div>
               )}
 
@@ -830,7 +839,7 @@ export default function Dashboard() {
                     type="button"
                     onClick={() => setShowUrlInput((prev) => !prev)}
                     aria-expanded={showUrlInput}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-left text-sm font-medium text-[#64748B] dark:text-slate-400 hover:text-[#0F172A] dark:hover:text-slate-50 transition-colors cursor-pointer"
+                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-left text-sm font-medium text-zinc-500 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors cursor-pointer"
                   >
                     <span>원하는 상품이 목록에 없나요?</span>
                     <svg
@@ -842,8 +851,8 @@ export default function Dashboard() {
                   </button>
 
                   {showUrlInput && (
-                    <div className="mt-2 rounded-[1.5rem] border border-dashed border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-left shadow-sm">
-                      <h4 className="text-xs font-bold text-[#0F172A] dark:text-slate-50 mb-2">직접 상품 URL 입력 (최대 5개)</h4>
+                    <div className="mt-2 rounded-[1.5rem] border border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 text-left shadow-sm">
+                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-50 mb-2">직접 상품 URL 입력 (최대 5개)</h4>
                       <div className="flex flex-col gap-2">
                         {productUrlInputs.map((url, index) => (
                           <div key={index} className="flex gap-2">
@@ -855,7 +864,7 @@ export default function Dashboard() {
                                 setProductUrlInputs(next);
                               }}
                               placeholder={`URL ${index + 1}`}
-                              className="flex-1 bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 text-sm h-9 transition-all duration-200"
+                              className="flex-1 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-sm h-9 transition-all duration-200"
                             />
                             {index === productUrlInputs.length - 1 && productUrlInputs.length < 5 && (
                               <Button
@@ -874,7 +883,7 @@ export default function Dashboard() {
                         type="button"
                         onClick={() => void handleProductUrlSubmit()}
                         disabled={productUrlSubmitting}
-                        className="mt-3 rounded-xl bg-gradient-to-r from-[#6366F1] to-[#4F46E5] text-white px-4 py-1.5 text-xs font-bold"
+                        className="mt-3 rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-4 py-1.5 text-xs font-bold"
                       >
                         {productUrlSubmitting ? '전송 중...' : 'URL 제출'}
                       </Button>
@@ -885,10 +894,10 @@ export default function Dashboard() {
 
               {/* 설명: 후보 상품 목록과 선택 버튼을 보여줍니다. */}
               {candidates.length > 0 ? (
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 p-5 text-left shadow-sm">
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 text-left shadow-sm">
                   <div className="flex items-center justify-between gap-3 mb-4">
-                    <h3 className="text-sm font-bold text-[#0F172A] dark:text-slate-50">상품 목록</h3>
-                    <span className="text-xs text-[#64748B] dark:text-slate-400">최대 {candidates.length}개</span>
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">상품 목록</h3>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-300">최대 {candidates.length}개</span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {/* 설명: 후보별 상태 배지를 계산해 렌더링합니다. */}
@@ -924,20 +933,20 @@ export default function Dashboard() {
                             }}
                             className={`flex gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200 ${
                               selectedProductIds.includes(item.productId)
-                                ? 'border-[#6366F1] dark:border-indigo-400 bg-[#EEF2FF] dark:bg-indigo-500/10 ring-2 ring-[#6366F1]/30 dark:ring-indigo-400/30'
-                                : 'border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-950 hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-sm'
+                                ? 'border-[#1E4D8C] dark:border-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 ring-2 ring-[#1E4D8C]/30 dark:ring-[#7BAEDA]/30'
+                                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-sm'
                             }`}
                           >
                             <img src={item.imageUrl} alt={item.title} className="w-16 h-16 rounded-lg object-cover shrink-0 bg-white" />
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-[#0F172A] dark:text-slate-50 line-clamp-2">{stripHtmlTags(item.title)}</div>
+                              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 line-clamp-2">{stripHtmlTags(item.title)}</div>
                               {badgeText && (
                                 <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold leading-tight ${badgeClass}`}>
                                   {badgeText}
                                 </span>
                               )}
-                              <div className="mt-1.5 text-sm font-bold text-[#6366F1] dark:text-indigo-400">₩{Number(item.lprice).toLocaleString()}</div>
-                              <div className="mt-0.5 text-[11px] text-[#64748B] dark:text-slate-400">{item.mallName} · {item.platform}</div>
+                              <div className="mt-1.5 text-sm font-bold text-[#1E4D8C] dark:text-[#7BAEDA]">₩{Number(item.lprice).toLocaleString()}</div>
+                              <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-300">{item.mallName} · {item.platform}</div>
                             </div>
                           </div>
                         );
@@ -946,13 +955,13 @@ export default function Dashboard() {
                   </div>
 
                   {selectedProductIds.length > 0 && (
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#E2E8F0] dark:border-slate-700 pt-4">
-                      <span className="text-xs text-[#64748B] dark:text-slate-400">{selectedProductIds.length}개 선택됨</span>
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                      <span className="text-xs text-zinc-500 dark:text-zinc-300">{selectedProductIds.length}개 선택됨</span>
                       <Button
                         type="button"
                         onClick={() => void handleSelectionSubmit()}
                         disabled={selectionSubmitting}
-                        className="rounded-xl bg-gradient-to-r from-[#6366F1] to-[#4F46E5] text-white px-6 py-2 font-bold"
+                        className="rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-6 py-2 font-bold"
                       >
                         {selectionSubmitting ? '전송 중...' : '선택 완료'}
                       </Button>
@@ -961,11 +970,11 @@ export default function Dashboard() {
                 </div>
               ) : (isCommandInputFocused || naturalLanguageInput.trim().length > 0) && (
                 // 설명: 입력 예시와 사용 팁을 안내합니다.
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-[#F8FAFC] dark:bg-slate-950 p-5 text-left shadow-inner">
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 p-5 text-left shadow-inner">
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
-                      <h3 className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-1">이렇게 입력해 보세요!</h3>
-                      <p className="text-xs text-[#475569] dark:text-slate-400 mb-3">원하는 문장을 클릭해 자연어 쇼핑 명령을 빠르게 입력할 수 있어요.</p>
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">이렇게 입력해 보세요!</h3>
+                      <p className="text-xs text-zinc-700 dark:text-zinc-300 mb-3">원하는 문장을 클릭해 자연어 쇼핑 명령을 빠르게 입력할 수 있어요.</p>
                       <div className="flex flex-col gap-2">
                         {/* 설명: 예시 문구를 클릭하면 입력칸에 채워집니다. */}
                         {shoppingCommandExamples.map((text, index) => (
@@ -976,22 +985,22 @@ export default function Dashboard() {
                               event.preventDefault();
                               setNaturalLanguageInput(text);
                             }}
-                            className="rounded-2xl border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-left text-sm font-medium text-[#0F172A] dark:text-slate-50 transition hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-[0_2px_8px_rgb(99,102,241,0.08)] hover:bg-[#EEF2FF] dark:hover:bg-indigo-500/10 hover:text-[#6366F1] dark:hover:text-indigo-400 hover:-translate-y-0.5 cursor-pointer"
+                            className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-left text-sm font-medium text-zinc-900 dark:text-zinc-50 transition hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-[0_2px_8px_rgb(217,119,6,0.08)] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] hover:-translate-y-0.5 cursor-pointer"
                           >
                             "{text}"
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="flex-1 border-t md:border-t-0 md:border-l border-[#E2E8F0] dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
-                      <h4 className="text-sm font-bold text-[#0F172A] dark:text-slate-50 mb-3 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-xl bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 flex items-center justify-center text-xs shadow-sm border border-[#6366F1]/10">💡</span>
+                    <div className="flex-1 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-700 pt-4 md:pt-0 md:pl-6">
+                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] flex items-center justify-center text-xs shadow-sm border border-[#1E4D8C]/10">💡</span>
                         이런 것도 알아들어요
                       </h4>
-                      <div className="text-sm text-[#475569] dark:text-slate-400 space-y-3 font-medium">
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#6366F1]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-[#0F172A] dark:text-slate-50">플랫폼:</strong> 네이버 쇼핑, 네이버 항공, 쿠팡, 알리익스프레스 등</p></div>
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#6366F1]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-[#0F172A] dark:text-slate-50">상품 정보:</strong> 브랜드명, 정확한 모델명, 사이즈, 색상 등</p></div>
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#6366F1]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-[#0F172A] dark:text-slate-50">조건 액션:</strong> 얼마 이하, 즉시 결제, 알림만, 대기 등</p></div>
+                      <div className="text-sm text-zinc-700 dark:text-zinc-300 space-y-3 font-medium">
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">플랫폼:</strong> 네이버 쇼핑, 네이버 항공, 쿠팡, 알리익스프레스 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">상품 정보:</strong> 브랜드명, 정확한 모델명, 사이즈, 색상 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">조건 액션:</strong> 얼마 이하, 즉시 결제, 알림만, 대기 등</p></div>
                       </div>
                     </div>
                   </div>
@@ -1001,40 +1010,12 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
-
-      {/* 설명: 서비스 사용 방법을 소개합니다. */}
-      <section className="py-20 px-4 md:px-8 bg-[#F8FAFC] dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-700">
-        <div className="max-w-[1200px] mx-auto text-center">
-          <h2 className="text-2xl md:text-3xl font-extrabold mb-12 text-[#0F172A] dark:text-slate-50">사용 방법은 아주 간단해요!</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
-            <div className="flex flex-col items-center rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-8 shadow-[0_2px_12px_rgb(15,23,42,0.04)] transition-all hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-lg hover:-translate-y-1">
-              <div className="mb-5 flex items-center gap-3 self-start rounded-full border border-[#EEF2FF] dark:border-indigo-500/20 bg-[#EEF2FF] dark:bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-[#6366F1] dark:text-indigo-400">STEP 1</div>
-              <div className="w-16 h-16 bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-[#6366F1]/10"><MessageSquare className="w-8 h-8 text-[#6366F1] dark:text-indigo-400" /></div>
-              <h3 className="text-xl font-bold mb-3 text-[#0F172A] dark:text-slate-50">말하듯 입력하기</h3>
-              <p className="text-[#475569] dark:text-slate-400 leading-relaxed break-keep font-medium">원하는 상품과 가격을<br />평소 말하는 것처럼 편하게 적어주세요.</p>
-            </div>
-            <div className="flex flex-col items-center rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-8 shadow-[0_2px_12px_rgb(15,23,42,0.04)] transition-all hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-lg hover:-translate-y-1">
-              <div className="mb-5 flex items-center gap-3 self-start rounded-full border border-[#EEF2FF] dark:border-indigo-500/20 bg-[#EEF2FF] dark:bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-[#6366F1] dark:text-indigo-400">STEP 2</div>
-              <div className="w-16 h-16 bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-[#6366F1]/10"><Bot className="w-8 h-8 text-[#6366F1] dark:text-indigo-400" /></div>
-              <h3 className="text-xl font-bold mb-3 text-[#0F172A] dark:text-slate-50">AI가 조건 분석</h3>
-              <p className="text-[#475569] dark:text-slate-400 leading-relaxed break-keep font-medium">찰떡같이 알아듣고 플랫폼, 가격 등<br />정확하게 분석해요.</p>
-            </div>
-            <div className="flex flex-col items-center rounded-[1.5rem] border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 px-6 py-8 shadow-[0_2px_12px_rgb(15,23,42,0.04)] transition-all hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 hover:shadow-lg hover:-translate-y-1">
-              <div className="mb-5 flex items-center gap-3 self-start rounded-full border border-[#EEF2FF] dark:border-indigo-500/20 bg-[#EEF2FF] dark:bg-indigo-500/10 px-3 py-1.5 text-xs font-bold text-[#6366F1] dark:text-indigo-400">STEP 3</div>
-              <div className="w-16 h-16 bg-[#EEF2FF] dark:bg-indigo-500/10 text-[#6366F1] dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-[#6366F1]/10"><Sparkles className="w-8 h-8 text-[#6366F1] dark:text-indigo-400" /></div>
-              <h3 className="text-xl font-bold mb-3 text-[#0F172A] dark:text-slate-50">결과 확인</h3>
-              <p className="text-[#475569] dark:text-slate-400 leading-relaxed break-keep font-medium">분석된 조건을 확인하고<br />누락된 항목만 보완할 수 있어요.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 설명: 모니터링 현황과 목록을 보여줍니다. */}
-      <section className="py-16 px-4 md:px-8 bg-[#F8FAFC] dark:bg-slate-950">
+      <section className="py-16 px-4 md:px-8 bg-zinc-50 dark:bg-zinc-950">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-10 text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F172A] dark:text-slate-50">나의 모니터링 현황</h2>
-            <p className="text-[#475569] dark:text-slate-400 mt-2 font-medium">지금까지 AI가 얼마나 절약해 주었는지 확인해보세요.</p>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-[#112D4E] dark:text-zinc-50">나의 모니터링 현황</h2>
+            <p className="text-zinc-700 dark:text-zinc-300 mt-2 font-medium">지금까지 AI가 얼마나 절약해 주었는지 확인해보세요.</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
@@ -1042,18 +1023,18 @@ export default function Dashboard() {
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               const cardStyles = [
-                'bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700',
-                'bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700',
-                'bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700',
-                'bg-gradient-to-br from-[#6366F1] dark:from-indigo-500 to-[#4F46E5] dark:to-indigo-600 border-transparent text-white',
+                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
+                'bg-gradient-to-br from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] border-transparent text-white',
               ];
-              const labelColors = ['text-[#475569] dark:text-slate-400', 'text-[#475569] dark:text-slate-400', 'text-[#475569] dark:text-slate-400', 'text-[#E0E7FF]'];
-              const valueColors = ['text-[#0F172A] dark:text-slate-50', 'text-[#0F172A] dark:text-slate-50', 'text-[#0F172A] dark:text-slate-50', 'text-white'];
-              const iconColors = ['text-[#6366F1] dark:text-indigo-400', 'text-[#6366F1] dark:text-indigo-400', 'text-[#6366F1] dark:text-indigo-400', 'text-white'];
-              const iconBgs = ['bg-[#EEF2FF] dark:bg-indigo-500/10', 'bg-[#EEF2FF] dark:bg-indigo-500/10', 'bg-[#EEF2FF] dark:bg-indigo-500/10', 'bg-white/20'];
+              const labelColors = ['text-zinc-700 dark:text-zinc-300', 'text-zinc-700 dark:text-zinc-300', 'text-zinc-700 dark:text-zinc-300', 'text-[#DBE2EF]'];
+              const valueColors = ['text-zinc-900 dark:text-zinc-50', 'text-zinc-900 dark:text-zinc-50', 'text-zinc-900 dark:text-zinc-50', 'text-white'];
+              const iconColors = ['text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-white'];
+              const iconBgs = ['bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-white/20'];
 
               return (
-                <div key={index} className={`border rounded-[1.5rem] p-6 flex flex-col justify-center shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-lg hover:border-[#6366F1]/40 dark:hover:border-indigo-400/50 transition-all duration-300 ${cardStyles[index % 4]}`}>
+                <div key={index} className={`border rounded-[1.5rem] p-6 flex flex-col justify-center shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-lg hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 transition-all duration-300 ${cardStyles[index % 4]}`}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-10 h-10 rounded-xl ${iconBgs[index % 4]} flex items-center justify-center border-none`}><Icon className={`w-5 h-5 ${iconColors[index % 4]}`} /></div>
                     <div className={`text-[13px] font-bold ${labelColors[index % 4]}`}>{stat.label}</div>
@@ -1068,12 +1049,12 @@ export default function Dashboard() {
             {/* 설명: 현재 진행 중인 모니터링 목록을 배치합니다. */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-[#0F172A] dark:text-slate-50 md:text-2xl">진행 중인 모니터링</h3>
-                <Badge variant="secondary" className="bg-[#F1F5F9] dark:bg-slate-900 text-[#0F172A] dark:text-slate-50 hover:bg-[#F1F5F9] dark:hover:bg-slate-900 border-none font-semibold rounded-md px-2 py-0.5 text-xs">총 {filteredMonitoringItems.length}건</Badge>
+                <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-[#112D4E] dark:text-zinc-50 md:text-2xl">진행 중인 모니터링</h3>
+                <Badge variant="secondary" className="bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 border border-[#DBE2EF] dark:border-[#1E4D8C]/30 font-semibold rounded-md px-2 py-0.5 text-xs">총 {filteredMonitoringItems.length}건</Badge>
               </div>
               <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#475569] dark:text-slate-400" />
-                <Input type="text" placeholder="상품명 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-sm focus-visible:ring-1 focus-visible:ring-[#6366F1]/40 dark:focus-visible:ring-indigo-400/40 focus-visible:border-[#6366F1]/40 dark:focus-visible:border-indigo-400/50 rounded-lg h-10 transition-all placeholder:text-[#475569] dark:placeholder:text-slate-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                <Input type="text" placeholder="상품명 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus-visible:ring-1 focus-visible:ring-[#1E4D8C]/40 dark:focus-visible:ring-[#7BAEDA]/40 focus-visible:border-[#1E4D8C]/40 dark:focus-visible:border-[#7BAEDA]/50 rounded-lg h-10 transition-all placeholder:text-zinc-700 dark:placeholder:text-zinc-400" />
               </div>
             </div>
 
@@ -1083,7 +1064,7 @@ export default function Dashboard() {
                   '탐색 중인 조건',
                   'AI가 실시간으로 가격과 조건 충족 여부를 추적하고 있습니다.',
                   exploringMonitoringItems,
-                  'bg-[#F8FAFC] dark:bg-slate-950 text-[#0F172A] dark:text-slate-50 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
+                  'bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
                   isExploringOpen,
                   () => setIsExploringOpen((prev) => !prev),
                 )}
@@ -1091,16 +1072,16 @@ export default function Dashboard() {
                   '대기 중인 조건',
                   '조건은 등록되었고, 다음 이벤트나 가격 변화를 기다리고 있습니다.',
                   waitingMonitoringItems,
-                  'bg-[#F8FAFC] dark:bg-slate-950 text-[#334155] dark:text-slate-300 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
+                  'bg-zinc-50 dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
                   isWaitingOpen,
                   () => setIsWaitingOpen((prev) => !prev),
                 )}
               </div>
             ) : (
-              <div className="py-16 flex flex-col items-center justify-center text-center bg-[#F8FAFC] dark:bg-slate-950 rounded-[1.5rem] border-2 border-dashed border-[#E2E8F0] dark:border-slate-700">
-                <div className="w-12 h-12 rounded-full bg-[#F1F5F9] dark:bg-slate-900 flex items-center justify-center mb-4 text-[#475569] dark:text-slate-400"><Search className="w-5 h-5" /></div>
-                <h4 className="text-[15px] font-bold text-[#0F172A] dark:text-slate-50 mb-1">모니터링 중인 상품이 없습니다</h4>
-                <p className="text-[#475569] dark:text-slate-400 text-sm">상단 입력창을 통해 원하는 상품을 분석해보세요.</p>
+              <div className="py-16 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-950 rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700">
+                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-4 text-zinc-700 dark:text-zinc-300"><Search className="w-5 h-5" /></div>
+                <h4 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50 mb-1">모니터링 중인 상품이 없습니다</h4>
+                <p className="text-zinc-700 dark:text-zinc-300 text-sm">상단 입력창을 통해 원하는 상품을 분석해보세요.</p>
               </div>
             )}
           </div>

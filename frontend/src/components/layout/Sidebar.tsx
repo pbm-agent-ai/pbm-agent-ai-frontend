@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Zap, Menu, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Menu, X } from 'lucide-react';
+import { LogoIcon } from '@/components/ui/LogoIcon';
 import { getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/theme';
 import { logoutAuth } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
@@ -16,6 +17,10 @@ export function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [themePreference, setThemePreference] = useState<ThemePreference>(() => getStoredThemePreference());
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // ── 로봇 입모양: 호버 시 랜덤(웃음/O자) / 미호버 시 무표정 ──
+  const [logoMouth, setLogoMouth] = useState<'auto' | 'smile' | 'open'>('auto');
+  // ── 로고 호버 시 눈 중앙 복귀 ──
+  const [logoHovered, setLogoHovered] = useState(false);
   const themeMenuRef = useRef<HTMLDivElement | null>(null);
 
   const menuItems = [
@@ -91,16 +96,21 @@ export function Sidebar() {
   };
 
   return (
-    <header className="shrink-0 z-50 w-full bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-sm border-b border-[#E2E8F0] dark:border-[#1E293B] transition-colors duration-300">
+    <header className="shrink-0 z-50 w-full bg-white/95 dark:bg-[#080C18]/95 backdrop-blur-sm border-b border-zinc-200 dark:border-[#222A3E] transition-colors duration-300">
       <div className="relative max-w-[1200px] mx-auto h-[72px] px-4 md:px-8 flex items-center justify-between">
         <div className="flex items-center">
-          {/* Brand Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 bg-[#6366F1] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
-              <Zap className="w-[22px] h-[22px] text-white fill-white" />
+          {/* ── 로고: 호버 시 로봇 입 O자 / 미호버 시 미소 ── */}
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2.5 group"
+            onMouseEnter={() => { setLogoMouth('open'); setLogoHovered(true); }}
+            onMouseLeave={() => { setLogoMouth('auto'); setLogoHovered(false); }}
+          >
+            <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
+              <LogoIcon mouth={logoMouth} followMouse={!logoHovered} resetEyes={logoHovered} />
             </div>
             <div className="hidden sm:block">
-              <div className="text-[#0F172A] dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">나의 구매 비서</div>
+              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">나의 구매 비서</div>
             </div>
           </Link>
           
@@ -116,8 +126,8 @@ export function Sidebar() {
                 to={item.path}
                 className={`whitespace-nowrap px-4 py-2.5 rounded-xl text-[15px] font-bold transition-all duration-300 ${
                   active
-                    ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]' 
-                    : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                    ? 'bg-[#F9F7F7] dark:bg-[#112D4E]/30 text-[#1E4D8C] dark:text-[#DBE2EF]' 
+                    : 'text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white'
                 }`}
               >
                 {item.label}
@@ -144,8 +154,8 @@ export function Sidebar() {
               }}
               className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors cursor-pointer ${
                 isThemeMenuOpen || isActive('/settings')
-                  ? 'bg-[#F8FAFC] dark:bg-[#111827] text-[#0F172A] dark:text-white'
-                  : 'hover:bg-[#F8FAFC] dark:hover:bg-[#111827] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#0F172A] dark:hover:text-white'
+                  ? 'bg-zinc-50 dark:bg-[#222A3E] text-zinc-900 dark:text-white'
+                  : 'hover:bg-zinc-50 dark:hover:bg-[#27272A] text-zinc-500 dark:text-[#D4D4D8] hover:text-zinc-900 dark:hover:text-white'
               }`}
               title="설정"
               aria-haspopup="menu"
@@ -155,13 +165,13 @@ export function Sidebar() {
             </button>
 
             {isThemeMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 rounded-2xl border border-[#E2E8F0] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] p-2 shadow-[0_8px_24px_rgb(15,23,42,0.08)]">
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 rounded-2xl border border-zinc-200 dark:border-[#222A3E] bg-white dark:bg-[#080C18] p-2 shadow-[0_8px_24px_rgb(15,23,42,0.08)]">
                 {isThemeSubmenuOpen ? (
                   <>
                     <button
                       type="button"
                       onClick={() => setIsThemeSubmenuOpen(false)}
-                      className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                      className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       <span className="flex-1">화면 테마</span>
@@ -178,8 +188,8 @@ export function Sidebar() {
                             onClick={() => handleThemeSelect(item.value)}
                             className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors cursor-pointer ${
                               active
-                                ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
-                                : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                                ? 'bg-[#F9F7F7] dark:bg-[#112D4E]/30 text-[#1E4D8C] dark:text-[#DBE2EF]'
+                                : 'text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white'
                             }`}
                           >
                             <Icon className="h-4 w-4" />
@@ -195,20 +205,20 @@ export function Sidebar() {
                     <button
                       type="button"
                       onClick={() => setIsThemeSubmenuOpen(true)}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors cursor-pointer"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer"
                     >
                       <Monitor className="h-4 w-4" />
                       <span className="flex-1">화면 테마</span>
                       <ChevronRight className="h-4 w-4" />
                     </button>
-                    <div className="my-2 h-px bg-[#E2E8F0] dark:bg-[#1E293B]" />
+                    <div className="my-2 h-px bg-[#E2E8F0] dark:bg-[#222A3E]" />
                     <Link
                       to="/settings"
                       onClick={() => {
                         setIsThemeMenuOpen(false);
                         setIsThemeSubmenuOpen(false);
                       }}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors"
                     >
                       <SettingsIcon className="h-4 w-4" />
                       상세 설정
@@ -222,7 +232,7 @@ export function Sidebar() {
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] text-[#64748B] dark:text-[#CBD5E1] hover:text-[#EF4444] transition-colors disabled:opacity-60"
+            className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[#FEF2F2] dark:hover:bg-[#3F1D24] text-zinc-500 dark:text-[#D4D4D8] hover:text-[#EF4444] transition-colors disabled:opacity-60"
             title="로그아웃"
             aria-label="로그아웃"
           >
@@ -234,7 +244,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => setIsMobileMenuOpen(true)}
-          className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-[#64748B] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+          className="lg:hidden w-11 h-11 flex items-center justify-center rounded-full text-zinc-500 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors"
           aria-label="메뉴 열기"
         >
           <Menu className="w-[22px] h-[22px]" />
@@ -253,23 +263,26 @@ export function Sidebar() {
         {/* 2026-05-08: 모바일 메뉴를 스크롤형 드로어가 아닌, 화면 전체를 덮는 고정 풀스크린 메뉴로 전환한다. */}
         {/* Mobile Fullscreen Menu */}
         <div 
-          className={`fixed inset-0 z-[70] h-screen overflow-y-auto bg-white dark:bg-[#0F172A] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
+          className={`fixed inset-0 z-[70] h-screen overflow-y-auto bg-white dark:bg-[#080C18] flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:hidden ${
             isMobileMenuOpen ? 'opacity-100 translate-y-0' : 'pointer-events-none opacity-0 translate-y-2'
           }`}
         >
-          <div className="flex items-center justify-between h-[72px] px-4 md:px-8 shrink-0 border-b border-[#E2E8F0] dark:border-[#1E293B]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-[#6366F1] rounded-[14px] flex items-center justify-center shadow-sm">
-                <Zap className="w-[22px] h-[22px] text-white fill-white" />
+          <div className="flex items-center justify-between h-[72px] px-4 md:px-8 shrink-0 border-b border-zinc-200 dark:border-[#222A3E]">
+            <div className="flex items-center gap-2.5"
+              onMouseEnter={() => { setLogoMouth('open'); setLogoHovered(true); }}
+              onMouseLeave={() => { setLogoMouth('auto'); setLogoHovered(false); }}
+            >
+              <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm">
+                <LogoIcon mouth={logoMouth} followMouse={!logoHovered} resetEyes={logoHovered} />
               </div>
-              <div className="text-[#0F172A] dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">
+              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">
                 나의 구매 비서
               </div>
             </div>
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="w-11 h-11 flex items-center justify-center rounded-full text-[#64748B] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+              className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-500 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors"
             aria-label="메뉴 닫기"
           >
             <X className="w-[22px] h-[22px]" />
@@ -278,7 +291,7 @@ export function Sidebar() {
 
         <div className="flex flex-1 flex-col px-4 py-6">
           <section>
-            <div className="mb-3 px-4 py-2 text-xs font-bold tracking-[0.08em] text-[#64748B] dark:text-[#94A3B8] uppercase">
+            <div className="mb-3 px-4 py-2 text-xs font-bold tracking-[0.08em] text-zinc-500 dark:text-[#A1A1AA] uppercase">
               메뉴
             </div>
             <nav className="flex flex-col gap-2">
@@ -291,8 +304,8 @@ export function Sidebar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`block px-4 py-4 rounded-2xl text-[18px] font-bold transition-colors ${
                       active
-                        ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
-                        : 'text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white'
+                        ? 'bg-[#F9F7F7] dark:bg-[#112D4E]/30 text-[#1E4D8C] dark:text-[#DBE2EF]'
+                        : 'text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white'
                     }`}
                   >
                     {item.label}
@@ -302,8 +315,8 @@ export function Sidebar() {
             </nav>
           </section>
 
-          <section className="mt-8 border-t border-[#E2E8F0] dark:border-[#1E293B] pt-6">
-            <div className="px-4 py-2 text-xs font-bold text-[#64748B] dark:text-[#94A3B8] uppercase tracking-wider">
+          <section className="mt-8 border-t border-zinc-200 dark:border-[#222A3E] pt-6">
+            <div className="px-4 py-2 text-xs font-bold text-zinc-500 dark:text-[#A1A1AA] uppercase tracking-wider">
               화면 테마
             </div>
             <div className="grid grid-cols-2 gap-2 mb-2">
@@ -317,8 +330,8 @@ export function Sidebar() {
                   onClick={() => handleThemeSelect(item.value)}
                   className={`flex flex-col items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium transition-colors cursor-pointer ${
                     active
-                      ? 'bg-[#EEF2FF] dark:bg-[#312E81]/30 text-[#6366F1] dark:text-[#A5B4FC]'
-                      : 'bg-[#F8FAFC] dark:bg-[#111827] text-[#475569] dark:text-[#CBD5E1]'
+                      ? 'bg-[#F9F7F7] dark:bg-[#112D4E]/30 text-[#1E4D8C] dark:text-[#DBE2EF]'
+                      : 'bg-zinc-50 dark:bg-[#222A3E] text-zinc-700 dark:text-[#D4D4D8]'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -331,7 +344,7 @@ export function Sidebar() {
             <Link
               to="/settings"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-[#475569] dark:text-[#CBD5E1] hover:bg-[#F8FAFC] dark:hover:bg-[#111827] hover:text-[#0F172A] dark:hover:text-white transition-colors"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors"
             >
               <SettingsIcon className="h-5 w-5" />
               상세 설정
