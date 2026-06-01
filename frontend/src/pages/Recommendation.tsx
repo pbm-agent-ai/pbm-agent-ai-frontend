@@ -1,678 +1,714 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  RefreshCw, TrendingUp, Sparkles,
-  ThumbsUp, ThumbsDown, ExternalLink,
-  Film, X, CheckCircle2, XCircle, Play,
-  ChevronLeft, ChevronRight,
+  Search, Sparkles, RotateCcw, X, ThumbsUp, ThumbsDown,
+  ExternalLink, CheckCircle2, XCircle, Play, TrendingUp, ChevronRight, ChevronDown,
 } from 'lucide-react';
+import { fetchYoutubeReviews } from '@/api/recommendation';
+import type { YoutubeReviewVideo } from '@/types/recommendation';
 import { Button } from '@/components/ui/button';
-import { LogoIcon } from "../components/ui/LogoIcon";
-// import { Dialog, DialogContent } from '@/components/ui/dialog';
-import {
-  fetchRecommendationCategories,
-  fetchRecommendationItems,
-  fetchRecommendationDetail,
-} from '@/api/recommendation';
-import type {
-  RecommendationCategory,
-  RecommendationItem,
-  RecommendationDetail,
-  YoutuberReview,
-} from '@/types/recommendation';
 
-// ── API 실패 시 대체할 fallback 데이터 ──────────────────────────
+// ─── 유틸 ─────────────────────────────────────────────────────
 
-const fallbackCategories: RecommendationCategory[] = [
-  { categoryId: 'home_appliances', categoryName: '가전제품', description: '냉장고, 세탁기, 청소기 등', productCount: 18, lastAnalysisDate: '2026-04-14' },
-  { categoryId: 'electronics', categoryName: '전자제품', description: '스마트폰, 노트북, 태블릿 등', productCount: 24, lastAnalysisDate: '2026-04-15' },
-  { categoryId: 'daily_supplies', categoryName: '생활용품', description: '주방용품, 욕실용품, 수납용품 등', productCount: 31, lastAnalysisDate: '2026-04-13' },
+// ─── 제품 리뷰 비교 모달에서 쓸 타입 ──────────────────────────
+
+interface ProductReviewEntry {
+  youtuberName: string;
+  videoUrl: string;
+  rank: number;
+  brand: string;
+  pros: string[];
+  cons: string[];
+  verdict: string;
+  recommendedFor: string;
+}
+
+
+
+const fallbackReviews: YoutubeReviewVideo[] = [
+  {
+    id: 1,
+    videoId: 'abc123',
+    videoUrl: 'https://youtube.com/watch?v=abc123',
+    youtuberName: '리뷰맨',
+    language: 'ko',
+    isGenerated: true,
+    totalDuration: 720,
+    categoryMain: '가전',
+    categorySub: '청소기',
+    analyzedTextStartTime: 30,
+    products: [
+      {
+        rank: 1,
+        productName: '로보락 S8 MaxV Ultra',
+        brand: '로보락',
+        pros: ['강력한 흡입력', '물걸레 동시 청소', '장애물 인식 우수'],
+        cons: ['가격이 높음', '먼지통 용량 작음'],
+        verdict: '프리미엄 가격이지만 성능은 최고. 자동 먼지비움과 물걸레 세척까지 원한다면 이 제품.',
+        recommendedFor: '청소에 시간을 쓰기 싫은 바쁜 직장인',
+      },
+      {
+        rank: 2,
+        productName: '다이슨 V15 Detect',
+        brand: '다이슨',
+        pros: ['레이저 먼지 감지', '강력한 흡입력', '다양한 헤드'],
+        cons: ['배터리 지속 시간 짧음', '무거운 편'],
+        verdict: '무선 청소기 중 흡입력은 최상위. 먼지 감지 기능이 특히 유용하다.',
+        recommendedFor: '청소기 성능에 민감한 사용자',
+      },
+    ],
+    createdAt: '2026-06-01T00:00:00.000Z',
+    updatedAt: '2026-06-01T00:00:00.000Z',
+  },
+  {
+    id: 2,
+    videoId: 'def456',
+    videoUrl: 'https://youtube.com/watch?v=def456',
+    youtuberName: '테크몬',
+    language: 'ko',
+    isGenerated: true,
+    totalDuration: 540,
+    categoryMain: '가전',
+    categorySub: '청소기',
+    analyzedTextStartTime: 15,
+    products: [
+      {
+        rank: 1,
+        productName: '다이슨 V15 Detect',
+        brand: '다이슨',
+        pros: ['레이저 먼지 감지는 혁신적이다', '흡입력이 강력해 카펫 청소에 탁월함'],
+        cons: ['생각보다 무거워서 장시간 사용 시 피로감', '배터리 교체 비용이 부담됨'],
+        verdict: '강력한 성능을 원한다면 좋은 선택이지만, 가격과 무게를 고려해야 한다.',
+        recommendedFor: '카펫이 많은 가정이나 강력한 청소 성능이 필요한 사용자',
+      },
+      {
+        rank: 2,
+        productName: '로보락 S8 MaxV Ultra',
+        brand: '로보락',
+        pros: ['자동 먼지비움이 정말 편리하다', '물걸레 청소 품질이 인상적'],
+        cons: ['가격이 부담스러운 수준', '고장 시 수리비가 비쌈'],
+        verdict: '편리함을 최우선으로 한다면 이만한 제품이 없다. 다만 가격은 확실한 단점.',
+        recommendedFor: '바쁜 현대인, 청소에 시간을 최소화하고 싶은 사람',
+      },
+      {
+        rank: 3,
+        productName: 'Apple AirPods Pro 2',
+        brand: 'Apple',
+        pros: ['노이즈 캔슬링이 업계 최고 수준', '착용감이 편안하고 장시간 사용 가능'],
+        cons: ['가격이 비쌈', '안드로이드와의 호환성이 제한적'],
+        verdict: '아이폰 사용자라면 망설일 이유가 없는 제품. 노캔 성능 하나는 끝내준다.',
+        recommendedFor: 'Apple 생태계 사용자, 노이즈 캔슬링을 중요시하는 사람',
+      },
+    ],
+    createdAt: '2026-06-01T01:00:00.000Z',
+    updatedAt: '2026-06-01T01:00:00.000Z',
+  },
+  {
+    id: 3,
+    videoId: 'ghi789',
+    videoUrl: 'https://youtube.com/watch?v=ghi789',
+    youtuberName: '잇섭',
+    language: 'ko',
+    isGenerated: true,
+    totalDuration: 480,
+    categoryMain: '전자기기',
+    categorySub: '이어폰',
+    analyzedTextStartTime: 10,
+    products: [
+      {
+        rank: 1,
+        productName: '갤럭시 버즈3 Pro',
+        brand: '삼성',
+        pros: ['삼성 생태계와 완벽한 연동', '착용감이 매우 편안함', 'IP57 방수 지원'],
+        cons: ['노이즈 캔슬링이 에어팟 대비 아쉬움', '케이스 크기가 다소 큼'],
+        verdict: '갤럭시 스마트폰 사용자라면 최고의 선택지. 가격도 경쟁사 대비 합리적이다.',
+        recommendedFor: '갤럭시 사용자, 가성비를 중시하는 사람',
+      },
+      {
+        rank: 2,
+        productName: 'Apple AirPods Pro 2',
+        brand: 'Apple',
+        pros: ['에코시스템 연동이 뛰어남', '공간 음향이 영화 감상에 최적'],
+        cons: ['가격이 부담됨', '수리 비용이 비쌈'],
+        verdict: '아이폰, 아이패드, 맥을 함께 쓰는 사람에게는 최고의 선택이다.',
+        recommendedFor: 'Apple 기기를 여러 개 사용하는 사용자',
+      },
+      {
+        rank: 3,
+        productName: '다이슨 V15 Detect',
+        brand: '다이슨',
+        pros: ['레이저 먼지 감지 기능이 신박함', '다양한 청소 헤드 구성'],
+        cons: ['가격이 너무 높음', '무거워서 한 손 청소가 어려움'],
+        verdict: '혁신적인 기능이 많지만, 가격 대비 효용은 개인의 청소 환경에 따라 다르다.',
+        recommendedFor: '최신 기술을 선호하는 얼리어답터',
+      },
+    ],
+    createdAt: '2026-06-01T02:00:00.000Z',
+    updatedAt: '2026-06-01T02:00:00.000Z',
+  },
 ];
 
-const fallbackItemsByCategory: Record<string, RecommendationItem[]> = {
-  home_appliances: [
-    {
-      productId: 1, rank: 1, productName: '로보락 S8 Pro 로봇청소기', brand: '로보락',
-      pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높음',
-      cons: '가격대가 높음. 유지보수 비용 발생',
-      youtuber: '유병준의 IT PLUS', videoUrl: 'https://youtube.com/watch?v=abc123',
-      analysisDate: '2026-04-15',
-    },
-    {
-      productId: 2, rank: 2, productName: '다이슨 V15 디텍트', brand: '다이슨',
-      pros: '레이저 먼지 감지 기능. 강력한 흡입력',
-      cons: '배터리 지속 시간이 짧음. 무거운 편',
-      youtuber: '테크몬', videoUrl: 'https://youtube.com/watch?v=def456',
-      analysisDate: '2026-04-15',
-    },
-  ],
-};
-
-// ── 유틸 ────────────────────────────────────────────────────────
-
-const splitBullets = (text: string): string[] =>
-  text
-    .split(/\.\s*/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-const formatRelativeDate = (dateStr: string): string => {
-  const now = new Date();
-  const target = new Date(dateStr);
-  const diffMs = now.getTime() - target.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return '분석 전';
-  if (diffDays === 0) return '오늘 분석';
-  if (diffDays === 1) return '어제 분석';
-  if (diffDays <= 7) return `${diffDays}일 전 분석`;
-  if (diffDays <= 30) return `${Math.floor(diffDays / 7)}주 전 분석`;
-  return target.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
-};
-
-// ── 모달 프리뷰용 하드코딩 데이터 (TODO: 개발 후 제거) ─────────
-
-const sampleDetail: RecommendationDetail = {
-  productId: 1,
-  category: 'home_appliances',
-  categoryName: '가전제품',
-  rank: 1,
-  productName: '로보락 S8 Pro 로봇청소기',
-  brand: '로보락',
-  pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높음. 앱 연동이 편리함',
-  cons: '가격대가 높음. 유지보수 비용 발생. 먼지통 용량이 작음',
-  youtuberReviews: [
-    {
-      youtuber: '유병준의 IT PLUS',
-      videoUrl: 'https://youtube.com/watch?v=abc123',
-      pros: '흡입력이 매우 강력하고 물걸레 기능까지 겸비해 청소 효율이 높음. 특히 카펫 위 성능이 인상적임',
-      cons: '초기 설치 및 앱 설정이 다소 복잡함. 생각보다 설명서가 불친절함',
-      analysisDate: '2026-04-15',
-    },
-    {
-      youtuber: '테크몬',
-      videoUrl: 'https://youtube.com/watch?v=xyz789',
-      pros: '장애물 인식률이 경쟁 제품보다 월등히 뛰어남. 야간에도 잘 작동함',
-      cons: '먼지통 용량이 작아 자주 비워야 함. 물걸레 물통도 자주 리필 필요',
-      analysisDate: '2026-04-14',
-    },
-    {
-      youtuber: 'ITSub잇섭',
-      videoUrl: 'https://youtube.com/watch?v=sub111',
-      pros: '로봇청소기 중에서 디자인이 가장 깔끔하고 인테리어를 해치지 않음',
-      cons: '비싼 가격 대비 성능 차이가 미미할 수 있음. 이전 모델 대비 큰 변화 없음',
-      analysisDate: '2026-04-13',
-    },
-  ],
-  analysisDate: '2026-04-15',
-  createdAt: '2026-04-01T00:00:00',
-  updatedAt: '2026-04-15T06:00:00',
-};
-
-// ── 컴포넌트 ────────────────────────────────────────────────────
+const SUGGESTED_SEARCHES = [
+  { main: '가전제품', sub: '청소기', youtuber: '리뷰맨', label: '가전제품 > 청소기' },
+  { main: '전자기기', sub: '스마트폰', youtuber: '잇섭', label: '전자기기 > 스마트폰' },
+  { main: '전자기기', sub: '키보드', youtuber: '테크몬', label: '전자기기 > 키보드' },
+  { main: '가전제품', sub: '냉장고', youtuber: '리뷰맨', label: '가전제품 > 냉장고' },
+  { main: '생활용품', sub: '공기청정기', youtuber: '잇섭', label: '생활용품 > 공기청정기' },
+];
 
 export default function Recommendations() {
-  const [categories, setCategories] = useState<RecommendationCategory[]>([]);
-  const [activeCategoryId, setActiveCategoryId] = useState<string>('');
-  const [recommendationItems, setRecommendationItems] = useState<RecommendationItem[]>([]);
-  const [categoryName, setCategoryName] = useState('');
-  const [lastAnalysisDate, setLastAnalysisDate] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [itemsLoading, setItemsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [reviews, setReviews] = useState<YoutubeReviewVideo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [searched, setSearched] = useState(false);
 
-  // ── Modal state ──
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [detailData, setDetailData] = useState<RecommendationDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState('');
+  const [categoryMain, setCategoryMain] = useState('');
+  const [categorySub, setCategorySub] = useState('');
+  const [youtuber, setYoutuber] = useState('');
 
-  const openReviewSheet = async (item: RecommendationItem) => {
-    setSheetOpen(true);
-    setDetailLoading(true);
-    setDetailError('');
-    setDetailData(null);
+  // 제품 리뷰 비교 모달 상태
+  const [reviewModalProduct, setReviewModalProduct] = useState<{
+    productName: string;
+    brand: string;
+    reviews: ProductReviewEntry[];
+  } | null>(null);
+  const [activeReviewIdx, setActiveReviewIdx] = useState(0);
 
-    // 상태 업데이트가 반영된 후 API 호출 (microtask로 지연)
-    await new Promise((resolve) => setTimeout(resolve, 0));
+  const hasActiveFilters = categoryMain || categorySub || youtuber;
 
+  // reviews → productName 기준 그루핑
+  const productMap = useMemo(() => {
+    const map = new Map<string, ProductReviewEntry[]>();
+    reviews.forEach((review) => {
+      review.products?.forEach((product) => {
+        if (!map.has(product.productName)) {
+          map.set(product.productName, []);
+        }
+        map.get(product.productName)!.push({
+          youtuberName: review.youtuberName,
+          videoUrl: review.videoUrl,
+          rank: product.rank,
+          brand: product.brand ?? '',
+          pros: product.pros ?? [],
+          cons: product.cons ?? [],
+          verdict: product.verdict ?? '',
+          recommendedFor: product.recommendedFor ?? '',
+        });
+      });
+    });
+    return map;
+  }, [reviews]);
+
+  const loadReviews = async () => {
     try {
-      const res = await fetchRecommendationDetail(activeCategoryId, item.productId);
-      // 서버가 200에 data:null을 내려도 sampleDetail로 fallback
-      if (!res.success || !res.data) throw new Error('detail data is null');
-      setDetailData(res.data);
+      setLoading(true);
+      setServerError('');
+      setSearched(true);
+      const response = await fetchYoutubeReviews({
+        categoryMain: categoryMain.trim(),
+        categorySub: categorySub.trim(),
+        youtuber: youtuber.trim(),
+      });
+      if (Array.isArray(response.data)) {
+        setReviews(response.data);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch {
-      setDetailData(sampleDetail);
+      setServerError('실시간 리뷰를 불러오지 못했습니다. 예시 데이터를 표시합니다.');
+      setReviews(fallbackReviews);
     } finally {
-      setDetailLoading(false);
+      setLoading(false);
     }
   };
 
-  const closeReviewSheet = () => {
-    setSheetOpen(false);
-    setDetailData(null);
-    setDetailError('');
-  };
-
-  // ESC 키로 모달 닫기
   useEffect(() => {
-    if (!sheetOpen) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeReviewSheet(); };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [sheetOpen]);
-
-  const activeCategory = categories.find((c) => c.categoryId === activeCategoryId);
-
-  // ── 최초 마운트: 카테고리 목록 로드 ──────────────────────────
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const response = await fetchRecommendationCategories();
-        const fetched = response.data.categories;
-        setCategories(fetched);
-        if (fetched.length > 0) {
-          setActiveCategoryId(fetched[0].categoryId);
-        }
-      } catch {
-        setError('추천 카테고리를 불러오지 못했습니다. 로컬 데이터를 표시합니다.');
-        setCategories(fallbackCategories);
-        setActiveCategoryId(fallbackCategories[0].categoryId);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadCategories();
+    // 초기 마운트 시 아무것도 표시하지 않음 (empty state)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── 활성 카테고리가 바뀌면 추천 상품 목록 로드 ──────────────
+  // 모달 내 리뷰 스크롤 추적 (IntersectionObserver)
   useEffect(() => {
-    if (!activeCategoryId) return;
+    if (!reviewModalProduct) return;
+    // 모달이 렌더링된 후 observer 설정
+    const timer = setTimeout(() => {
+      const targets = reviewModalProduct.reviews.map((_, idx) =>
+        document.getElementById(`review-${idx}`)
+      ).filter(Boolean) as HTMLElement[];
 
-    const loadItems = async () => {
-      try {
-        setItemsLoading(true);
-        const response = await fetchRecommendationItems(activeCategoryId);
-        const d = response.data;
-        setCategoryName(d.categoryName);
-        setLastAnalysisDate(d.lastAnalysisDate);
-        setRecommendationItems(d.recommendations);
-      } catch {
-        setCategoryName(activeCategory?.categoryName ?? '');
-        setLastAnalysisDate(activeCategory?.lastAnalysisDate ?? '');
-        setRecommendationItems(fallbackItemsByCategory[activeCategoryId] ?? []);
-      } finally {
-        setItemsLoading(false);
-      }
-    };
+      if (targets.length === 0) return;
 
-    void loadItems();
-  }, [activeCategoryId, activeCategory]);
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              const idx = targets.indexOf(entry.target as HTMLElement);
+              if (idx >= 0) setActiveReviewIdx(idx);
+            }
+          }
+        },
+        { root: null, rootMargin: '-80px 0px -60% 0px', threshold: 0.1 },
+      );
 
-  // ── 새로고침 ──────────────────────────────────────────────────
-  const handleRefresh = async () => {
-    try {
-      setError('');
-      const response = await fetchRecommendationCategories();
-      setCategories(response.data.categories);
-    } catch {
-      setError('카테고리 새로고침에 실패했습니다.');
-    }
+      targets.forEach((el) => observer.observe(el));
+      return () => observer.disconnect();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [reviewModalProduct]);
+
+  const handleSuggestionClick = (main: string, sub: string, yt: string) => {
+    setCategoryMain(main);
+    setCategorySub(sub);
+    setYoutuber(yt);
+    setLoading(true);
+    setSearched(true);
+    setServerError('');
+    fetchYoutubeReviews({ categoryMain: main, categorySub: sub, youtuber: yt })
+      .then((response) => {
+        if (Array.isArray(response.data)) {
+          setReviews(response.data);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      })
+      .catch(() => {
+        setServerError('실시간 리뷰를 불러오지 못했습니다. 예시 데이터를 표시합니다.');
+        setReviews(fallbackReviews);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
+
+  const handleSearch = () => {
+    if (!categoryMain.trim() || !categorySub.trim() || !youtuber.trim()) {
+      alert('주 카테고리, 서브 카테고리, 유튜버 이름을 모두 입력해주세요.');
+      return;
+    }
+    void loadReviews();
+  };
+
+  const handleReset = () => {
+    setCategoryMain('');
+    setCategorySub('');
+    setYoutuber('');
+    setSearched(false);
+    setReviews([]);
+    setServerError('');
+  };
+
+
 
   return (
     <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[1200px] mx-auto">
           {/* ── Page Header ── */}
-          <div className="mb-8 md:mb-12 flex items-start gap-4 md:gap-5">
+          <div className="mb-6 md:mb-8 flex items-start gap-4 md:gap-5">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
               <Sparkles className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">
-                추천
-              </h1>
-              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">
-                유튜버 리뷰 기반 상품 추천
-              </p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">추천</h1>
+              <p className="text-zinc-500 dark:text-zinc-300 mt-1 font-medium">유튜버 리뷰 기반 상품 추천</p>
             </div>
           </div>
 
-          {/* ── Loading Indicator (initial) ── */}
-          {loading && (
-            <div className="mb-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300 shadow-sm font-medium">
-              추천 데이터를 불러오는 중입니다...
-            </div>
-          )}
-
-          {/* ── Error Banner ── */}
-          {error && (
-            <div className="mb-6 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 px-6 py-4 text-sm text-red-800 dark:text-red-300 shadow-sm font-medium flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 flex-shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* ── Main Section ── */}
-          {!loading && (
-            <div className="w-full rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-              {/* ── Section Header: Category Tabs + Refresh ── */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-700 px-5 py-4">
-                <div className="flex flex-wrap gap-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-700 rounded-lg p-1">
-                  {categories.map((category) => (
-                    <button
-                      key={category.categoryId}
-                      type="button"
-                      onClick={() => setActiveCategoryId(category.categoryId)}
-                      className={`px-3 py-1.5 text-sm font-bold rounded-md transition-all duration-200 cursor-pointer ${
-                        activeCategoryId === category.categoryId
-                          ? 'bg-[#1E4D8C] dark:bg-[#7BAEDA] dark:text-[#112D4E] text-white shadow-sm'
-                          : 'text-zinc-500 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-zinc-800'
-                      }`}
-                    >
-                      {category.categoryName}
-                    </button>
-                  ))}
+          {/* ── Filter Bar ── */}
+          <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }}>
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
+                {/* 주 카테고리 */}
+                <div className="relative flex-1">
+                  <input
+                    value={categoryMain}
+                    onChange={(e) => { setCategoryMain(e.target.value); setCategorySub(''); }}
+                    placeholder="주 카테고리 (예: 전자기기)"
+                    className="w-full px-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-50 h-10"
+                  />
                 </div>
 
+                {/* 서브 카테고리 */}
+                <div className="relative flex-1">
+                  <input
+                    value={categorySub}
+                    onChange={(e) => setCategorySub(e.target.value)}
+                    placeholder="서브 카테고리 (예: 키보드)"
+                    className="w-full px-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-50 h-10"
+                  />
+                </div>
+
+                {/* 유튜버 검색 */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-400" />
+                  <input
+                    value={youtuber}
+                    onChange={(e) => setYoutuber(e.target.value)}
+                    placeholder="유튜버 이름 검색"
+                    className="w-full pl-9 pr-4 py-2.5 text-sm bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-50 h-10"
+                  />
+                </div>
+
+                {/* 검색 버튼 */}
                 <Button
-                  variant="outline"
-                  onClick={handleRefresh}
-                  className="border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA]"
+                  type="button"
+                  onClick={handleSearch}
+                  disabled={loading}
+                  className="w-full md:w-auto h-10 rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] dark:from-[#1E4D8C] dark:to-[#0F3460] text-white font-bold hover:from-[#0F3460] hover:to-[#0F3460] shadow-[0_4px_10px_rgba(30,77,140,0.25)] border-none"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  새로고침
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <RotateCcw className="w-4 h-4 animate-spin" />
+                      검색 중
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Search className="w-4 h-4" />
+                      리뷰 찾기
+                    </span>
+                  )}
                 </Button>
               </div>
 
-              {/* ── Inner Content ── */}
-              <div className="bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-5">
-                {/* Category Info */}
-                {categoryName && (
-                  <div className="flex items-center justify-between mb-5 px-1">
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                      {activeCategory?.description}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
-                      {lastAnalysisDate && (
-                        <span className="hidden sm:inline">
-                          마지막 분석일: {lastAnalysisDate}
+              {/* 초기화 버튼 */}
+              {hasActiveFilters && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="flex items-center gap-1 text-xs font-medium text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    필터 초기화
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* ── Server Error Banner ── */}
+          {serverError && (
+            <div className="mb-6 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              {serverError}
+            </div>
+          )}
+
+          {/* ── Loading Skeleton ── */}
+          {loading && (
+            <div className="space-y-5">
+              {[1, 2, 3].map((s) => (
+                <div key={s} className="animate-pulse rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 shadow-sm">
+                  <div className="h-5 w-32 rounded-full bg-zinc-200 dark:bg-zinc-700 mb-4" />
+                  <div className="rounded-xl border border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-6 w-14 rounded-lg bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-5 w-48 rounded bg-zinc-200 dark:bg-zinc-700" />
+                      <div className="h-4 w-16 rounded bg-zinc-200 dark:bg-zinc-700" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div className="rounded-xl bg-zinc-200/50 dark:bg-zinc-700/50 p-3 space-y-2">
+                        <div className="h-3 w-10 rounded bg-zinc-200 dark:bg-zinc-700" />
+                        <div className="h-3 w-full rounded bg-zinc-200 dark:bg-zinc-700" />
+                        <div className="h-3 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700" />
+                      </div>
+                      <div className="rounded-xl bg-zinc-200/50 dark:bg-zinc-700/50 p-3 space-y-2">
+                        <div className="h-3 w-10 rounded bg-zinc-200 dark:bg-zinc-700" />
+                        <div className="h-3 w-full rounded bg-zinc-200 dark:bg-zinc-700" />
+                        <div className="h-3 w-2/3 rounded bg-zinc-200 dark:bg-zinc-700" />
+                      </div>
+                    </div>
+                    <div className="h-3 w-2/3 rounded bg-zinc-200 dark:bg-zinc-700" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── 검색 전 초기 상태 ── */}
+          {!searched && !loading && (
+            <div className="flex flex-col items-center justify-center w-full min-h-[400px] text-center px-4">
+              <h2 className="mb-2 text-xl md:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                유튜버들의 진짜 리뷰로<br className="sm:hidden" />
+                <span className="text-[#1E4D8C] dark:text-[#7BAEDA]"> 똑똑한 소비</span>를 시작하세요
+              </h2>
+              <p className="mb-8 text-sm text-zinc-500 dark:text-zinc-400 max-w-[400px]">
+                상단에 카테고리를 입력하시면, 광고 없는 진짜 후기와 추천 상품을 모아 보여드립니다.
+              </p>
+
+              {/* 추천 검색어 칩 */}
+              <div className="w-full max-w-md p-5 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-sm">
+                <p className="mb-3 text-xs font-medium text-zinc-400 dark:text-zinc-500 flex items-center justify-center gap-1.5">
+                  <Search className="w-3.5 h-3.5" />
+                  이런 조합은 어때요?
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {SUGGESTED_SEARCHES.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleSuggestionClick(item.main, item.sub, item.youtuber)}
+                      className="inline-flex items-center gap-1 px-4 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-zinc-50 to-zinc-100 dark:from-zinc-800 dark:to-zinc-700 text-zinc-700 dark:text-zinc-300 hover:from-[#1E4D8C]/10 hover:to-[#0F3460]/10 dark:hover:from-[#7BAEDA]/10 dark:hover:to-[#1E4D8C]/10 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] transition-all duration-200 border border-zinc-200 dark:border-zinc-600 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 shadow-sm hover:shadow-md"
+                    >
+                      {item.label}
+                      <Search className="w-3 h-3 ml-0.5 opacity-40" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Products List (검색 후 - 제품 중심) ── */}
+          {searched && !loading && productMap.size > 0 && (
+            <div className="space-y-5">
+              {Array.from(productMap.entries()).map(([productName, entries], productIdx) => {
+                // 유튜버 필터 시: 검색 유튜버 우선, 없으면 1순위 유튜버 → "외 N명"
+                const filteredYoutuberName = youtuber.trim().toLowerCase();
+                const matchedEntry = filteredYoutuberName
+                  ? entries.find((e) => e.youtuberName.toLowerCase().includes(filteredYoutuberName))
+                  : null;
+                const primaryEntry = matchedEntry ?? entries.reduce((best, e) => (e.rank < best.rank ? e : best), entries[0]);
+                const brand = primaryEntry.brand ?? '';
+                const firstEntry = entries[0];
+
+                return (
+                  <div
+                    key={productName}
+                    className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 shadow-sm hover:shadow-xl hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 hover:-translate-y-0.5 transition-all duration-300"
+                    style={{ animation: `fadeIn 0.3s ease-out ${productIdx * 0.05}s both` }}
+                  >
+                    {/* 제품 헤더 */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-[#1E4D8C] dark:bg-[#1E4D8C] text-white shadow-sm">
+                        <TrendingUp className="w-3.5 h-3.5" />
+                        {primaryEntry.rank}위
+                      </span>
+                      <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">{productName}</span>
+                      {brand && <span className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">{brand}</span>}
+                    </div>
+
+                    {/* 리뷰한 유튜버 목록 */}
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/30 dark:border-[#7BAEDA]/30">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
+                        {firstEntry.youtuberName}
+                      </span>
+                      {entries.length > 1 && (
+                        <span className="text-xs text-zinc-400">
+                          외 {entries.length - 1}명
                         </span>
                       )}
                     </div>
-                  </div>
-                )}
 
-                {/* Items Loading */}
-                {itemsLoading ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <RefreshCw className="w-8 h-8 text-zinc-400 animate-spin mb-3" />
-                    <p className="text-sm text-zinc-500 font-medium">
-                      추천 상품을 불러오는 중입니다...
-                    </p>
-                  </div>
-                ) : recommendationItems.length > 0 ? (
-                  /* ── 상품 목록 ── */
-                  <div className="grid grid-cols-1 gap-5">
-                    {recommendationItems.map((item) => (
-                      <div
-                        key={item.productId}
-                        className="w-full bg-white dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700 rounded-2xl p-5 md:p-6 shadow-sm hover:shadow-lg hover:shadow-[#1E4D8C]/5 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 hover:-translate-y-1 transition-all duration-300 ease-out flex flex-col group"
-                      >
-                        {/* ── Rank + Brand + Product Name ── */}
-                        <div className="flex flex-col gap-1.5 mb-5">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-bold bg-[#1E4D8C] dark:bg-[#1E4D8C] text-white shadow-sm">
-                              <TrendingUp className="w-4 h-4" />
-                              {item.rank}위
-                            </span>
-                            {item.brand && (
-                              <span className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">
-                                {item.brand}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-zinc-50 group-hover:text-[#1E4D8C] dark:group-hover:text-[#7BAEDA] transition-colors leading-tight">
-                            {item.productName}
-                          </h3>
-                        </div>
-
-                        {/* ── 장점 / 단점 (분할 리스트) ── */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-                          <div className="rounded-xl bg-[#F9F7F7]/50 dark:bg-[#1E4D8C]/10 border border-[#DBE2EF]/60 dark:border-[#1E4D8C]/30 p-4">
-                            <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-3 flex items-center gap-1.5">
-                              <ThumbsUp className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
-                              장점
-                            </h4>
-                            <div className="space-y-2">
-                              {splitBullets(item.pros).map((pro, index) => (
-                                <div key={index} className="flex items-start gap-2">
-                                  <CheckCircle2 className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA] mt-0.5 flex-shrink-0" />
-                                  <span className="text-zinc-700 dark:text-zinc-300 text-sm">{pro}</span>
-                                </div>
-                              ))}
+                    {/* 장점 / 단점 요약 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 p-3">
+                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1">
+                          <ThumbsUp className="w-3.5 h-3.5" />
+                          장점
+                        </h4>
+                        <div className="space-y-1.5">
+                          {(primaryEntry.pros?.length ?? 0) > 0 ? primaryEntry.pros.slice(0, 2).map((pro, pi) => (
+                            <div key={pi} className="flex items-start gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                              <span className="text-xs text-emerald-900 dark:text-emerald-300">{pro}</span>
                             </div>
-                          </div>
-                          <div className="rounded-xl bg-rose-50/50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-900/50 p-4">
-                            <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-3 flex items-center gap-1.5">
-                              <ThumbsDown className="w-4 h-4 text-[#EF4444]" />
-                              단점
-                            </h4>
-                            <div className="space-y-2">
-                              {splitBullets(item.cons).map((con, index) => (
-                                <div key={index} className="flex items-start gap-2">
-                                  <XCircle className="w-4 h-4 text-[#EF4444] mt-0.5 flex-shrink-0" />
-                                  <span className="text-zinc-700 dark:text-zinc-300 text-sm">{con}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* ── 푸터 ── */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-700 mt-auto">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {/* 유튜버 */}
-                            <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center shrink-0">
-                              <Play className="w-3 h-3 text-white fill-white ml-0.5" />
-                            </div>
-                            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 truncate">
-                              {item.youtuber}
-                            </span>
-
-                            {/* 영상 링크 */}
-                            {item.videoUrl && (
-                              <>
-                                <span className="text-gray-300 dark:text-zinc-700 shrink-0">·</span>
-                                <a
-                                  href={item.videoUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] hover:text-red-500 dark:hover:text-red-400 hover:underline transition-colors shrink-0 whitespace-nowrap"
-                                >
-                                  <Play className="w-3 h-3 fill-current" />
-                                  영상
-                                </a>
-                              </>
-                            )}
-
-                            {/* 분석일 */}
-                            <span className="text-gray-300 dark:text-zinc-700 shrink-0">·</span>
-                            <span className="text-xs text-gray-400 dark:text-zinc-400 shrink-0 whitespace-nowrap">
-                              {formatRelativeDate(item.analysisDate)}
-                            </span>
-                          </div>
-
-                          {/* 리뷰 보기 */}
-                          <button
-                            type="button"
-                            onClick={() => openReviewSheet(item)}
-                            disabled={detailLoading}
-                            className="group/btn inline-flex items-center justify-center gap-2 w-full md:w-auto px-5 py-3 md:px-6 md:py-3 rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] dark:from-[#1E4D8C] dark:to-[#0F3460] text-white text-sm font-bold shadow-md shadow-[#1E4D8C]/20 hover:shadow-lg hover:shadow-[#1E4D8C]/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-wait cursor-pointer whitespace-nowrap"
-                          >
-                            <Film className="w-4 h-4" />
-                            리뷰
-                            <ChevronRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
-                          </button>
+                          )) : <span className="text-xs text-zinc-400">-</span>}
+                          {primaryEntry.pros.length > 2 && <span className="text-xs text-zinc-400">외 {primaryEntry.pros.length - 2}개</span>}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-16 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-950 rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700">
-                    <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-4 text-zinc-700 dark:text-zinc-300">
-                      <TrendingUp className="w-5 h-5" />
+                      <div className="rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 p-3">
+                        <h4 className="text-xs font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-1">
+                          <ThumbsDown className="w-3.5 h-3.5" />
+                          단점
+                        </h4>
+                        <div className="space-y-1.5">
+                          {(primaryEntry.cons?.length ?? 0) > 0 ? primaryEntry.cons.slice(0, 2).map((con, ci) => (
+                            <div key={ci} className="flex items-start gap-1.5">
+                              <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
+                              <span className="text-xs text-rose-900 dark:text-rose-300">{con}</span>
+                            </div>
+                          )) : <span className="text-xs text-zinc-400">-</span>}
+                          {primaryEntry.cons.length > 2 && <span className="text-xs text-zinc-400">외 {primaryEntry.cons.length - 2}개</span>}
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50 mb-1">
-                      해당 카테고리에 추천 상품이 없습니다
-                    </h4>
-                    <p className="text-zinc-700 dark:text-zinc-300 text-sm">
-                      다른 카테고리를 선택해주세요.
-                    </p>
+
+                    {/* 총평 + 리뷰 보기 */}
+                    <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-700 pt-3">
+                      <div className="min-w-0 flex-1 mr-3">
+                        {primaryEntry.verdict && (
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed truncate">
+                            <span className="text-2xl leading-none text-zinc-300 dark:text-zinc-600 italic font-serif mr-1">"</span>
+                            {primaryEntry.verdict}
+                            <span className="text-2xl leading-none text-zinc-300 dark:text-zinc-600 italic font-serif ml-1">"</span>
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveReviewIdx(0);
+                          setReviewModalProduct({
+                            productName,
+                            brand,
+                            reviews: entries,
+                          });
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#1E4D8C]/5 dark:bg-[#7BAEDA]/10 hover:bg-[#1E4D8C]/10 dark:hover:bg-[#7BAEDA]/20 transition-colors"
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        유튜버 리뷰 {entries.length}개 모아보기
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
+          )}
+
+          {/* ── style keyframes ── */}
+          <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+          {/* ── 검색 결과 없음 ── */}
+          {searched && !loading && !serverError && (reviews?.length ?? 0) === 0 && (
+            <div className="py-16 text-center text-zinc-400">조회된 리뷰가 없습니다.</div>
           )}
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          Modal: 상품 상세 + 유튜버 리뷰
+          Modal: 제품 리뷰 비교 (여러 유튜버)
       ══════════════════════════════════════════════════════════ */}
-      {sheetOpen && (
+      {reviewModalProduct && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
-          onClick={closeReviewSheet}
+          className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/50"
+          onClick={() => setReviewModalProduct(null)}
         >
           <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white dark:bg-zinc-900 shadow-xl"
+            className="relative w-full md:max-w-2xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto rounded-t-2xl md:rounded-2xl bg-white dark:bg-zinc-900 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {detailLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <LogoIcon className="w-8 h-8 animate-spin" animated={false} />
-                <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">
-                  상세 정보를 불러오는 중입니다...
-                </p>
+            {/* 헤더 */}
+            <div className="sticky top-0 z-10 flex items-start justify-between gap-4 p-5 sm:p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-700">
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                  {reviewModalProduct.productName}
+                </h2>
+                {reviewModalProduct.brand && (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{reviewModalProduct.brand}</p>
+                )}
+                <p className="text-xs text-zinc-400 mt-1">{reviewModalProduct.reviews.length}명의 유튜버 리뷰</p>
               </div>
-            ) : detailError ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-2 text-center px-6">
-                <p className="text-sm text-red-600 dark:text-red-400 font-medium">{detailError}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">잠시 후 다시 시도해주세요.</p>
-              </div>
-            ) : detailData ? (
-              <SheetContent detail={detailData} onClose={closeReviewSheet} />
-            ) : null}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+              <button
+                type="button"
+                onClick={() => setReviewModalProduct(null)}
+                className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-/* ───────────────────────────────────────────────────────────────
-   Modal 내부 컨텐츠
-   ─────────────────────────────────────────────────────────────── */
-function SheetContent({ detail, onClose }: { detail: RecommendationDetail; onClose: () => void }) {
-  return (
-    <>
-      {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-10 flex items-start justify-between gap-4 p-5 sm:p-6 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-gray-100 dark:border-zinc-700">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#1E4D8C] dark:bg-[#1E4D8C] text-white shadow-sm shrink-0">
-              <TrendingUp className="w-3.5 h-3.5" />
-              {detail.rank}위
-            </span>
-            {detail.brand && (
-              <span className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">
-                {detail.brand}
-              </span>
+            {/* 유튜버 탭 네비게이션 */}
+            {reviewModalProduct.reviews.length > 1 && (
+              <div className="sticky top-0 z-10 flex flex-wrap gap-1.5 px-5 sm:px-6 py-3 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-700 overflow-x-auto shadow-sm">
+                <span className="text-xs font-medium text-zinc-400 mr-1 shrink-0 self-center">리뷰</span>
+                {reviewModalProduct.reviews.map((entry, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      document.getElementById(`review-${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className={`shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer transition-all duration-150 active:scale-95 ${
+                      idx === activeReviewIdx
+                        ? 'bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border-[#1E4D8C]/30 dark:border-[#7BAEDA]/30 shadow-sm'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    {entry.youtuberName}
+                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  </button>
+                ))}
+              </div>
             )}
+
+            {/* 리뷰 비교 목록 (세로 스크롤) */}
+            <div className="p-5 sm:p-6 flex flex-col gap-4">
+              {reviewModalProduct.reviews.map((entry, idx) => (
+                <div
+                  key={idx}
+                  id={`review-${idx}`}
+                  className="rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-4 sm:p-5 scroll-mt-20"
+                >
+                  {/* 유튜버 헤더 */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-red-600 flex items-center justify-center">
+                        <Play className="w-3.5 h-3.5 text-white fill-white ml-0.5" />
+                      </div>
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50">{entry.youtuberName}</span>
+                      <span className="text-xs text-zinc-400">({entry.rank}위)</span>
+                    </div>
+                    <a
+                      href={entry.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] hover:underline"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      영상 보기
+                    </a>
+                  </div>
+
+                  {/* 장점 */}
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1">
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                      장점
+                    </p>
+                    <ul className="space-y-1.5">
+                      {entry.pros.map((pro, pi) => (
+                        <li key={pi} className="flex items-start gap-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          {pro}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {/* 단점 */}
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-rose-500 dark:text-rose-400 mb-2 flex items-center gap-1">
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                      단점
+                    </p>
+                    <ul className="space-y-1.5">
+                      {entry.cons.map((con, ci) => (
+                        <li key={ci} className="flex items-start gap-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+                          <XCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                          {con}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  {/* 총평 */}
+                  {entry.verdict && (
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mt-3">
+                      <span className="text-2xl leading-none text-zinc-300 dark:text-zinc-600 italic font-serif mr-0.5">"</span>
+                      {entry.verdict}
+                      <span className="text-2xl leading-none text-zinc-300 dark:text-zinc-600 italic font-serif ml-0.5">"</span>
+                    </p>
+                  )}
+                  {entry.recommendedFor && (
+                    <p className="text-xs text-zinc-400 mt-1">추천 대상: {entry.recommendedFor}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-zinc-50 leading-tight truncate">
-            {detail.productName}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* ── Scrollable Content ── */}
-      <div className="p-5 sm:p-6 flex flex-col gap-6">
-        {/* ── Aggregated Pros / Cons ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 p-4">
-            <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
-              <ThumbsUp className="w-4 h-4" />
-              종합 장점
-            </h4>
-            <p className="text-sm text-emerald-900 dark:text-emerald-400 leading-relaxed">
-              {detail.pros}
-            </p>
-          </div>
-          <div className="rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 p-4">
-            <h4 className="text-sm font-bold text-rose-800 dark:text-rose-400 mb-2 flex items-center gap-1.5">
-              <ThumbsDown className="w-4 h-4" />
-              종합 단점
-            </h4>
-            <p className="text-sm text-rose-900 dark:text-rose-400 leading-relaxed">
-              {detail.cons}
-            </p>
-          </div>
-        </div>
-
-        {/* ── 유튜버 리뷰 (슬라이드) ── */}
-        <ReviewCarousel reviews={detail.youtuberReviews} />
-
-        {/* ── 분석일 ── */}
-        <p className="text-xs text-zinc-400 dark:text-zinc-400 text-center">
-          분석일: {detail.analysisDate}
-        </p>
-      </div>
-    </>
-  );
-}
-
-/* ── 유튜버 리뷰 캐러셀 (한 번에 하나씩) ──────────────────── */
-function ReviewCarousel({ reviews }: { reviews: YoutuberReview[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const total = reviews.length;
-
-  if (total === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-sm text-zinc-500 font-medium">아직 등록된 유튜버 리뷰가 없습니다.</p>
-      </div>
-    );
-  }
-
-  const goPrev = () => setCurrentIndex((prev) => (prev === 0 ? total - 1 : prev - 1));
-  const goNext = () => setCurrentIndex((prev) => (prev === total - 1 ? 0 : prev + 1));
-
-  const review = reviews[currentIndex];
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* 헤더 + 카운트 */}
-      <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-[#E2E8F0] dark:bg-zinc-700" />
-        <span className="text-xs font-bold text-zinc-500 dark:text-zinc-300 tracking-wider shrink-0">
-          유튜버 리뷰 {currentIndex + 1}/{total}
-        </span>
-        <div className="h-px flex-1 bg-[#E2E8F0] dark:bg-zinc-700" />
-      </div>
-
-      {/* 슬라이드 영역 */}
-      <div className="relative">
-        {/* 이전 버튼 (카드 영역 밖) */}
-        {total > 1 && (
-          <button
-            type="button"
-            onClick={goPrev}
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-zinc-800/90 border border-gray-200 dark:border-zinc-700 shadow-md hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4 text-zinc-500 dark:text-zinc-300" />
-          </button>
-        )}
-
-        <YoutuberReviewCard review={review} />
-
-        {/* 다음 버튼 (카드 영역 밖) */}
-        {total > 1 && (
-          <button
-            type="button"
-            onClick={goNext}
-            className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 dark:bg-zinc-800/90 border border-gray-200 dark:border-zinc-700 shadow-md hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4 text-zinc-500 dark:text-zinc-300" />
-          </button>
-        )}
-      </div>
-
-      {/* 닷 인디케이터 */}
-      {total > 1 && (
-        <div className="flex items-center justify-center gap-1.5">
-          {reviews.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setCurrentIndex(idx)}
-              className={`w-2 h-2 rounded-full transition-all duration-200 cursor-pointer ${
-                idx === currentIndex
-                  ? 'bg-[#1E4D8C] dark:bg-[#7BAEDA] w-4'
-                  : 'bg-[#CBD5E1] dark:bg-zinc-600 hover:bg-[#94A3B8] dark:hover:bg-zinc-500'
-              }`}
-            />
-          ))}
         </div>
       )}
-    </div>
-  );
-}
-
-/* ── 개별 유튜버 리뷰 카드 ──────────────────────────────────── */
-function YoutuberReviewCard({ review }: { review: YoutuberReview }) {
-  return (
-    <div className="mx-auto w-full max-w-[360px] lg:max-w-none snap-center bg-[#F9F7F7]/40 dark:bg-zinc-800 border border-[#DBE2EF]/60 dark:border-zinc-700 rounded-2xl p-5 flex flex-col gap-4 shadow-sm">
-      {/* Header: Youtuber + Video Link */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center shrink-0">
-            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate">
-              {review.youtuber}
-            </p>
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-400">
-              {review.analysisDate}
-            </p>
-          </div>
-        </div>
-
-        <a
-          href={review.videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group/btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-200 shrink-0"
-        >
-          <div className="w-2 h-2 rounded-full bg-red-500 group-hover/btn:scale-110 transition-transform" />
-          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-300 group-hover/btn:text-red-600 dark:group-hover/btn:text-red-400 transition-colors">
-            영상 보기
-          </span>
-          <ExternalLink className="w-3 h-3 text-zinc-400 dark:text-zinc-400 group-hover/btn:text-red-500 transition-colors" />
-        </a>
-      </div>
-
-      {/* Pros / Cons */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start gap-2">
-          <span className="inline-flex items-center text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded-md shrink-0 mt-0.5">
-            Good
-          </span>
-          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-            {review.pros}
-          </p>
-        </div>
-        <div className="flex items-start gap-2">
-          <span className="inline-flex items-center text-[11px] font-bold text-rose-700 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/50 px-2 py-0.5 rounded-md shrink-0 mt-0.5">
-            Bad
-          </span>
-          <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
-            {review.cons}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

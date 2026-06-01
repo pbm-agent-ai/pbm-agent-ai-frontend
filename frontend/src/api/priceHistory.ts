@@ -1,4 +1,4 @@
-import shoppingApiClient from './shoppingAxios';
+import shoppingApiClient from './CommandAxios';
 import type { PriceHistoryData, PriceHistoryResponse } from '../types/priceHistory';
 
 export async function fetchPriceHistory(
