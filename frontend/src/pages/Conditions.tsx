@@ -230,7 +230,7 @@ export default function Conditions() {
       payload.intent = editingCondition.intent;
     }
 
-    if (Number(editingCondition.targetPrice) !== editingConditionSnapshot.targetPrice) {
+    if (Number(editingCondition.targetPrice) !== Number(editingConditionSnapshot.targetPrice)) {
       payload.targetPrice = Number(editingCondition.targetPrice);
     }
 

@@ -27,7 +27,6 @@ export function Sidebar() {
     { path: '/dashboard', label: '대시보드' },
     { path: '/conditions', label: '조건 관리' },
     { path: '/recommendations', label: '추천' },
-    { path: '/image-search', label: '이미지 검색' },
     { path: '/price-history', label: '가격 히스토리' },
     { path: '/payments', label: '결제 내역' },
   ];

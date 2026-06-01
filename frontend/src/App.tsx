@@ -54,7 +54,6 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Conditions = lazy(() => import('@/pages/Conditions'));
 const PriceHistory = lazy(() => import('@/pages/PriceHistory'));
 const Recommendation = lazy(() => import('@/pages/Recommendation'));
-const ImageSearch = lazy(() => import('@/pages/ImageSearch'));
 const Payments = lazy(() => import('@/pages/Payments'));
 const Settings = lazy(() => import('@/pages/Settings'));
 
@@ -68,7 +67,6 @@ export default function App(): React.JSX.Element {
           <Route path="/conditions" element={<Suspense fallback={<PageLoading />}><Conditions /></Suspense>} />
           <Route path="/price-history" element={<Suspense fallback={<PageLoading />}><PriceHistory /></Suspense>} />
           <Route path="/recommendations" element={<Suspense fallback={<PageLoading />}><Recommendation /></Suspense>} />
-          <Route path="/image-search" element={<Suspense fallback={<PageLoading />}><ImageSearch /></Suspense>} />
           <Route path="/payments" element={<Suspense fallback={<PageLoading />}><Payments /></Suspense>} />
           <Route path="/settings" element={<Suspense fallback={<PageLoading />}><Settings /></Suspense>} />
         </Route>

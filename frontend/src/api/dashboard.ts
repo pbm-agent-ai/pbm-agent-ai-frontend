@@ -1,5 +1,5 @@
 import apiClient from './axios';
-import shoppingApiClient from './shoppingAxios';
+import commandApiClient from './CommandAxios';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardClarificationSubmissionResponse,
@@ -75,7 +75,7 @@ export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummar
 export async function parseDashboardCommand(
   payload: DashboardCommandParseRequest,
 ): Promise<DashboardCommandParseResponse> {
-  const { data } = await shoppingApiClient.post<DashboardCommandParseResponse>('/api/v1/commands/parse', payload);
+  const { data } = await commandApiClient.post<DashboardCommandParseResponse>('/api/v1/commands/parse', payload);
   return data;
 }
 
@@ -83,7 +83,7 @@ export async function submitDashboardClarification(
   commandId: string,
   payload: DashboardClarificationSubmissionRequest,
 ): Promise<DashboardClarificationSubmissionResponse> {
-  const { data } = await shoppingApiClient.post<DashboardClarificationSubmissionResponse>(
+  const { data } = await commandApiClient.post<DashboardClarificationSubmissionResponse>(
     `/api/v1/commands/${commandId}/clarifications`,
     payload,
   );
@@ -94,7 +94,7 @@ export async function submitDashboardClarification(
 export async function fetchCommandDetail(
   commandId: string,
 ): Promise<DashboardCommandDetailResponse> {
-  const { data } = await shoppingApiClient.get<DashboardCommandDetailResponse>(
+  const { data } = await commandApiClient.get<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}`,
   );
   return data;
@@ -105,7 +105,7 @@ export async function submitCommandProductLinks(
   commandId: string,
   payload: DashboardCommandProductLinksRequest,
 ): Promise<DashboardCommandDetailResponse> {
-  const { data } = await shoppingApiClient.post<DashboardCommandDetailResponse>(
+  const { data } = await commandApiClient.post<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}/product-links`,
     payload,
   );
@@ -117,7 +117,7 @@ export async function submitCommandSelection(
   commandId: string,
   payload: DashboardCommandSelectionRequest,
 ): Promise<DashboardCommandSelectionResponse> {
-  const { data } = await shoppingApiClient.post<DashboardCommandSelectionResponse>(
+  const { data } = await commandApiClient.post<DashboardCommandSelectionResponse>(
     `/api/v1/commands/${commandId}/selection`,
     payload,
   );

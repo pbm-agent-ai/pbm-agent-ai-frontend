@@ -1,4 +1,4 @@
-import shoppingApiClient from './shoppingAxios';
+import priceApiClient from './PriceAxios';
 import type { ConditionListResponse, SubscriptionDeleteResponse, SubscriptionListResponse, SubscriptionUpdateRequest, SubscriptionUpdateResponse } from '../types/condition';
 
 type ConditionListQueryParams = {
@@ -14,7 +14,7 @@ type ConditionListQueryParams = {
 export async function fetchConditionList(
   params?: ConditionListQueryParams,
 ): Promise<ConditionListResponse> {
-  const { data } = await shoppingApiClient.get<ConditionListResponse>('/api/conditions', {
+  const { data } = await priceApiClient.get<ConditionListResponse>('/api/conditions', {
     params,
   });
   return data;
@@ -22,7 +22,7 @@ export async function fetchConditionList(
 
 // 구독 리스트 조회 API 8083포트로 변경
 export async function fetchSubscriptions(): Promise<SubscriptionListResponse> {
-  const { data } = await shoppingApiClient.get<SubscriptionListResponse>('/api/v1/monitoring/subscriptions');
+  const { data } = await priceApiClient.get<SubscriptionListResponse>('/api/v1/monitoring/subscriptions');
   return data;
 }
 
@@ -30,7 +30,7 @@ export async function updateSubscription(
   id: number,
   payload: SubscriptionUpdateRequest,
 ): Promise<SubscriptionUpdateResponse> {
-  const { data } = await shoppingApiClient.patch<SubscriptionUpdateResponse>(
+  const { data } = await priceApiClient.patch<SubscriptionUpdateResponse>(
     `/api/v1/monitoring/subscriptions/${id}`,
     payload,
   );
@@ -38,7 +38,7 @@ export async function updateSubscription(
 }
 
 export async function deleteSubscription(id: number): Promise<SubscriptionDeleteResponse> {
-  const { data } = await shoppingApiClient.delete<SubscriptionDeleteResponse>(
+  const { data } = await priceApiClient.delete<SubscriptionDeleteResponse>(
     `/api/v1/monitoring/subscriptions/${id}`,
   );
   return data;
