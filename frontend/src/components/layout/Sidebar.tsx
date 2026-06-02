@@ -24,7 +24,7 @@ export function Sidebar() {
   const themeMenuRef = useRef<HTMLDivElement | null>(null);
 
   const menuItems = [
-    { path: '/dashboard', label: '대시보드' },
+    { path: '/dashboard', label: '홈' },
     { path: '/conditions', label: '조건 관리' },
     { path: '/recommendations', label: '추천' },
     { path: '/price-history', label: '가격 히스토리' },
@@ -115,7 +115,8 @@ export function Sidebar() {
           
         </div>
 
-        {/* Main Nav Links */}
+        {/* Main Nav Links (대시보드에서는 숨김) */}
+        {location.pathname !== '/dashboard' && (
         <nav className="absolute left-1/2 hidden -translate-x-1/2 lg:flex items-center gap-1 whitespace-nowrap">
           {menuItems.map((item) => {
             const active = isActive(item.path);
@@ -134,6 +135,7 @@ export function Sidebar() {
             );
           })}
         </nav>
+        )}
 
         {/* Right Utilities (Desktop) */}
         <div className="hidden lg:flex items-center gap-2">
@@ -289,6 +291,7 @@ export function Sidebar() {
         </div>
 
         <div className="flex flex-1 flex-col px-4 py-6">
+          {location.pathname !== '/dashboard' && (
           <section>
             <div className="mb-3 px-4 py-2 text-xs font-bold tracking-[0.08em] text-zinc-500 dark:text-[#A1A1AA] uppercase">
               메뉴
@@ -313,8 +316,9 @@ export function Sidebar() {
               })}
             </nav>
           </section>
+          )}
 
-          <section className="mt-8 border-t border-zinc-200 dark:border-[#222A3E] pt-6">
+          <section className={`${location.pathname !== '/dashboard' ? 'mt-8 border-t border-zinc-200 dark:border-[#222A3E] pt-6' : ''}`}>
             <div className="px-4 py-2 text-xs font-bold text-zinc-500 dark:text-[#A1A1AA] uppercase tracking-wider">
               화면 테마
             </div>

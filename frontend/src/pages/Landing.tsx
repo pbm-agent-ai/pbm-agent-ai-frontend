@@ -43,9 +43,9 @@ export default function Landing() {
   }, [typingDone]);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-zinc-900" style={{ colorScheme: "light" }}>
+    <div className="min-h-screen bg-white font-sans text-slate-900" style={{ colorScheme: "light" }}>
       {/* ═══════ Top Navigation ═══════ */}
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-zinc-200">
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-slate-200">
         <div className="max-w-[1200px] mx-auto h-[72px] px-4 md:px-8 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5 group"
             onMouseEnter={() => setLogoMouth('open')}
@@ -53,9 +53,9 @@ export default function Landing() {
             <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
               <LogoIcon mouth={logoMouth} />
             </div>
-            <span className="text-zinc-900 font-extrabold text-[17px] tracking-tight">나의 구매 비서</span>
+            <span className="text-slate-900 font-extrabold text-[17px] tracking-tight">나의 구매 비서</span>
           </Link>
-          <Link to="/login" className="text-sm font-semibold text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl border border-zinc-200 hover:border-zinc-300 px-4 py-2 transition-all">로그인</Link>
+          <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 px-4 py-2 transition-all">로그인</Link>
         </div>
       </header>
 
@@ -69,7 +69,7 @@ export default function Landing() {
           <h1 className="text-[2rem] sm:text-[2.5rem] md:text-[3.2rem] font-bold tracking-tight leading-[1.3] mb-5 text-[#112D4E] break-keep">
             원하는 가격에 <span className="text-[#1E4D8C]">AI가</span> 찾아드려요
           </h1>
-          <p className="text-base text-zinc-500 leading-relaxed mb-10 max-w-md">
+          <p className="text-base text-slate-500 leading-relaxed mb-10 max-w-md">
             자연어로 쇼핑 조건을 말하면<span className="md:hidden"><br /></span> AI가 분석하고, 조건에 맞는 상품을<span className="md:hidden"><br /></span> 실시간으로 모니터링해 알려드립니다.
           </p>
           <div className="mb-10">
@@ -80,12 +80,12 @@ export default function Landing() {
             </Link>
           </div>
           {/* ── Hero Preview (simple) ── */}
-          <div className="w-full max-w-3xl bg-white rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-zinc-200 relative overflow-hidden text-left animate-card-glow">
+          <div className="w-full max-w-3xl bg-white rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-slate-200 relative overflow-hidden text-left animate-card-glow">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]" />
             <div className="p-4 pt-5 flex flex-col gap-3">
               <div className="bg-white rounded-2xl p-2 ring-1 ring-[#E2E8F0]">
-                <div className="w-full bg-transparent px-4 py-3 text-zinc-900 text-lg min-h-[60px]">
-                  <span className="text-zinc-400">예: </span>
+                <div className="w-full bg-transparent px-4 py-3 text-slate-900 text-lg min-h-[60px]">
+                  <span className="text-slate-400">예: </span>
                   <span className="font-medium">쿠팡에서 갤럭시 버즈 FE 8만원 이하면 알림</span>
                   <span className="animate-cursor" />
                 </div>
@@ -95,11 +95,11 @@ export default function Landing() {
                   <Bot className="w-4 h-4" /> 조건 분석하기
                 </div>
               </div>
-              <div className="mx-2 rounded-[1.5rem] border border-zinc-200 bg-zinc-50 p-4 text-left shadow-sm" style={{ animation: 'fade-slide-up 0.5s ease-out 2s forwards', opacity: 0 }}>
-                <p className="text-sm font-semibold text-zinc-800">
+              <div className="mx-2 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 text-left shadow-sm" style={{ animation: 'fade-slide-up 0.5s ease-out 2s forwards', opacity: 0 }}>
+                <p className="text-sm font-semibold text-slate-800">
                   <Sparkles className="w-3.5 h-3.5 text-[#1E4D8C] inline mr-1.5 animate-icon-pulse" /> 분석 완료
                 </p>
-                <p className="mt-1 text-xs text-zinc-500">플랫폼: 쿠팡 · 상품: 갤럭시 버즈 FE · 목표가: 80,000원 이하</p>
+                <p className="mt-1 text-xs text-slate-500">플랫폼: 쿠팡 · 상품: 갤럭시 버즈 FE · 목표가: 80,000원 이하</p>
               </div>
             </div>
           </div>
@@ -118,26 +118,26 @@ export default function Landing() {
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
                 자연어로 조건을<br />입력하고 등록하세요
               </h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
                 원하는 상품과 가격을 말하듯이 입력하면<span className="md:hidden"><br /></span> AI가 플랫폼, 상품명, 목표 가격을<span className="md:hidden"><br /></span> 자동으로 분석합니다.
               </p>
               <div className="flex flex-col gap-2">
                 {["자연어로 쇼핑 조건 입력", "AI가 플랫폼/상품/가격 자동 분석", "분석 결과 확인 후 조건 등록"].map((t) => (
                   <div key={t} className="flex items-center gap-2.5">
                     <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
-                    <span className="text-sm text-zinc-600">{t}</span>
+                    <span className="text-sm text-slate-600">{t}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex-1 w-full">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm relative">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm relative">
                 <div className="bg-[#F9F7F7] rounded-xl p-3 ring-1 ring-[#E2E8F0] mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
                       <Search className="w-3.5 h-3.5 text-[#1E4D8C]" />
                     </div>
-                    <div className="flex-1 text-sm text-zinc-800 font-medium min-w-0">
+                    <div className="flex-1 text-sm text-slate-800 font-medium min-w-0">
                       <span>{TYPED_TEXT.slice(0, typedChars)}</span>
                       {typedChars < TYPED_TEXT.length && <span className="inline-block w-[2px] h-[1.1em] bg-[#1E4D8C] ml-0.5 align-text-bottom animate-cursor-blink" />}
                     </div>
@@ -168,23 +168,23 @@ export default function Landing() {
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
                 분석된 조건에 맞는<br />상품을 선택하세요
               </h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
                 AI가 입력한 조건에 맞는<span className="md:hidden"><br /></span> 상품 후보를 보여줍니다. 모니터링할 상품을 선택하고<span className="md:hidden"><br /></span> 조건 충족 여부를 한눈에 확인하세요.
               </p>
               <div className="flex flex-col gap-2">
                 {["조건에 맞는 상품 후보 목록 제공", "각 상품별 조건 충족 상태 표시", "원하는 상품 선택 후 모니터링 시작"].map((t) => (
                   <div key={t} className="flex items-center gap-2.5">
                     <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
-                    <span className="text-sm text-zinc-600">{t}</span>
+                    <span className="text-sm text-slate-600">{t}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex-1 w-full">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <h3 className="text-xs font-bold text-zinc-800">상품 목록</h3>
-                  <span className="text-[10px] text-zinc-400">최대 3개</span>
+                  <h3 className="text-xs font-bold text-slate-800">상품 목록</h3>
+                  <span className="text-[10px] text-slate-400">최대 3개</span>
                 </div>
                 <div className="flex flex-col gap-2">
                   {[
@@ -192,24 +192,24 @@ export default function Landing() {
                     { badge: "조건 충족", cls: "bg-emerald-100 text-emerald-700" },
                     { badge: null, cls: "" },
                   ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
-                      <div className="w-10 h-10 rounded-lg bg-zinc-200 animate-pulse flex items-center justify-center shrink-0" />
+                    <div key={i} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                      <div className="w-10 h-10 rounded-lg bg-slate-200 animate-pulse flex items-center justify-center shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <div className="h-3 w-36 rounded bg-zinc-200" />
+                          <div className="h-3 w-36 rounded bg-slate-200" />
                           {item.badge && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${item.cls}`}>{item.badge}</span>}
                         </div>
                         <div className="flex items-center gap-2 mt-2">
-                          <div className="h-3 w-14 rounded bg-zinc-200" />
-                          <div className="h-3 w-12 rounded bg-zinc-100" />
+                          <div className="h-3 w-14 rounded bg-slate-200" />
+                          <div className="h-3 w-12 rounded bg-slate-100" />
                         </div>
                       </div>
-                      <div className="shrink-0 w-4 h-4 rounded border-2 border-zinc-300" />
+                      <div className="shrink-0 w-4 h-4 rounded border-2 border-slate-300" />
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3">
-                  <span className="text-[10px] text-zinc-400">3개 선택됨</span>
+                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+                  <span className="text-[10px] text-slate-400">3개 선택됨</span>
                   <div className="inline-flex items-center bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white rounded-lg h-7 px-4 text-[10px] font-bold shadow-sm cursor-default opacity-90">선택 완료</div>
                 </div>
               </div>
@@ -231,30 +231,30 @@ export default function Landing() {
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
                 원하는 상품이 없다면<br />URL로 직접 등록하세요
               </h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
                 후보 목록에 원하는 상품이 없어도 걱정하지 마세요.<span className="md:hidden"><br /></span> 상품 페이지의 URL을 직접 입력하면<span className="md:hidden"><br /></span> AI가 해당 상품을 분석하여<span className="md:hidden"><br /></span> 모니터링 조건을 등록해 드립니다.
               </p>
               <div className="flex flex-col gap-2">
                 {["상품 URL 직접 입력 (최대 5개)", "URL에서 상품 정보 자동 추출", "별도 검색 없이 바로 조건 등록"].map((t) => (
                   <div key={t} className="flex items-center gap-2.5">
                     <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
-                    <span className="text-sm text-zinc-600">{t}</span>
+                    <span className="text-sm text-slate-600">{t}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex-1 w-full">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between gap-3 mb-3">
-                  <span className="text-[10px] font-bold text-zinc-500">원하는 상품이 목록에 없나요?</span>
-                  <svg className="w-3 h-3 text-zinc-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                  <span className="text-[10px] font-bold text-slate-500">원하는 상품이 목록에 없나요?</span>
+                  <svg className="w-3 h-3 text-slate-400 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-[11px] text-zinc-400">상품 URL을 입력하세요</div>
+                    <div className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] text-slate-400">상품 URL을 입력하세요</div>
                     <div className="rounded-lg bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-3 py-2.5 text-[10px] font-bold cursor-default opacity-80">+</div>
                   </div>
-                  <p className="text-[10px] text-zinc-400">최대 5개까지 추가할 수 있습니다</p>
+                  <p className="text-[10px] text-slate-400">최대 5개까지 추가할 수 있습니다</p>
                 </div>
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function Landing() {
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-[#112D4E] mb-3">
                 가격 변동을 실시간으로<br />추적하고 최저가를 포착하세요
               </h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-4">
+              <p className="text-sm text-slate-500 leading-relaxed mb-4">
                 조건이 등록되면 AI가 24시간 가격을 추적합니다.<span className="md:hidden"><br /></span> 가격 히스토리 차트로 변동 추이를 확인하고,<span className="md:hidden"><br /></span> 최저가를 포착하여 목표가를 수정할 수 있어요.
               </p>
               <div className="flex flex-col gap-2 mb-8">
@@ -287,22 +287,22 @@ export default function Landing() {
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-2.5">
                     <CheckCircle className="w-4 h-4 text-[#1E4D8C] shrink-0" />
-                    <span className="text-sm text-zinc-600">{t}</span>
+                    <span className="text-sm text-slate-600">{t}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex-1 w-full">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 {/* ── Condition selector mockup ── */}
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-100">
-                  <div className="flex items-center gap-2 bg-[#F9F7F7] rounded-lg px-3 py-2 border border-zinc-200 cursor-default">
-                    <span className="text-[9px] font-bold text-[#1E4D8C] bg-white rounded px-1.5 py-0.5 border border-zinc-200">쿠O</span>
-                    <span className="text-[11px] font-semibold text-zinc-300 tracking-wide">다○슨 V15 디텍트</span>
+                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2 bg-[#F9F7F7] rounded-lg px-3 py-2 border border-slate-200 cursor-default">
+                    <span className="text-[9px] font-bold text-[#1E4D8C] bg-white rounded px-1.5 py-0.5 border border-slate-200">쿠O</span>
+                    <span className="text-[11px] font-semibold text-slate-300 tracking-wide">다○슨 V15 디텍트</span>
                   </div>
                   <div className="flex gap-1 ml-auto">
                     {["7D", "30D"].map((p) => (
-                      <span key={p} className={`text-[9px] font-bold px-2 py-1 rounded-md ${p === '1M' ? 'bg-[#1E4D8C] text-white' : 'bg-zinc-50 text-zinc-500 border border-zinc-200'}`}>{p}</span>
+                      <span key={p} className={`text-[9px] font-bold px-2 py-1 rounded-md ${p === '1M' ? 'bg-[#1E4D8C] text-white' : 'bg-slate-50 text-slate-500 border border-slate-200'}`}>{p}</span>
                     ))}
                   </div>
                 </div>
@@ -313,17 +313,17 @@ export default function Landing() {
                     { label: "현재가", bg: "bg-[#F9F7F7]" },
                     { label: "최저가", bg: "bg-[#FEF2F2]" },
                     { label: "최고가", bg: "bg-[#FFF7ED]" },
-                    { label: "평균가", bg: "bg-zinc-50" },
+                    { label: "평균가", bg: "bg-slate-50" },
                   ].map((s) => (
                     <div key={s.label} className={`rounded-lg ${s.bg} px-2 py-2 text-center`}>
-                      <p className="text-[8px] text-zinc-400 font-medium">{s.label}</p>
-                      <div className="h-3 w-12 mx-auto mt-1 rounded bg-zinc-200 animate-pulse" />
+                      <p className="text-[8px] text-slate-400 font-medium">{s.label}</p>
+                      <div className="h-3 w-12 mx-auto mt-1 rounded bg-slate-200 animate-pulse" />
                     </div>
                   ))}
                 </div>
 
                 {/* ── Chart ── */}
-                <div className="rounded-xl bg-[#F9F7F7] border border-zinc-100 p-3 mb-3">
+                <div className="rounded-xl bg-[#F9F7F7] border border-slate-100 p-3 mb-3">
                   <svg viewBox="0 0 200 50" className="w-full h-12 overflow-visible">
                     <line x1="0" y1="0" x2="200" y2="0" stroke="#E2E8F0" strokeWidth="0.5" />
                     <line x1="0" y1="25" x2="200" y2="25" stroke="#E2E8F0" strokeWidth="0.5" />
@@ -335,9 +335,9 @@ export default function Landing() {
                     <line x1="0" y1="18" x2="200" y2="18" stroke="#EF4444" strokeWidth="0.8" strokeDasharray="4 2" opacity="0.5" />
                   </svg>
                   <div className="flex justify-between mt-1">
-                    <span className="text-[7px] text-zinc-300">4/10</span>
-                    <span className="text-[7px] text-zinc-400 font-medium">최저가 ₩71,000 도달</span>
-                    <span className="text-[7px] text-zinc-300">4/16</span>
+                    <span className="text-[7px] text-slate-300">4/10</span>
+                    <span className="text-[7px] text-slate-400 font-medium">최저가 ₩71,000 도달</span>
+                    <span className="text-[7px] text-slate-300">4/16</span>
                   </div>
                 </div>
               </div>
@@ -357,20 +357,20 @@ export default function Landing() {
                 <Play className="w-3 h-3" /> 유튜버 추천
               </span>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[#112D4E] mb-3">유튜버 리뷰를 한눈에 확인하세요</h2>
-              <p className="text-sm text-zinc-500 leading-relaxed max-w-sm">
+              <p className="text-sm text-slate-500 leading-relaxed max-w-sm">
                 유튜버가 직접 리뷰한 상품의<span className="md:hidden"><br /></span> 장점과 단점을 요약해서 보여줍니다.<span className="md:hidden"><br /></span> 영상을 보지 않아도 상품 정보를<span className="md:hidden"><br /></span> 한눈에 파악할 수 있고,<span className="md:hidden"><br /></span> 영상 링크를 통해<span className="md:hidden"><br /></span> 직접 리뷰를 확인할 수 있어요.
               </p>
             </div>
             <div className="w-full md:w-80 shrink-0">
               {/* ── Product card ── */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#1E4D8C] text-white">
                     <TrendingUp className="w-3 h-3" /> 1
                   </span>
-                  <span className="text-[11px] font-semibold text-zinc-400 tracking-wide">로○락</span>
+                  <span className="text-[11px] font-semibold text-slate-400 tracking-wide">로○락</span>
                 </div>
-                <p className="text-sm font-bold text-zinc-300 tracking-wide mb-4">로○락 S8 Pro 로봇청소기</p>
+                <p className="text-sm font-bold text-slate-300 tracking-wide mb-4">로○락 S8 Pro 로봇청소기</p>
                 <div className="space-y-2 mb-4">
                   <div className="flex items-start gap-2 bg-green-50 rounded-lg px-3 py-2">
                     <span className="text-xs text-green-700 font-bold shrink-0 mt-0.5">👍</span>
@@ -381,10 +381,10 @@ export default function Landing() {
                     <p className="text-xs text-red-700 leading-relaxed">가격대가 높음. 유지보수 비용 발생</p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-red-500" />
-                    <span className="text-[10px] text-zinc-400 tracking-wide">유OO IT PLUS</span>
+                    <span className="text-[10px] text-slate-400 tracking-wide">유OO IT PLUS</span>
                   </div>
                   <span className="inline-flex items-center gap-1 bg-[#1E4D8C] text-white rounded-lg px-3 py-1.5 text-[10px] font-bold shadow-sm cursor-default opacity-90">
                     <Play className="w-3 h-3" /> 리뷰 보기

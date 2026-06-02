@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Circle, Clock, CheckCircle, DollarSign, Search, Sparkles, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sparkles, ListChecks, Sparkles as SparklesIcon, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection, submitCommandProductLinks } from '../api/dashboard';
-import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { LogoIcon } from '../components/ui/LogoIcon';
@@ -19,8 +19,6 @@ import type {
   DashboardCommandSelectionRequest,
   DashboardCommandSelectionResponse,
   DashboardCommandValidationResult,
-  DashboardMonitoringItem,
-  DashboardStat,
 } from '../types/dashboard';
 
 type ClarificationAnswers = Record<string, string>;
@@ -53,25 +51,7 @@ const shoppingCommandExamples = [
 // 설명: 상단 타이틀에서 순환 표시할 단어들입니다.
 const rotatingCommandMessages = ['항공권', '생필품', '신발', '전자기기'];
 
-// 설명: 초기 모니터링 목록은 빈 상태로 시작합니다.
-const initialMonitoringItems: DashboardMonitoringItem[] = [
-  {
-    conditionId: 999,
-    status: 'exploring',
-    statusLabel: '탐색 중',
-    statusColor: '#16a34a',
-    product: '갤럭시 버즈 FE',
-    platform: '쿠팡',
-    currentPrice: '₩89,000',
-    targetPrice: '₩75,000',
-  },
-];
 
-// 설명: 가격 문자열에서 숫자만 추출합니다.
-const formatNumericPrice = (priceText: string) => {
-  const parsed = Number(priceText.replace(/[^\d-]/g, ''));
-  return Number.isNaN(parsed) ? 0 : parsed;
-};
 
 // 설명: HTML 태그를 제거해 화면용 텍스트를 만듭니다.
 const stripHtmlTags = (text: string): string => text.replace(/<[^>]*>/g, '');
@@ -82,9 +62,7 @@ const getClarificationFieldConfig = (field: string): ClarificationFieldConfig =>
     case 'productName':
       return { key: field, label: '상품명', placeholder: '예: 나이키 에어포스 1' };
     case 'platform':
-      return { key: field, label: '플랫폼', placeholder: '예: 쿠팡' };
-    case 'route':
-      return { key: field, label: '비행 경로', placeholder: '예: 인천-도쿄 왕복' };
+      return { key: field, label: '플랫폼', placeholder: '예: 네이버' };
     case 'maxPrice':
       return { key: field, label: '최대가', placeholder: '예: 250000' };
     case 'minPrice':
@@ -106,40 +84,7 @@ const getClarificationFieldConfig = (field: string): ClarificationFieldConfig =>
   }
 };
 
-// 설명: 플랫폼 식별자를 사람이 읽기 쉬운 이름으로 바꿉니다.
-const getPlatformName = (platform: string) => {
-  const platformMap: Record<string, string> = {
-    naver: '네이버 쇼핑',
-    coupang: '쿠팡',
-    'naver-flights': '네이버 항공',
-    aliexpress: 'AliExpress',
-    ALIEXPRESS: 'AliExpress',
-  };
-  return platformMap[platform] || platform;
-};
-
-// 설명: 플랫폼별 대표 색상을 반환합니다.
-const getPlatformColor = (platform: string) => {
-  const colorMap: Record<string, string> = {
-    naver: '#03c75a',
-    coupang: '#ff6b6b',
-    'naver-flights': '#03c75a',
-    aliexpress: '#E62E04',
-    ALIEXPRESS: '#E62E04',
-  };
-  return colorMap[platform] || '#0463e7';
-};
-
-// 설명: 모니터링 상태에 맞는 색상을 정합니다.
-const getMonitoringStatusColor = (status: DashboardMonitoringItem['status'], statusLabel?: string) => {
-  if (status === 'waiting' || statusLabel?.trim() === '대기 중') return '#f97316';
-  if (status === 'exploring' || statusLabel?.trim() === '탐색 중') return '#16a34a';
-  return '#1E4D8C';
-};
-
 export default function Dashboard() {
-  // 설명: 상단 검색어를 저장합니다.
-  const [searchQuery, setSearchQuery] = useState('');
   // 설명: 자연어 명령 입력값을 저장합니다.
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   // 설명: 순환 문구의 현재 인덱스를 관리합니다.
@@ -168,30 +113,7 @@ export default function Dashboard() {
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
   // 설명: 누락 항목별 답변을 저장합니다.
   const [clarificationAnswers, setClarificationAnswers] = useState<ClarificationAnswers>({});
-
-  // 설명: 모니터링 데이터와 요약 지표를 준비합니다.
-  const monitoringItems = initialMonitoringItems;
-  // 설명: 전체 모니터링 개수를 계산합니다.
-  const monitoringCount = monitoringItems.length;
-  // 설명: 완료된 결제 건수를 계산합니다.
-  const completedPaymentCount = monitoringItems.filter((item) => item.status === 'completed').length;
-  // 설명: 대기 중인 조건 수를 계산합니다.
-  const waitingCount = monitoringItems.filter((item) => item.status === 'waiting' || item.statusLabel?.trim() === '대기 중').length;
-  // 설명: 예상 절약 금액을 합산합니다.
-  const totalSavingsAmount = monitoringItems.reduce((sum, item) => {
-    const currentPrice = formatNumericPrice(item.currentPrice);
-    const targetPrice = formatNumericPrice(item.targetPrice);
-    return sum + Math.max(targetPrice - currentPrice, 0);
-  }, 0);
-
-  // 설명: 대시보드 카드에 보여줄 통계를 구성합니다.
-  const stats: DashboardStat[] = [
-    { label: '모니터링 중', value: String(monitoringCount), color: 'text-zinc-900 dark:text-zinc-50', icon: TrendingUp },
-    { label: '완료된 결제', value: String(completedPaymentCount), color: 'text-zinc-700 dark:text-zinc-300', icon: CheckCircle },
-    { label: '조건 대기 중', value: String(waitingCount), color: 'text-zinc-700 dark:text-zinc-300', icon: Clock },
-    { label: '총 절약 금액', value: `₩${totalSavingsAmount.toLocaleString()}`, color: 'text-zinc-900 dark:text-zinc-50', icon: DollarSign },
-  ];
-
+  
   // 설명: 상단 안내 문구를 주기적으로 바꿉니다.
   useEffect(() => {
     let timeoutId: number | null = null;
@@ -219,6 +141,17 @@ export default function Dashboard() {
     setShowClarificationModal(false);
     setClarificationInput('');
     setClarificationAnswers({});
+  };
+
+  // 설명: 검색 결과를 초기화하고 새로 검색할 수 있게 합니다.
+  const handleResetSearch = () => {
+    setParsedPreview(null);
+    setCandidates([]);
+    setValidationResult(null);
+    setSelectedProductIds([]);
+    setShowUrlInput(false);
+    setProductUrlInputs(['']);
+    setNaturalLanguageInput('');
   };
 
   // 설명: 자연어 명령을 분석하고 결과를 불러옵니다.
@@ -379,8 +312,8 @@ export default function Dashboard() {
           icon: 'question',
           title: '기존 모니터링 확인',
           html: `
-            <p class="text-sm text-zinc-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
-            <p class="text-sm text-zinc-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
+            <p class="text-sm text-slate-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
+            <p class="text-sm text-slate-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
           `,
           showCancelButton: true,
           confirmButtonText: '재시작/갱신',
@@ -547,142 +480,17 @@ export default function Dashboard() {
     }
   };
 
-  // 설명: 검색어와 완료 상태를 기준으로 목록을 줄입니다.
-  const filteredMonitoringItems = monitoringItems
-    .filter((item) => item.status !== 'completed')
-    .filter((item) => item.product.toLowerCase().includes(searchQuery.toLowerCase()));
-
   // 설명: 현재 분석에서 누락된 항목을 꺼냅니다.
   const missingFields = parsedPreview?.data.missingFields ?? [];
 
-  // 설명: 모니터링 항목을 섹션별로 분류합니다.
-  const getMonitoringSectionKey = (item: DashboardMonitoringItem): 'exploring' | 'waiting' | 'other' => {
-    const statusLabel = item.statusLabel?.trim();
-    if (item.status === 'waiting' || statusLabel === '대기 중') return 'waiting';
-    if (item.status === 'exploring' || statusLabel === '탐색 중') return 'exploring';
-    return 'other';
-  };
-
-  // 설명: 탐색 중인 조건만 추립니다.
-  const exploringMonitoringItems = filteredMonitoringItems.filter((item) => getMonitoringSectionKey(item) === 'exploring');
-  // 설명: 대기 중인 조건만 추립니다.
-  const waitingMonitoringItems = filteredMonitoringItems.filter((item) => getMonitoringSectionKey(item) === 'waiting');
-  // 설명: 탐색 섹션 열림 상태를 저장합니다.
-  const [isExploringOpen, setIsExploringOpen] = useState(true);
-  // 설명: 대기 섹션 열림 상태를 저장합니다.
-  const [isWaitingOpen, setIsWaitingOpen] = useState(true);
-
-  // 설명: 모니터링 카드 한 개를 렌더링합니다.
-  const renderMonitoringCard = (item: DashboardMonitoringItem) => (
-    <div
-      key={item.conditionId}
-      className="w-full min-w-0 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 sm:p-4 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-[0_4px_12px_rgb(15,23,42,0.06)] hover:-translate-y-0.5 transition-all duration-200 cursor-default flex flex-col group relative overflow-hidden"
-    >
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-[#1E4D8C]/30 to-transparent"></div>
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-950 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700">
-            <Circle
-              className="w-1.5 h-1.5"
-              style={{
-                color: getMonitoringStatusColor(item.status, item.statusLabel),
-                fill: getMonitoringStatusColor(item.status, item.statusLabel),
-              }}
-            />
-            <span className="font-semibold text-zinc-900 dark:text-zinc-50 text-[11px] leading-none">{item.statusLabel}</span>
-          </div>
-        </div>
-        <Badge
-          variant="outline"
-          className="text-[11px] font-medium px-2 py-0.5 rounded"
-          style={{
-            color: getPlatformColor(item.platform),
-            borderColor: `${getPlatformColor(item.platform)}33`,
-            backgroundColor: `${getPlatformColor(item.platform)}12`,
-          }}
-        >
-          {getPlatformName(item.platform)}
-        </Badge>
-      </div>
-
-      <div className="mb-3 flex-1">
-        <p className="text-zinc-900 dark:text-zinc-50 font-bold text-sm sm:text-[15px] leading-snug line-clamp-2 group-hover:text-zinc-900 dark:group-hover:text-zinc-50 transition-colors">
-          {item.product}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between pt-2.5 border-t border-zinc-100 mt-auto">
-        <div className="flex flex-col">
-          <span className="text-zinc-700 dark:text-zinc-300 text-[11px] font-medium mb-0.5">목표가</span>
-          <span className="text-zinc-900 dark:text-zinc-50 font-semibold text-[13px] sm:text-sm">{item.targetPrice}</span>
-        </div>
-        <div className="flex items-center justify-center text-zinc-200 font-light text-xl px-2">/</div>
-        <div className="flex flex-col items-end flex-1">
-          <span className="text-zinc-900 dark:text-zinc-50 text-[11px] font-medium mb-0.5">현재가</span>
-          <span className="text-zinc-900 dark:text-zinc-50 font-extrabold text-base sm:text-lg tracking-tight">{item.currentPrice}</span>
-        </div>
-      </div>
-    </div>
-  );
-  //
-  // 설명: 모니터링 섹션 묶음을 렌더링합니다.
-  const renderMonitoringSection = (
-    title: string,
-    description: string,
-    items: DashboardMonitoringItem[],
-    countBadgeClassName: string,
-    isOpen: boolean,
-    onToggle: () => void,
-  ) => (
-    <div className="w-full min-w-0 self-start rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden relative">
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#DBE2EF]"></div>
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="flex w-full items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-700 px-5 py-4 pt-5 text-left cursor-pointer"
-      >
-        <div>
-          <div className="flex items-center gap-2">
-            <h4 className="text-base font-bold text-[#112D4E] dark:text-zinc-50">{title}</h4>
-            <Badge className={countBadgeClassName}>{items.length}건</Badge>
-          </div>
-          <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{description}</p>
-        </div>
-        <svg
-          className={`w-5 h-5 text-zinc-500 dark:text-zinc-300 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-5">
-          {items.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{items.map(renderMonitoringCard)}</div>
-          ) : (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-[#DBE2EF]/60 dark:border-zinc-700 bg-[#F9F7F7]/50 dark:bg-zinc-950 px-6 py-10 text-center">
-              <p className="text-sm font-semibold text-[#112D4E] dark:text-zinc-50">{title} 조건이 없습니다</p>
-              <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">검색 조건을 바꾸거나 새 분석을 시도해보세요.</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-
   // 설명: 대시보드의 전체 화면 레이아웃을 그립니다.
   return (
-    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
+    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
       {/* 설명: 상단 히어로와 자연어 입력 영역입니다. */}
-      <section className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden">
+      <section className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF]"></div>
         <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center relative z-10">
-          <div className="mb-4 flex h-12 items-center text-4xl font-medium text-zinc-700 dark:text-zinc-300 md:text-4xl">
+          <div className="mb-4 flex h-12 items-center text-4xl font-medium text-slate-700 dark:text-slate-300 md:text-4xl">
             <span className="relative inline-grid h-12 items-center overflow-hidden text-[#1E4D8C] dark:text-[#7BAEDA] transition-[width] duration-300">
               <span className="invisible whitespace-nowrap font-bold">{rotatingCommandMessages[rotatingMessageIndex]}</span>
               <span className={`absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap font-bold transition-all duration-300 ${isRotatingMessageVisible ? 'translate-y-[-50%] opacity-100' : 'translate-y-[-70%] opacity-0'}`}>
@@ -691,14 +499,14 @@ export default function Dashboard() {
             </span>
             <span>&nbsp;찾고 계신가요?</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-10">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50 mb-10">
             원하는 가격, <span className="relative inline-block"><span className="relative z-10 text-[#1E4D8C] dark:text-[#7BAEDA]">알아서 척척</span><span className="absolute bottom-1 left-0 w-full h-3 bg-[#DBE2EF] dark:bg-[#1E4D8C]/30 -z-10 rounded-sm skew-x-[-10deg]"></span></span> 찾아드려요.
           </h1>
 
-          <div className="w-full max-w-3xl bg-white dark:bg-zinc-800 rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-zinc-200 dark:border-zinc-700 relative overflow-hidden">
+          <div className="w-full max-w-3xl bg-white dark:bg-slate-800 rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-slate-200 dark:border-slate-700 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]"></div>
             <div className="p-4 pt-5 flex flex-col gap-3">
-              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-2 ring-1 ring-[#E2E8F0] focus-within:bg-zinc-100 dark:focus-within:bg-zinc-900 focus-within:ring-2 focus-within:ring-[#1E4D8C]/30 dark:focus-within:ring-[#7BAEDA]/30 transition-all duration-300">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 ring-1 ring-[#E2E8F0] focus-within:bg-slate-100 dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-[#1E4D8C]/30 dark:focus-within:ring-[#7BAEDA]/30 transition-all duration-300">
                 <textarea
                   rows={1}
                   placeholder="예: 쿠팡에서 탐사수 7000원 밑으로 알림"
@@ -710,11 +518,25 @@ export default function Dashboard() {
                     e.target.style.height = 'auto';
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
                   }}
-                  className="w-full bg-transparent border-none px-4 py-3 text-zinc-900 dark:text-zinc-50 text-lg placeholder:text-zinc-700 dark:placeholder:text-zinc-400 focus:outline-none resize-none min-h-[60px] font-medium"
+                  className="w-full bg-transparent border-none px-4 py-3 text-slate-900 dark:text-slate-50 text-lg placeholder:text-slate-700 dark:placeholder:text-slate-400 focus:outline-none resize-none min-h-[60px] font-medium"
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-4 px-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 px-2">
+                {parsedPreview && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResetSearch}
+                    disabled={isAnalyzing}
+                    className="rounded-xl h-12 px-5 text-sm font-bold border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200"
+                  >
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    새로 검색
+                  </Button>
+                )}
                 <Button
                   disabled={isAnalyzing}
                   className="bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] hover:-translate-y-0.5 rounded-xl h-12 px-8 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 w-full sm:w-auto group border-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
@@ -751,162 +573,161 @@ export default function Dashboard() {
                   setShowClarificationModal(open);
                 }}
               >
-                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl bg-white dark:bg-zinc-800 rounded-3xl p-0 overflow-hidden border-zinc-200 dark:border-zinc-700 shadow-xl">
-                  <DialogHeader className="px-6 pt-6 pb-2">
-                    <DialogTitle className="text-zinc-900 dark:text-zinc-50 text-xl font-bold">조건 보완</DialogTitle>
-                    <DialogDescription className="text-zinc-700 dark:text-zinc-300">
-                      AI가 이해한 값은 유지되고, 누락된 항목만 추가로 입력합니다.
-                    </DialogDescription>
-                  </DialogHeader>
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-full max-w-[95vw] sm:max-w-lg bg-white dark:bg-slate-800 rounded-3xl p-0 overflow-hidden border-slate-200 dark:border-slate-700 shadow-2xl">
+                  {/* 헤더 */}
+                  <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-[#1E4D8C]/10 dark:bg-[#1E4D8C]/20 flex items-center justify-center shrink-0">
+                          <Sparkles className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
+                        </div>
+                        <div>
+                          <DialogTitle className="text-slate-900 dark:text-slate-50 text-lg font-bold">조건 보완</DialogTitle>
+                          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
+                            AI가 파악한 조건을 확인하고, 부족한 정보를 채워주세요.
+                          </DialogDescription>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => setShowClarificationModal(false)} className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
 
-                  <div className="space-y-5 px-6 pb-2 mt-2 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+                  <div className="p-6 space-y-6 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+                    {/* AI가 이해한 내용 (Inset 스타일) */}
+                    {(() => {
+                      const d = parsedPreview?.data.parsedData;
+                      if (!d) return null;
+                      const items: { label: string; value: string }[] = [];
+                      if (d.productName) items.push({ label: '상품', value: d.productName });
+                      if (d.brand) items.push({ label: '브랜드', value: d.brand });
+                      if (d.platform) items.push({ label: '플랫폼', value: d.platform });
+                      if (d.maxPrice != null) items.push({ label: '목표가', value: `₩${d.maxPrice.toLocaleString()}` });
+                      if (d.mode) items.push({ label: '모드', value: d.mode === 'AUTO_PAYMENT' ? '자동결제' : '알림' });
+                      if (items.length === 0) return null;
+                      return (
+                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 ring-1 ring-slate-100 dark:ring-slate-700">
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">AI가 이해한 조건</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {items.map((item, i) => (
+                              <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E4D8C]/5 dark:bg-[#1E4D8C]/15 text-[#1E4D8C] dark:text-[#7BAEDA]">
+                                <span className="opacity-60">{item.label}:</span>
+                                {item.value}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 누락된 항목 (Left border accent) */}
                     <div>
-                      <div className="flex items-center justify-between gap-3">
-                        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">누락된 항목 입력</h4>
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-50">
+                          추가 확인이 필요한 항목 <span className="text-amber-500 font-bold">{missingFields.length > 0 ? missingFields.length : ''}</span>
+                        </p>
                       </div>
 
                       {missingFields.length > 0 ? (
-                        <div className="mt-3 grid gap-4 md:grid-cols-2">
+                        <div className="space-y-3">
                           {missingFields.map((field) => {
                             const config = getClarificationFieldConfig(field);
                             const isNumericField = field === 'maxPrice' || field === 'minPrice';
 
                             return (
-                              <div key={field} className="space-y-2 md:col-span-2">
-                                <Label className="text-zinc-700 dark:text-zinc-300 text-sm">{config.label}</Label>
-                                <Input
-                                  value={clarificationAnswers[field] ?? ''}
-                                  onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
-                                  placeholder={config.placeholder}
-                                  inputMode={isNumericField ? 'numeric' : 'text'}
-                                  className="bg-zinc-100 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 dark:focus-visible:border-[#7BAEDA]/50"
-                                />
+                              <div key={field} className="relative">
+                                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400 rounded-full" />
+                                <div className="pl-4">
+                                  <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">{config.label}</Label>
+                                  <Input
+                                    value={clarificationAnswers[field] ?? ''}
+                                    onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
+                                    placeholder={config.placeholder}
+                                    inputMode={isNumericField ? 'numeric' : 'text'}
+                                    className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 rounded-xl h-10 text-sm transition-all"
+                                  />
+                                </div>
                               </div>
                             );
                           })}
                         </div>
                       ) : (
-                        <div className="mt-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300">
-                          구조화된 추가 입력은 필요하지 않아요.
+                        <div className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 shrink-0" />
+                          모든 항목이 분석되었어요. 추가 설명이 필요하면 아래를 활용하세요.
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label className="text-zinc-700 dark:text-zinc-300 text-sm">추가 설명(선택)</Label>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-300">필요할 때만</span>
+                    {/* 추가 설명 (선택) */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <MessageSquare className="w-4 h-4 text-slate-400" />
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                          추가 설명 <span className="font-normal text-slate-400">(선택)</span>
+                        </p>
                       </div>
                       <textarea
                         value={clarificationInput}
                         onChange={(e) => setClarificationInput(e.target.value)}
-                        placeholder="예: 블랙 모델이 아니라 화이트 모델입니다."
-                        className="min-h-[96px] w-full rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-950 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-700 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#1E4D8C]/30"
+                        placeholder="AI에게 덧붙일 말이 있다면 적어주세요."
+                        className="min-h-[80px] w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none resize-none focus:ring-2 focus:ring-[#1E4D8C]/30 transition-all"
                       />
                     </div>
                   </div>
 
-                  <DialogFooter className="bg-zinc-100 dark:bg-zinc-900 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 sm:justify-end gap-2">
+                  {/* 푸터 */}
+                  <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-700">
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => {
-                        setShowClarificationModal(false);
-                      }}
-                      className="rounded-xl px-6 py-2 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700"
+                      onClick={() => setShowClarificationModal(false)}
+                      className="rounded-xl px-5 py-2 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-bold"
                     >
-                      닫기
+                      취소
                     </Button>
-                    <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] shadow-[0_4px_10px_rgba(30,77,140,0.25)] border-none font-bold">
-                      {clarificationSubmitting ? '전송 중...' : '보완 내용 보내기'}
+                    <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-5 py-2 bg-[#1E4D8C] hover:bg-[#0F3460] text-white shadow-md shadow-[#1E4D8C]/20 border-none font-bold text-sm transition-all">
+                      {clarificationSubmitting ? '전송 중...' : '조건 적용하기'}
                     </Button>
-                  </DialogFooter>
+                  </div>
                 </DialogContent>
               </Dialog>
 
               {/* 설명: 분석 완료 상태를 표시합니다. */}
               {parsedPreview && !parsedPreview.data.needsClarification && (
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 p-4 text-left">
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">분석 완료</p>
-                  <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">추가 입력 없이도 조건 분석이 끝났어요.</p>
-                </div>
-              )}
-
-              {/* 설명: 상품 URL 직접 입력 영역입니다. */}
-              {parsedPreview && (
-                <div className="mx-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowUrlInput((prev) => !prev)}
-                    aria-expanded={showUrlInput}
-                    className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-left text-sm font-medium text-zinc-500 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors cursor-pointer"
-                  >
-                    <span>원하는 상품이 목록에 없나요?</span>
-                    <svg
-                      className={`w-4 h-4 transition-transform duration-200 ${showUrlInput ? 'rotate-180' : ''}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {showUrlInput && (
-                    <div className="mt-2 rounded-[1.5rem] border border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 text-left shadow-sm">
-                      <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-50 mb-2">직접 상품 URL 입력 (최대 5개)</h4>
-                      <div className="flex flex-col gap-2">
-                        {productUrlInputs.map((url, index) => (
-                          <div key={index} className="flex gap-2">
-                            <Input
-                              value={url}
-                              onChange={(e) => {
-                                const next = [...productUrlInputs];
-                                next[index] = e.target.value;
-                                setProductUrlInputs(next);
-                              }}
-                              placeholder={`URL ${index + 1}`}
-                              className="flex-1 bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-sm h-9 transition-all duration-200"
-                            />
-                            {index === productUrlInputs.length - 1 && productUrlInputs.length < 5 && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setProductUrlInputs((prev) => [...prev, ''])}
-                                className="shrink-0 rounded-xl px-3 text-xs h-9"
-                              >
-                                +
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => void handleProductUrlSubmit()}
-                        disabled={productUrlSubmitting}
-                        className="mt-3 rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-4 py-1.5 text-xs font-bold"
-                      >
-                        {productUrlSubmitting ? '전송 중...' : 'URL 제출'}
-                      </Button>
-                    </div>
-                  )}
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-4 text-left">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">분석 완료</p>
+                  <p className="mt-1 text-xs text-slate-700 dark:text-slate-300">추가 입력 없이도 조건 분석이 끝났어요.</p>
                 </div>
               )}
 
               {/* 설명: 후보 상품 목록과 선택 버튼을 보여줍니다. */}
               {candidates.length > 0 ? (
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-5 text-left shadow-sm">
-                  <div className="flex items-center justify-between gap-3 mb-4">
-                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50">상품 목록</h3>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-300">최대 {candidates.length}개</span>
+                <div className="mx-2 mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50">추천 상품</h3>
+                      {selectedProductIds.length === 0 ? (
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/20 px-2 py-0.5 rounded-full">상품을 선택해 주세요</span>
+                      ) : (
+                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">{selectedProductIds.length}개 선택됨</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">총 {candidates.length}개</span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {/* 설명: 후보별 상태 배지를 계산해 렌더링합니다. */}
                     {(() => {
                       const triggeredIds = new Set((validationResult?.triggeredProducts ?? []).map((p) => p.productId));
                       const monitoringIds = new Set((validationResult?.monitoringProducts ?? []).map((p) => p.productId));
                       const duplicateIds = new Set((validationResult?.duplicateProducts ?? []).map((p) => p.productId));
 
                       return candidates.map((item) => {
+                        const isSelected = selectedProductIds.includes(item.productId);
                         let badgeText = '';
                         let badgeClass = '';
 
@@ -931,22 +752,35 @@ export default function Dashboard() {
                                   : [...prev, item.productId],
                               );
                             }}
-                            className={`flex gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200 ${
-                              selectedProductIds.includes(item.productId)
-                                ? 'border-[#1E4D8C] dark:border-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 ring-2 ring-[#1E4D8C]/30 dark:ring-[#7BAEDA]/30'
-                                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-sm'
+                            className={`group relative flex gap-3 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 ${
+                              isSelected
+                                ? 'border-2 border-[#1E4D8C] dark:border-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 shadow-[0_4px_12px_rgba(30,77,140,0.08)]'
+                                : 'border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/40 hover:shadow-md hover:-translate-y-0.5'
                             }`}
                           >
-                            <img src={item.imageUrl} alt={item.title} className="w-16 h-16 rounded-lg object-cover shrink-0 bg-white" />
-                            <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 line-clamp-2">{stripHtmlTags(item.title)}</div>
+                            <div className="relative shrink-0">
+                              <img src={item.imageUrl} alt={item.title} className="w-20 h-20 rounded-xl object-cover bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700" />
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                                  <div className="w-6 h-6 rounded-full bg-[#1E4D8C] dark:bg-[#7BAEDA] flex items-center justify-center shadow-md">
+                                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 flex flex-col">
+                              <div className="text-sm font-semibold text-slate-900 dark:text-slate-50 line-clamp-2 leading-snug">{stripHtmlTags(item.title)}</div>
                               {badgeText && (
-                                <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold leading-tight ${badgeClass}`}>
+                                <span className={`mt-1.5 inline-flex items-center self-start rounded-full px-2.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>
                                   {badgeText}
                                 </span>
                               )}
-                              <div className="mt-1.5 text-sm font-bold text-[#1E4D8C] dark:text-[#7BAEDA]">₩{Number(item.lprice).toLocaleString()}</div>
-                              <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-300">{item.mallName} · {item.platform}</div>
+                              <div className="mt-auto pt-2">
+                                <div className="text-sm font-bold text-[#1E4D8C] dark:text-[#7BAEDA]">₩{Number(item.lprice).toLocaleString()}</div>
+                                <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{item.mallName} · {item.platform}</div>
+                              </div>
                             </div>
                           </div>
                         );
@@ -955,26 +789,119 @@ export default function Dashboard() {
                   </div>
 
                   {selectedProductIds.length > 0 && (
-                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-200 dark:border-zinc-700 pt-4">
-                      <span className="text-xs text-zinc-500 dark:text-zinc-300">{selectedProductIds.length}개 선택됨</span>
+                    <div className="mt-4 flex items-center justify-between gap-3 bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 rounded-2xl border border-[#DBE2EF] dark:border-[#1E4D8C]/30 px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-[#1E4D8C] dark:bg-[#7BAEDA] flex items-center justify-center">
+                          <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <span className="text-sm font-bold text-[#1E4D8C] dark:text-[#7BAEDA]">{selectedProductIds.length}개 선택됨</span>
+                      </div>
                       <Button
                         type="button"
                         onClick={() => void handleSelectionSubmit()}
                         disabled={selectionSubmitting}
-                        className="rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white px-6 py-2 font-bold"
+                        className="rounded-xl bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-6 py-2 font-bold shadow-md shadow-[#1E4D8C]/20 transition-all"
                       >
-                        {selectionSubmitting ? '전송 중...' : '선택 완료'}
+                        {selectionSubmitting ? '전송 중...' : '모니터링 등록'}
                       </Button>
                     </div>
                   )}
+
+                  {/* URL 직접 입력 (접이식) */}
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlInput((prev) => !prev)}
+                      aria-expanded={showUrlInput}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-left text-sm font-medium text-slate-500 dark:text-slate-300 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] transition-all duration-200 cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        원하는 상품이 목록에 없나요?
+                      </span>
+                      <svg
+                        className={`w-4 h-4 transition-transform duration-200 ${showUrlInput ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showUrlInput && (
+                      <div className="mt-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">직접 상품 URL 입력</h4>
+                          <span className="text-xs text-slate-400">{productUrlInputs.length}/5</span>
+                        </div>
+                        <div className="space-y-2">
+                          {productUrlInputs.map((url, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                value={url}
+                                onChange={(e) => {
+                                  const next = [...productUrlInputs];
+                                  next[index] = e.target.value;
+                                  setProductUrlInputs(next);
+                                }}
+                                placeholder={`상품 URL ${index + 1}`}
+                                className="flex-1 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm h-10 rounded-xl focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 pr-10"
+                              />
+                              {productUrlInputs.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = productUrlInputs.filter((_, i) => i !== index);
+                                    setProductUrlInputs(next.length > 0 ? next : ['']);
+                                  }}
+                                  className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-between mt-3">
+                          {productUrlInputs.length < 5 ? (
+                            <button
+                              type="button"
+                              onClick={() => setProductUrlInputs((prev) => [...prev, ''])}
+                              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA] hover:text-[#0F3460] dark:hover:text-[#7BAEDA]/80 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                              </svg>
+                              새로운 URL 추가하기
+                            </button>
+                          ) : (
+                            <span className="text-xs text-slate-400">최대 5개까지 추가할 수 있습니다</span>
+                          )}
+                          <Button
+                            type="button"
+                            onClick={() => void handleProductUrlSubmit()}
+                            disabled={productUrlSubmitting}
+                            className="rounded-xl bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-5 py-2 text-xs font-bold shadow-sm transition-all"
+                          >
+                            {productUrlSubmitting ? '전송 중...' : 'URL 제출'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (isCommandInputFocused || naturalLanguageInput.trim().length > 0) && (
                 // 설명: 입력 예시와 사용 팁을 안내합니다.
-                <div className="mx-2 mt-2 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 p-5 text-left shadow-inner">
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 p-5 text-left shadow-inner">
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
-                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">이렇게 입력해 보세요!</h3>
-                      <p className="text-xs text-zinc-700 dark:text-zinc-300 mb-3">원하는 문장을 클릭해 자연어 쇼핑 명령을 빠르게 입력할 수 있어요.</p>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-1">이렇게 입력해 보세요!</h3>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 mb-3">원하는 문장을 클릭해 자연어 쇼핑 명령을 빠르게 입력할 수 있어요.</p>
                       <div className="flex flex-col gap-2">
                         {/* 설명: 예시 문구를 클릭하면 입력칸에 채워집니다. */}
                         {shoppingCommandExamples.map((text, index) => (
@@ -985,22 +912,22 @@ export default function Dashboard() {
                               event.preventDefault();
                               setNaturalLanguageInput(text);
                             }}
-                            className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-4 py-3 text-left text-sm font-medium text-zinc-900 dark:text-zinc-50 transition hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-[0_2px_8px_rgb(217,119,6,0.08)] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] hover:-translate-y-0.5 cursor-pointer"
+                            className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-50 transition hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:shadow-[0_2px_8px_rgb(217,119,6,0.08)] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] hover:-translate-y-0.5 cursor-pointer"
                           >
                             "{text}"
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="flex-1 border-t md:border-t-0 md:border-l border-zinc-200 dark:border-zinc-700 pt-4 md:pt-0 md:pl-6">
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-3 flex items-center gap-2">
+                    <div className="flex-1 border-t md:border-t-0 md:border-l border-slate-200 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-3 flex items-center gap-2">
                         <span className="w-6 h-6 rounded-xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] flex items-center justify-center text-xs shadow-sm border border-[#1E4D8C]/10">💡</span>
                         이런 것도 알아들어요
                       </h4>
-                      <div className="text-sm text-zinc-700 dark:text-zinc-300 space-y-3 font-medium">
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">플랫폼:</strong> 네이버 쇼핑, 네이버 항공, 쿠팡, 알리익스프레스 등</p></div>
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">상품 정보:</strong> 브랜드명, 정확한 모델명, 사이즈, 색상 등</p></div>
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-zinc-900 dark:text-zinc-50">조건 액션:</strong> 얼마 이하, 즉시 결제, 알림만, 대기 등</p></div>
+                      <div className="text-sm text-slate-700 dark:text-slate-300 space-y-3 font-medium">
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">플랫폼:</strong> 네이버 쇼핑, 네이버 항공, 쿠팡, 알리익스프레스 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">상품 정보:</strong> 브랜드명, 정확한 모델명, 사이즈, 색상 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">조건 액션:</strong> 얼마 이하, 즉시 결제, 알림만, 대기 등</p></div>
                       </div>
                     </div>
                   </div>
@@ -1010,83 +937,42 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
-      {/* 설명: 모니터링 현황과 목록을 보여줍니다. */}
-      <section className="py-16 px-4 md:px-8 bg-zinc-50 dark:bg-zinc-950">
+
+      {/* 메뉴 네비게이션 카드 (모니터링 현황이 있던 자리) */}
+      <section className="py-16 px-4 md:px-8 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-[1200px] mx-auto">
-          <div className="mb-10 text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-[#112D4E] dark:text-zinc-50">나의 모니터링 현황</h2>
-            <p className="text-zinc-700 dark:text-zinc-300 mt-2 font-medium">지금까지 AI가 얼마나 절약해 주었는지 확인해보세요.</p>
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50">빠른 이동</h2>
+            <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">원하는 페이지로 바로 이동하세요.</p>
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-10">
-            {/* 설명: 통계 카드들을 순서대로 보여줍니다. */}
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              const cardStyles = [
-                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
-                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
-                'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700',
-                'bg-gradient-to-br from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] border-transparent text-white',
-              ];
-              const labelColors = ['text-zinc-700 dark:text-zinc-300', 'text-zinc-700 dark:text-zinc-300', 'text-zinc-700 dark:text-zinc-300', 'text-[#DBE2EF]'];
-              const valueColors = ['text-zinc-900 dark:text-zinc-50', 'text-zinc-900 dark:text-zinc-50', 'text-zinc-900 dark:text-zinc-50', 'text-white'];
-              const iconColors = ['text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-[#1E4D8C] dark:text-[#7BAEDA]', 'text-white'];
-              const iconBgs = ['bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10', 'bg-white/20'];
-
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { path: '/conditions', label: '조건 관리', icon: ListChecks, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/20', desc: '등록된 조건 확인' },
+              { path: '/recommendations', label: '추천', icon: SparklesIcon, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: '유튜버 리뷰 기반 추천' },
+              { path: '/price-history', label: '가격 히스토리', icon: TrendingUpIcon, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', desc: '가격 변동 추이' },
+              { path: '/payments', label: '결제 내역', icon: CreditCard, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/20', desc: '자동 결제 현황' },
+            ].map((item, i) => {
+              const Icon = item.icon;
               return (
-                <div key={index} className={`border rounded-[1.5rem] p-6 flex flex-col justify-center shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-1 hover:shadow-lg hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 transition-all duration-300 ${cardStyles[index % 4]}`}>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-10 h-10 rounded-xl ${iconBgs[index % 4]} flex items-center justify-center border-none`}><Icon className={`w-5 h-5 ${iconColors[index % 4]}`} /></div>
-                    <div className={`text-[13px] font-bold ${labelColors[index % 4]}`}>{stat.label}</div>
+                <Link
+                  key={i}
+                  to={item.path}
+                  className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/40 hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+                >
+                  <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${item.color}`} />
                   </div>
-                  <div className={`text-[28px] font-extrabold tracking-tight text-center ${valueColors[index % 4]}`}>{stat.value}</div>
-                </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{item.label}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{item.desc}</p>
+                  </div>
+                </Link>
               );
             })}
           </div>
-
-          <div className="flex flex-col gap-5">
-            {/* 설명: 현재 진행 중인 모니터링 목록을 배치합니다. */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <h3 className="flex items-center gap-2.5 text-xl font-extrabold text-[#112D4E] dark:text-zinc-50 md:text-2xl">진행 중인 모니터링</h3>
-                <Badge variant="secondary" className="bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 border border-[#DBE2EF] dark:border-[#1E4D8C]/30 font-semibold rounded-md px-2 py-0.5 text-xs">총 {filteredMonitoringItems.length}건</Badge>
-              </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-700 dark:text-zinc-300" />
-                <Input type="text" placeholder="상품명 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus-visible:ring-1 focus-visible:ring-[#1E4D8C]/40 dark:focus-visible:ring-[#7BAEDA]/40 focus-visible:border-[#1E4D8C]/40 dark:focus-visible:border-[#7BAEDA]/50 rounded-lg h-10 transition-all placeholder:text-zinc-700 dark:placeholder:text-zinc-400" />
-              </div>
-            </div>
-
-            {filteredMonitoringItems.length > 0 ? (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                {renderMonitoringSection(
-                  '탐색 중인 조건',
-                  'AI가 실시간으로 가격과 조건 충족 여부를 추적하고 있습니다.',
-                  exploringMonitoringItems,
-                  'bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
-                  isExploringOpen,
-                  () => setIsExploringOpen((prev) => !prev),
-                )}
-                {renderMonitoringSection(
-                  '대기 중인 조건',
-                  '조건은 등록되었고, 다음 이벤트나 가격 변화를 기다리고 있습니다.',
-                  waitingMonitoringItems,
-                  'bg-zinc-50 dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border border-[#F8FAFC] font-semibold rounded-md px-2 py-0.5 text-xs',
-                  isWaitingOpen,
-                  () => setIsWaitingOpen((prev) => !prev),
-                )}
-              </div>
-            ) : (
-              <div className="py-16 flex flex-col items-center justify-center text-center bg-zinc-50 dark:bg-zinc-950 rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700">
-                <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-4 text-zinc-700 dark:text-zinc-300"><Search className="w-5 h-5" /></div>
-                <h4 className="text-[15px] font-bold text-zinc-900 dark:text-zinc-50 mb-1">모니터링 중인 상품이 없습니다</h4>
-                <p className="text-zinc-700 dark:text-zinc-300 text-sm">상단 입력창을 통해 원하는 상품을 분석해보세요.</p>
-              </div>
-            )}
-          </div>
         </div>
       </section>
+
     </div>
   );
 }

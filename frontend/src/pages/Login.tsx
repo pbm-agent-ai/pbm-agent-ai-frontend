@@ -321,7 +321,7 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden"
+      className="min-h-screen bg-slate-50 flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden"
       style={{ colorScheme: "light" }}
     >
       {/* Subtle Background Glow for Depth (Option 2 signature) */}
@@ -332,20 +332,20 @@ export default function Login() {
           <div className="w-12 h-12 bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] rounded-[14px] flex items-center justify-center shadow-md mb-4 border border-white/10">
             <LogoIcon animated={false} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-zinc-900 ">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 ">
             나의 구매 비서
           </h1>
-          <p className="text-zinc-500 text-sm font-medium mt-1.5">
+          <p className="text-slate-500 text-sm font-medium mt-1.5">
             AI 기반 스마트 자동 결제 시스템
           </p>
         </div>
 
-        <div className="bg-white border border-zinc-200 rounded-[1.5rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] overflow-hidden transition-all">
+        <div className="bg-white border border-slate-200 rounded-[1.5rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] overflow-hidden transition-all">
           <div className="px-6 sm:px-8 pt-8 pb-4">
-            <h2 className="text-xl font-bold text-zinc-900 ">
+            <h2 className="text-xl font-bold text-slate-900 ">
               {mode === "login" ? "로그인" : "회원가입"}
             </h2>
-            <p className="text-zinc-700 text-sm font-medium mt-1.5">
+            <p className="text-slate-700 text-sm font-medium mt-1.5">
               {mode === "login"
                 ? "계정 정보를 입력하세요"
                 : "가입 정보를 입력하세요"}
@@ -362,11 +362,11 @@ export default function Login() {
             {mode === "login" ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     이메일
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type="text"
                       value={email}
@@ -375,7 +375,7 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="your@email.com"
-                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="email"
                       disabled={isSubmitting}
                     />
@@ -383,11 +383,11 @@ export default function Login() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     비밀번호
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -396,14 +396,14 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="current-password"
                       disabled={isSubmitting}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 transition-colors focus:outline-none"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
                       tabIndex={-1}
                     >
                       {showPassword ? (
@@ -432,7 +432,7 @@ export default function Login() {
                   </Button>
                 </div>
 
-                <div className="mt-6 text-center text-sm text-zinc-700 ">
+                <div className="mt-6 text-center text-sm text-slate-700 ">
                   아직 계정이 없으신가요?{" "}
                   <button
                     type="button"
@@ -447,11 +447,11 @@ export default function Login() {
             ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     닉네임
                   </label>
                   <div className="relative">
-                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type="text"
                       value={name}
@@ -460,7 +460,7 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="홍길동"
-                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="name"
                       disabled={isSubmitting}
                     />
@@ -468,11 +468,11 @@ export default function Login() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     이메일
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type="text"
                       value={email}
@@ -481,7 +481,7 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="your@email.com"
-                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="email"
                       disabled={isSubmitting}
                     />
@@ -489,11 +489,11 @@ export default function Login() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     비밀번호
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -502,14 +502,14 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="new-password"
                       disabled={isSubmitting}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 transition-colors focus:outline-none"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
                       tabIndex={-1}
                     >
                       {showPassword ? (
@@ -522,11 +522,11 @@ export default function Login() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-bold text-zinc-700 ">
+                  <label className="text-sm font-bold text-slate-700 ">
                     비밀번호 확인
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 " />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 " />
                     <Input
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
@@ -535,7 +535,7 @@ export default function Login() {
                         clearFormError();
                       }}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-zinc-100 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 focus-visible:border-[#1E4D8C]/40 transition-colors"
+                      className="pl-10 pr-10 text-[16px] md:text-sm h-12 rounded-xl bg-[#F0F5FF] border-[#D6E0EF] text-slate-900 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:shadow-[0_0_0_3px_rgba(30,77,140,0.08)]"
                       autoComplete="new-password"
                       disabled={isSubmitting}
                     />
@@ -544,7 +544,7 @@ export default function Login() {
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 transition-colors focus:outline-none"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors focus:outline-none"
                       tabIndex={-1}
                     >
                       {showConfirmPassword ? (
@@ -573,7 +573,7 @@ export default function Login() {
                   </Button>
                 </div>
 
-                <div className="mt-6 text-center text-sm text-zinc-700 ">
+                <div className="mt-6 text-center text-sm text-slate-700 ">
                   이미 계정이 있으신가요?{" "}
                   <button
                     type="button"
@@ -590,7 +590,7 @@ export default function Login() {
         </div>
 
         {/* 2026-04-30 수정: 지갑 주소 안내 문구를 배너 대신 한 줄 강조 텍스트형으로 조정 */}
-        <p className="mt-6 text-center text-sm font-semibold text-zinc-700 tracking-wide">
+        <p className="mt-6 text-center text-sm font-semibold text-slate-700 tracking-wide">
           PBM 지갑 주소는 <span className="text-[#1E4D8C] ">설정</span>에서
           등록하세요
         </p>
