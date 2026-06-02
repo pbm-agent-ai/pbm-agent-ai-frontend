@@ -35,9 +35,9 @@ function DialogContent({
 
 	return createPortal(
 		<div className="fixed inset-0 z-[100] p-4">
-			<div className="absolute inset-0 bg-black/50" />
+			<div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-dialog-overlay" />
 			<div className="relative z-[101] flex min-h-full items-center justify-center">
-				<div className={`w-full rounded-lg bg-white shadow-xl ${className}`}>{children}</div>
+				<div className={`w-full rounded-2xl bg-white shadow-2xl animate-dialog-content ${className}`}>{children}</div>
 			</div>
 		</div>,
 		document.body

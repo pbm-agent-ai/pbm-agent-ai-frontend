@@ -3,9 +3,13 @@ import { useRef, useEffect, type ReactNode } from 'react';
 // ── 공통 SVG 요소 ──
 const Antenna = ({ animated }: { animated: boolean }) => (
   <>
-    <line x1="16" y1="7" x2="16" y2="2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-    <line x1="16" y1="2" x2="13" y2="2" stroke="white" strokeWidth="2" strokeLinecap="round" />
-    <circle cx="13" cy="2" r="1.5" fill="white" className={animated ? 'animate-logo-antenna' : ''} />
+    {/* 주 마스트 */}
+    <line x1="16" y1="7" x2="16" y2="1" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+    {/* 크로스바 (Yagi 스타일) */}
+    <line x1="12" y1="5" x2="20" y2="5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+    <line x1="13.5" y1="2.5" x2="18.5" y2="2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+    {/* 정상 볼 */}
+    <circle cx="16" cy="1" r="1.2" fill="white" className={animated ? 'animate-logo-antenna' : ''} />
   </>
 );
 const RobotBody = ({ children }: { children: ReactNode }) => (

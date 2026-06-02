@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import type { ConditionCardItem } from './condition.ts';
 
 
@@ -17,12 +16,6 @@ export interface DashboardMonitoringItem {
   targetPrice: string;
 }
 //
-export interface DashboardStat {
-  label: string;
-  value: string;
-  color: string;
-  icon: ComponentType<{ className?: string }>;
-}
 
 // [추가] 핵심 지표 카드에 필요한 요약 수치다.
 export interface DashboardStatsSummary {
@@ -57,7 +50,6 @@ export interface DashboardParsedCommand {
   minPrice?: number;
   currency?: string;
   searchCategoryHint?: string;
-  route?: string;
   options?: string;
   mode?: 'ALERT_ONLY' | 'AUTO_PAYMENT';
 }
@@ -111,7 +103,6 @@ export interface DashboardMonitoringCreateRequest {
   commandId: number;
   productName: string;
   platform: string;
-  route?: string;
   productDetail: string;
   targetPrice: string;
   monitoringRegisteredAt: string;
