@@ -12,6 +12,7 @@ type EditConditionForm = {
   id: number;
   platform: string;
   snapshotTitle: string;
+  snapshotImageUrl?: string;
   searchKeyword: string;
   productUrl: string;
   currency: string;
@@ -34,30 +35,10 @@ const formatDateTime = (value?: string) => {
   }).format(date);
 };
 
-// 서버 미연결 시 UI 미리보기용 Mock 데이터
-const mockSubscription: SubscriptionItem = {
-  id: 999,
-  commandId: 'mock-cmd-001',
-  platform: 'naver',
-  productId: 'mock-prod-001',
-  productUrl: 'https://search.shopping.naver.com/catalog/123456',
-  snapshotTitle: 'Apple AirPods Pro 2세대 (USB-C)',
-  snapshotPrice: 289000,
-  searchKeyword: '에어팟 프로2',
-  targetPrice: 250000,
-  currency: 'KRW',
-  intent: 'AUTO_PAYMENT',
-  status: 'ACTIVE',
-  checkIntervalMinutes: 30,
-  lastCheckedAt: '2026-05-31T14:30:00.000Z',
-  nextCheckAt: '2026-05-31T15:00:00.000Z',
-  scheduledEndAt: '2026-07-31T23:59:59.000Z',
-  createdAt: '2026-05-01T09:00:00.000Z',
-};
-
 export default function Conditions() {
   const [conditions, setConditions] = useState<SubscriptionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadErrorMessage, setLoadErrorMessage] = useState('');
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
@@ -67,18 +48,19 @@ export default function Conditions() {
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
+      setLoadErrorMessage('');
       try {
         const res = await fetchSubscriptions();
-        if (res.success && res.data.length > 0) {
-          setConditions(res.data);
-          setIsLoading(false);
-          return;
+        setConditions(res.success ? res.data : []);
+        if (!res.success) {
+          setLoadErrorMessage(res.message || '구독 목록을 불러오지 못했습니다.');
         }
       } catch {
-        // API 오류 → fall through
+        setConditions([]);
+        setLoadErrorMessage('구독 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      } finally {
+        setIsLoading(false);
       }
-      setConditions([mockSubscription]);
-      setIsLoading(false);
     };
     void load();
   }, []);
@@ -119,6 +101,9 @@ export default function Conditions() {
       const res = await deleteSubscription(id);
       if (res.success) {
         setConditions((prev) => prev.filter((item) => item.id !== id));
+      } else {
+        alert(res.message || '구독 삭제에 실패했습니다. 다시 시도해주세요.');
+        return;
       }
     } catch {
       alert('구독 삭제에 실패했습니다. 다시 시도해주세요.');
@@ -159,6 +144,7 @@ export default function Conditions() {
       id: item.id,
       platform: item.platform,
       snapshotTitle: item.snapshotTitle,
+      snapshotImageUrl: item.snapshotImageUrl,
       searchKeyword: item.searchKeyword,
       productUrl: item.productUrl,
       currency: item.currency,
@@ -215,18 +201,20 @@ export default function Conditions() {
     }
 
     if (Object.keys(payload).length === 0) {
-      setIsEditModalOpen(false);
+      closeEditModal();
       return;
     }
 
     try {
       const res = await updateSubscription(editingCondition.id, payload);
-      if (res.success) {
+      if (res.success && res.data) {
         setConditions((prev) =>
           prev.map((item) => (item.id === editingCondition.id ? res.data : item)),
         );
+        closeEditModal();
+        return;
       }
-      setIsEditModalOpen(false);
+      alert(res.message || '구독 수정에 실패했습니다. 다시 시도해주세요.');
     } catch {
       alert('구독 수정에 실패했습니다. 다시 시도해주세요.');
     }
@@ -246,6 +234,12 @@ export default function Conditions() {
             <p className="text-slate-500 dark:text-slate-300 mt-1 font-medium">구독 중인 상품의 가격을 모니터링합니다.</p>
           </div>
         </div>
+
+        {loadErrorMessage && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
+            {loadErrorMessage}
+          </div>
+        )}
 
         {/* 메인 리스트 */}
         <div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -299,6 +293,18 @@ export default function Conditions() {
                     {item.intent === 'AUTO_PAYMENT' ? '자동 결제' : '알람'}
                   </Badge>
                 </div>
+
+                {/* 상품 이미지 */}
+                {item.snapshotImageUrl && (
+                  <div className="mb-3 -mx-6 overflow-hidden">
+                    <img
+                      src={item.snapshotImageUrl}
+                      alt={item.snapshotTitle}
+                      className="w-full h-[250px] object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  </div>
+                )}
 
                 {/* 상품명 */}
                 <div className="mb-1 flex items-start gap-1.5">
@@ -439,7 +445,17 @@ export default function Conditions() {
 
               <div className="space-y-5 px-6 pb-2 mt-2 max-h-[60vh] overflow-y-auto">
                 {/* 상품 정보 (읽기 전용) */}
-                <div className="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 space-y-1">
+                <div className="rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 space-y-2">
+                  {editingCondition.snapshotImageUrl && (
+                    <div className="-mx-4 -mt-4 mb-2 overflow-hidden rounded-t-xl">
+                      <img
+                        src={editingCondition.snapshotImageUrl}
+                        alt={editingCondition.snapshotTitle}
+                        className="w-full h-[250px] object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                   <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{editingCondition.snapshotTitle}</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     플랫폼: {getPlatformName(editingCondition.platform)}

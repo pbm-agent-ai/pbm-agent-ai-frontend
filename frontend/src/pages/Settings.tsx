@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink, RefreshCw } from 'lucide-react';
 import { LogoIcon } from '../components/ui/LogoIcon';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -8,7 +8,10 @@ import { Button } from '../components/ui/button';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
-import { changeAuthPassword, fetchAuthMe } from '../api/auth';
+import { changeAuthPassword, fetchAuthMe, fetchPairingToken } from '../api/auth';
+import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, fetchProvisioningStatus, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep } from '../api/wallet';
+
+type ExtensionStatus = 'idle' | 'detecting' | 'not-installed' | 'pairing' | 'paired' | 'error';
 
 const getInitials = (name: string) => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -29,17 +32,82 @@ export default function Settings() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [telegramChatId, setTelegramChatId] = useState('123456789');
   const [email, setEmail] = useState('leon.kim@example.com');
-  const [monthlyLimit, setMonthlyLimit] = useState('5000000');
-  const [perTxLimit, setPerTxLimit] = useState('1000000');
+  const [monthlyLimit] = useState('5000000');
   const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['naver', 'coupang', '11st', 'gmarket']);
   // ── DND ──
   const [dndEnabled, setDndEnabled] = useState(false);
   const [dndStart, setDndStart] = useState('22:00');
   const [dndEnd, setDndEnd] = useState('07:00');
-  const [walletAddress, setWalletAddress] = useState('0x8a9d3B7c45E6F2A1b8C4D5e6f7A8b9C0d1E2F3a4');
-  const [isExtensionConnected, setIsExtensionConnected] = useState(false);
   const [isCheckingConnection, setIsCheckingConnection] = useState(false);
+  // ── 지갑 상태 (API 연동) ──
+  const [wallet, setWallet]                            = useState<WalletResponse | null>(null);
+  const [walletBalance, setWalletBalance]             = useState<WalletBalanceResponse | null>(null);
+  const [isWalletLoading, setIsWalletLoading]         = useState(false);
+  const [isCreatingWallet, setIsCreatingWallet]       = useState(false);
+  const [provisioningSteps, setProvisioningSteps]     = useState<ProvisioningStep[]>([]);
+  const [provisioningError, setProvisioningError]     = useState<string | null>(null);
+  const [walletLimitInput, setWalletLimitInput]       = useState('400000');
   const [activeTab, setActiveTab] = useState<'account' | 'notifications' | 'payment' | 'integration'>('account');
+  const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>('idle');
+  const [extensionVersion, setExtensionVersion] = useState('');
+  const [pairedDeviceId, setPairedDeviceId] = useState('');
+  const [extensionError, setExtensionError] = useState('');
+
+  // ── Provisioning Polling ──
+  const pollingRef = useRef<number | null>(null);
+
+  const clearProvisioningPolling = useCallback(() => {
+    if (pollingRef.current !== null) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const startProvisioningPolling = useCallback(() => {
+    const poll = async () => {
+      try {
+        const status = await fetchProvisioningStatus();
+        if (!status) return; // 아직 응답 없음 → 계속 폴링
+
+        setProvisioningSteps(status.steps);
+
+        if (status.status === 'completed') {
+          clearProvisioningPolling();
+          // 지갑/잔액 재조회
+          const [walletData, balanceData] = await Promise.all([
+            fetchMyWallet(),
+            fetchMyWalletBalance(),
+          ]);
+          if (walletData) {
+            setWallet(walletData);
+            setWalletLimitInput(String(walletData.walletLimit));
+          }
+          if (balanceData) {
+            setWalletBalance(balanceData);
+          }
+          setIsCreatingWallet(false);
+        } else if (status.status === 'failed') {
+          clearProvisioningPolling();
+          setProvisioningError(status.errorMessage || '지갑 생성에 실패했습니다.');
+          setIsCreatingWallet(false);
+        }
+        // 'pending' / 'in_progress' → 계속 폴링
+      } catch {
+        // 폴링 자체 에러 → 무시하고 다음 인터벌에서 재시도
+      }
+    };
+
+    // 즉시 1회 폴링 후 2초 간격 반복
+    void poll();
+    pollingRef.current = window.setInterval(poll, 2000);
+  }, [clearProvisioningPolling]);
+
+  // 언마운트 시 폴링 정리
+  useEffect(() => {
+    return () => {
+      clearProvisioningPolling();
+    };
+  }, [clearProvisioningPolling]);
 
   const platformOptions = [
     { id: 'naver-shopping', label: '네이버 쇼핑' },
@@ -59,12 +127,14 @@ export default function Settings() {
     { id: 'integration' as const, label: '연동', icon: Plug },
   ];
 
+  const isExtensionConnected = extensionStatus === 'paired';
+
   // ── Profile edit ──
   const [showProfileSheet, setShowProfileSheet] = useState(false);
   // 2026-05-18 수정 8: 계정탭은 빈 문자열로 시작하고 auth/me 응답이 오면 닉네임과 이메일을 채운다.
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
-  const [profileWalletAddress, setProfileWalletAddress] = useState('0x8a9d3B7c45E6F2A1b8C4D5e6f7A8b9C0d1E2F3a4');
+  const [profileWalletAddress, setProfileWalletAddress] = useState('');
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
   // ── Password change ──
@@ -131,6 +201,96 @@ export default function Settings() {
     };
   }, []);
 
+  const detectExtension = useCallback((): Promise<{ installed: boolean; version?: string }> => {
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const handler = (event: MessageEvent) => {
+        if (event.source !== window) return;
+        if (event.data?.type !== 'PBM_EXT_READY') return;
+        if (resolved) return;
+        resolved = true;
+        window.removeEventListener('message', handler);
+        resolve({ installed: true, version: event.data?.payload?.version });
+      };
+
+      window.addEventListener('message', handler);
+
+      [0, 500, 1000].forEach((delay) => {
+        window.setTimeout(() => {
+          if (!resolved) {
+            window.postMessage({ type: 'PBM_EXTENSION_PING' }, '*');
+          }
+        }, delay);
+      });
+
+      window.setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          window.removeEventListener('message', handler);
+          resolve({ installed: false });
+        }
+      }, 2000);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'integration') return;
+    if (extensionStatus !== 'idle') return;
+
+    const run = async () => {
+      setExtensionStatus('detecting');
+      const result = await detectExtension();
+      if (result.installed) {
+        setExtensionVersion(result.version ?? '');
+        const stored = localStorage.getItem('pbm-paired-device-id');
+        if (stored) {
+          setPairedDeviceId(stored);
+          setExtensionStatus('paired');
+        } else {
+          setExtensionStatus('idle');
+        }
+      } else {
+        setExtensionStatus('not-installed');
+      }
+    };
+
+    void run();
+  }, [activeTab, extensionStatus, detectExtension]);
+
+  // ── 지갑 정보 로드 (payment/통합 탭에서 사용) ──
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadWallet = async () => {
+      setIsWalletLoading(true);
+      try {
+        const [walletData, balanceData] = await Promise.all([
+          fetchMyWallet(),
+          fetchMyWalletBalance(),
+        ]);
+        if (!isMounted) return;
+        if (walletData) {
+          setWallet(walletData);
+          setWalletLimitInput(String(walletData.walletLimit));
+        }
+        if (balanceData) {
+          setWalletBalance(balanceData);
+        }
+      } catch {
+        // 무시
+      } finally {
+        if (isMounted) setIsWalletLoading(false);
+      }
+    };
+
+    void loadWallet();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleDeleteAccount = () => {
     // 비밀번호+사유 입력 완료 → 확인 다이얼로그로 이동
     setShowDeleteDialog(false);
@@ -153,14 +313,86 @@ export default function Settings() {
   };
 
   const formatPrice = (price: string) => `₩${parseInt(price).toLocaleString()}`;
+  const formatCurrencyAmount = (value?: number | string | null) => {
+    const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
+    if (!Number.isFinite(numericValue)) {
+      return '₩0';
+    }
+    return `₩${Math.floor(numericValue).toLocaleString()}`;
+  };
 
-  // 확장프로그램 연결하기 (Step 2)
-  const handleConnect = () => {
+  // 확장프로그램 연결하기 (Step 2) — pairing token 발급
+  const handleConnect = async () => {
     setIsCheckingConnection(true);
-    setTimeout(() => {
-      setIsExtensionConnected(true);
+    setExtensionStatus('pairing');
+    setExtensionError('');
+    try {
+      const detected = await detectExtension();
+      if (!detected.installed) {
+        setExtensionStatus('not-installed');
+        return;
+      }
+      setExtensionVersion(detected.version ?? '');
+
+      const pairingToken = await fetchPairingToken();
+
+      const result = await new Promise<{ ok: boolean; deviceId?: string; error?: string }>((resolve) => {
+        const timeout = window.setTimeout(
+          () => resolve({ ok: false, error: '확장 프로그램 응답 시간이 초과됐습니다.' }),
+          10000,
+        );
+
+        const handler = (event: MessageEvent<{ type?: string; payload?: { ok: boolean; deviceId?: string; error?: string } }>) => {
+          if (event.data?.type === 'PBM_EXTENSION_PAIR_RESULT') {
+            window.clearTimeout(timeout);
+            window.removeEventListener('message', handler);
+            resolve(event.data.payload ?? { ok: false, error: '응답 없음' });
+          }
+        };
+
+        window.addEventListener('message', handler);
+        window.postMessage({ type: 'PBM_EXTENSION_PAIR_REQUEST', pairingToken }, '*');
+      });
+
+      if (result.ok && result.deviceId) {
+        setPairedDeviceId(result.deviceId);
+        localStorage.setItem('pbm-paired-device-id', result.deviceId);
+        setExtensionStatus('paired');
+      } else {
+        setExtensionError(result.error ?? '페어링에 실패했습니다.');
+        setExtensionStatus('error');
+      }
+    } catch (err) {
+      console.error('[Settings] Pairing token 발급 실패', err);
+      setExtensionError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setExtensionStatus('error');
+    } finally {
       setIsCheckingConnection(false);
-    }, 1200);
+    }
+  };
+
+  const handleRedetect = useCallback(async () => {
+    setExtensionStatus('detecting');
+    const result = await detectExtension();
+    if (result.installed) {
+      setExtensionVersion(result.version ?? '');
+      const stored = localStorage.getItem('pbm-paired-device-id');
+      if (stored) {
+        setPairedDeviceId(stored);
+        setExtensionStatus('paired');
+      } else {
+        setExtensionStatus('idle');
+      }
+    } else {
+      setExtensionStatus('not-installed');
+    }
+  }, [detectExtension]);
+
+  const handleDisconnectExtension = () => {
+    localStorage.removeItem('pbm-paired-device-id');
+    setPairedDeviceId('');
+    setExtensionStatus('idle');
+    setExtensionError('');
   };
 
   const handleProfileSave = () => {
@@ -280,14 +512,14 @@ export default function Settings() {
                   <div className="py-5 text-center">
                     <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">지갑 상태</p>
                     <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5 flex items-center justify-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-[#5bf0c0]" />
-                      연결됨
+                      <span className={`w-2 h-2 rounded-full ${wallet ? 'bg-[#5bf0c0]' : 'bg-slate-300 dark:bg-slate-600'}`} />
+                      {isWalletLoading ? '확인 중' : wallet ? '연결됨' : '미연결'}
                     </p>
                   </div>
                   <div className="py-5 text-center">
                     <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">건당 한도</p>
                     <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
-                      {formatPrice(perTxLimit)}
+                      {isWalletLoading ? '불러오는 중...' : formatCurrencyAmount(wallet?.walletLimit)}
                     </p>
                   </div>
                   <div className="py-5 text-center">
@@ -645,66 +877,196 @@ export default function Settings() {
                     <CardTitle className="text-[#0F172A] dark:text-slate-50">PBM 지갑 설정</CardTitle>
                   </div>
                   <CardDescription className="text-[#64748b] dark:text-slate-400">
-                    지갑 주소를 입력하고 연결하세요
+                    지갑을 생성하고 관리합니다
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50 mb-1.5 block">지갑 주소</label>
-                      <Input
-                        type="text"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        placeholder="0x..."
-                        className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] font-mono text-sm focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl"
-                      />
+                  {isWalletLoading ? (
+                    /* ── 로딩 중 ── */
+                    <div className="flex flex-col items-center justify-center py-10">
+                      <div className="w-8 h-8 border-2 border-[#1E4D8C] border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">지갑 정보를 불러오는 중...</p>
                     </div>
-                    <Button
-                      onClick={() => {
-                        // TODO: call POST /api/v1/wallet/connect with { address: walletAddress }
-                      }}
-                      disabled={!walletAddress || walletAddress.length < 10}
-                      className="mt-7 shrink-0 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-10 px-5 text-sm font-bold shadow-[0_4px_10px_-4px_rgba(30,77,140,0.3)] transition-all duration-300 border-none"
-                    >
-                      연결
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-2">지갑 주소를 입력하고 연결 버튼을 누르면 서버에서 지갑을 등록합니다</p>
+                  ) : wallet ? (
+                    /* ── 지갑 있음: 주소 + 잔액 + 한도 ── */
+                    <>
+                      {/* 지갑 주소 (읽기 전용) */}
+                      <div className="mb-4">
+                        <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50 mb-1.5 block">지갑 주소</label>
+                        <Input
+                          type="text"
+                          value={wallet.walletAddress}
+                          readOnly
+                          className="bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 font-mono text-sm rounded-xl"
+                        />
+                        <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-1">생성된 PBM 지갑 주소입니다</p>
+                      </div>
 
-                  <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
+                      <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
 
-                  {/* ── 지갑 잔액 ── */}
-                  <div className="mb-4">
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">지갑 잔액</p>
-                    <div className="rounded-xl bg-gradient-to-br from-[#1E4D8C]/10 to-[#0F3460]/5 dark:from-[#1E4D8C]/20 dark:to-[#0F3460]/10 border border-[#1E4D8C]/20 dark:border-[#1E4D8C]/30 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-2xl font-extrabold text-[#1E4D8C] dark:text-[#7BAEDA]">₩12,500,000</p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">사용 가능한 잔액</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-[#1E4D8C]/10 dark:bg-[#1E4D8C]/20 flex items-center justify-center">
-                          <Wallet className="w-5 h-5 text-[#1E4D8C] dark:text-[#7BAEDA]" />
+                      {/* ── 지갑 잔액 ── */}
+                      <div className="mb-4">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">지갑 잔액</p>
+                        <div className="rounded-xl bg-gradient-to-br from-[#1E4D8C]/10 to-[#0F3460]/5 dark:from-[#1E4D8C]/20 dark:to-[#0F3460]/10 border border-[#1E4D8C]/20 dark:border-[#1E4D8C]/30 p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-2xl font-extrabold text-[#1E4D8C] dark:text-[#7BAEDA]">
+                                {formatCurrencyAmount(walletBalance?.pbmBalance)}
+                              </p>
+                              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">사용 가능한 잔액</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-[#1E4D8C]/10 dark:bg-[#1E4D8C]/20 flex items-center justify-center">
+                              <Wallet className="w-5 h-5 text-[#1E4D8C] dark:text-[#7BAEDA]" />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* ── 결제 한도 ── */}
-                  <div>
-                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">결제 한도</p>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 font-medium text-sm">₩</span>
-                      <Input
-                        type="text"
-                        value={perTxLimit}
-                        onChange={(e) => setPerTxLimit(e.target.value)}
-                        placeholder="5,000,000"
-                        className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">설정된 한도를 초과하는 결제는 제한됩니다</p>
-                  </div>
+                      {/* ── 결제 한도 (읽기 전용) ── */}
+                      <div>
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">결제 한도</p>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 font-medium text-sm">₩</span>
+                          <Input
+                            type="text"
+                            value={String(wallet.walletLimit)}
+                            readOnly
+                            className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-slate-900 dark:text-slate-50 rounded-xl h-9 text-sm"
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">지갑 생성 시 등록된 한도입니다</p>
+                      </div>
+                    </>
+                  ) : (
+                    /* ── 지갑 없음: 경고 + 생성 폼 ── */
+                    <>
+                      {/* 경고 배너 */}
+                      <div className="rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-4 mb-5">
+                        <div className="flex items-start gap-3">
+                          <span className="text-lg shrink-0 leading-none">⚠️</span>
+                          <div>
+                            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">PBM 지갑이 없습니다</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">자동 결제를 사용하려면 PBM 지갑을 생성해주세요.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ── 프로비저닝 진행 상황 ── */}
+                      {isCreatingWallet && provisioningSteps.length > 0 && (
+                        <div className="mb-5">
+                          <div className="relative">
+                            <div className="absolute left-[15px] top-8 bottom-8 w-0.5 bg-slate-200 dark:bg-slate-700" />
+                            <div className="space-y-6">
+                              {provisioningSteps.map((step, index) => (
+                                <div key={step.name} className="relative flex items-start gap-4">
+                                  <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 z-10 shadow-sm ${
+                                      step.status === 'completed'
+                                        ? 'bg-emerald-500 text-white'
+                                        : step.status === 'in_progress'
+                                          ? 'bg-[#1E4D8C] text-white'
+                                          : 'bg-rose-100 dark:bg-rose-900/30 text-rose-500 dark:text-rose-300'
+                                    }`}
+                                  >
+                                    {step.status === 'completed' ? (
+                                      <Check className="w-4 h-4" />
+                                    ) : step.status === 'in_progress' ? (
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      index + 1
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0 pt-1">
+                                    <p
+                                      className={`text-sm font-bold ${
+                                        step.status === 'completed'
+                                          ? 'text-slate-900 dark:text-slate-50'
+                                          : step.status === 'in_progress'
+                                            ? 'text-[#1E4D8C] dark:text-[#7BAEDA]'
+                                            : 'text-slate-400 dark:text-slate-500'
+                                      }`}
+                                    >
+                                      {step.label}
+                                    </p>
+                                    <p
+                                      className={`text-xs mt-0.5 ${
+                                        step.status === 'completed'
+                                          ? 'text-emerald-600 dark:text-emerald-400'
+                                          : step.status === 'in_progress'
+                                            ? 'text-[#1E4D8C] dark:text-[#7BAEDA]'
+                                            : 'text-slate-400 dark:text-slate-500'
+                                      }`}
+                                    >
+                                      {step.status === 'completed' && '완료'}
+                                      {step.status === 'in_progress' && '진행 중...'}
+                                      {step.status === 'pending' && '대기 중'}
+                                      {step.status === 'failed' && '실패'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ── 프로비저닝 실패 에러 ── */}
+                      {provisioningError && (
+                        <div className="mb-5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+                          {provisioningError}
+                        </div>
+                      )}
+
+                      {/* 한도 입력 + 생성 버튼 */}
+                      <div>
+                        <label className="text-sm font-semibold text-[#0F172A] dark:text-slate-50 mb-1.5 block">결제 한도 설정</label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 font-medium text-sm">₩</span>
+                            <Input
+                              type="text"
+                              value={walletLimitInput}
+                              onChange={(e) => setWalletLimitInput(e.target.value.replace(/[^0-9]/g, ''))}
+                              placeholder="한도를 입력하세요"
+                              className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] font-medium text-sm rounded-xl"
+                            />
+                          </div>
+                          <Button
+                            onClick={async () => {
+                              const limit = parseInt(walletLimitInput, 10);
+                              if (isNaN(limit) || limit <= 0) return;
+                              setIsCreatingWallet(true);
+                              setProvisioningSteps([]);
+                              setProvisioningError(null);
+                              try {
+                                const result = await createMyWallet(limit);
+                                // 즉시 지갑이 반환되면 완료 (동기 생성)
+                                if (result?.walletAddress) {
+                                  setWallet(result);
+                                  setWalletLimitInput(String(result.walletLimit));
+                                  const refreshedBalance = await fetchMyWalletBalance();
+                                  setWalletBalance(refreshedBalance);
+                                  setIsCreatingWallet(false);
+                                  return;
+                                }
+                                // 비동기 생성 → provisioning-status 폴링 시작
+                                startProvisioningPolling();
+                              } catch (err) {
+                                console.error('[Settings] 지갑 생성 실패', err);
+                                setProvisioningError(err instanceof Error ? err.message : '지갑 생성에 실패했습니다.');
+                                setIsCreatingWallet(false);
+                              }
+                            }}
+                            disabled={!walletLimitInput || parseInt(walletLimitInput, 10) <= 0 || isCreatingWallet}
+                            className="shrink-0 bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-10 px-5 text-sm font-bold shadow-[0_4px_10px_-4px_rgba(30,77,140,0.3)] transition-all duration-300 border-none"
+                          >
+                            {isCreatingWallet ? '생성 중...' : '지갑 생성하기'}
+                          </Button>
+                        </div>
+                        <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-2">설정된 한도로 PBM 스마트 지갑이 생성됩니다</p>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -729,7 +1091,15 @@ export default function Settings() {
                     <CardTitle className="text-slate-900 dark:text-slate-50">연결 상태</CardTitle>
                   </div>
                   <CardDescription className="text-slate-500 dark:text-slate-300">
-                    {isExtensionConnected ? '확장프로그램이 정상적으로 연결되어 있습니다' : '확장프로그램이 연결되지 않았습니다'}
+                    {isExtensionConnected
+                      ? '확장프로그램이 정상적으로 연결되어 있습니다'
+                      : extensionStatus === 'not-installed'
+                        ? '확장프로그램이 설치되지 않았습니다'
+                        : extensionStatus === 'pairing'
+                          ? '확장프로그램과 연결하는 중입니다'
+                          : extensionStatus === 'error'
+                            ? '확장프로그램 연결 중 오류가 발생했습니다'
+                            : '확장프로그램이 연결되지 않았습니다'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -743,9 +1113,11 @@ export default function Settings() {
                         </div>
                         <div>
                           <p className="text-base font-bold text-slate-900 dark:text-slate-50">정상 작동 중</p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">마지막 연결: 2분 전</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                            연결된 디바이스: {pairedDeviceId || '알 수 없음'}
+                          </p>
                         </div>
-                        <span className="ml-auto text-xs text-slate-400">Chrome 확장 v1.2.0</span>
+                        <span className="ml-auto text-xs text-slate-400">{extensionVersion ? `Chrome 확장 v${extensionVersion}` : '확장 버전 확인됨'}</span>
                       </div>
                     </div>
                   ) : (
@@ -755,18 +1127,36 @@ export default function Settings() {
                           <Plug className="w-6 h-6 text-slate-400" />
                         </div>
                         <div>
-                          <p className="text-base font-bold text-slate-500 dark:text-slate-400">연결되지 않음</p>
-                          <p className="text-sm text-slate-400 dark:text-slate-500 mt-0.5">아래 가이드에 따라 설치 후 연결해주세요</p>
+                          <p className="text-base font-bold text-slate-500 dark:text-slate-400">
+                            {extensionStatus === 'not-installed' ? '설치되지 않음' : '연결되지 않음'}
+                          </p>
+                          <p className="text-sm text-slate-400 dark:text-slate-500 mt-0.5">
+                            {extensionStatus === 'not-installed'
+                              ? '확장프로그램 설치 후 다시 감지해주세요'
+                              : extensionError || '아래 가이드에 따라 설치 후 연결해주세요'}
+                          </p>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {isExtensionConnected && (
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" onClick={() => setIsExtensionConnected(false)} className="rounded-xl h-10 px-5 text-sm font-bold border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20">
+                  <div className="flex justify-end gap-2 mt-4">
+                    {!isExtensionConnected && (
+                      <Button variant="outline" onClick={() => void handleRedetect()} className="rounded-xl h-10 px-5 text-sm font-bold border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                        <RefreshCw className="w-4 h-4 mr-1.5" />
+                        다시 감지
+                      </Button>
+                    )}
+                    {isExtensionConnected && (
+                      <Button variant="outline" onClick={handleDisconnectExtension} className="rounded-xl h-10 px-5 text-sm font-bold border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20">
                         연결 끊기
                       </Button>
+                    )}
+                  </div>
+
+                  {extensionError && extensionStatus === 'error' && (
+                    <div className="mt-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+                      {extensionError}
                     </div>
                   )}
                 </CardContent>
@@ -789,12 +1179,12 @@ export default function Settings() {
                     <div className="space-y-6">
                       {/* Step 1 */}
                       <div className="relative flex items-start gap-4">
-                        <div className="w-8 h-8 rounded-full bg-[#0F3460] text-white flex items-center justify-center text-sm font-bold shrink-0 z-10 shadow-sm">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 z-10 shadow-sm ${extensionStatus === 'not-installed' ? 'bg-slate-200 dark:bg-slate-700 text-slate-500' : 'bg-[#0F3460] text-white'}`}>
+                          {extensionStatus === 'not-installed' ? '1' : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                         </div>
                         <div className="flex-1 min-w-0 pt-1">
-                          <p className="text-sm font-bold text-slate-900 dark:text-slate-50">확장프로그램 설치 (완료)</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Chrome 웹스토어에서 확장프로그램을 설치하세요.</p>
+                          <p className={`text-sm font-bold ${extensionStatus === 'not-installed' ? 'text-slate-500 dark:text-slate-400' : 'text-slate-900 dark:text-slate-50'}`}>확장프로그램 설치 {extensionStatus === 'not-installed' ? '' : '(완료)'}</p>
+                          <p className={`text-xs mt-0.5 ${extensionStatus === 'not-installed' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-500 dark:text-slate-400'}`}>Chrome 웹스토어에서 확장프로그램을 설치하세요.</p>
                           <Button onClick={() => {}} className="mt-2 rounded-xl bg-[#1E4D8C] text-white hover:bg-[#0F3460] px-4 py-1.5 text-xs font-bold border-none h-8">
                             <ExternalLink className="w-3 h-3 mr-1.5" />
                             스토어에서 설치

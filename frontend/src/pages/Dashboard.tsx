@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { DayPicker } from 'react-day-picker';
+import { format, addDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import 'react-day-picker/style.css';
 import { Sparkles, ListChecks, Sparkles as SparklesIcon, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchAuthMe } from '../api/auth';
@@ -35,6 +39,9 @@ const showSuccessToast = async (title: string) => {
     timerProgressBar: true,
   });
 };
+
+// 설명: 비동기 검색 결과를 기다릴 때 짧게 대기하는 유틸입니다.
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 type ClarificationFieldConfig = {
   key: string;
@@ -103,6 +110,7 @@ export default function Dashboard() {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [selectionSubmitting, setSelectionSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFetchingCandidates, setIsFetchingCandidates] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [productUrlInputs, setProductUrlInputs] = useState<string[]>(['']);
   const [productUrlSubmitting, setProductUrlSubmitting] = useState(false);
@@ -113,6 +121,64 @@ export default function Dashboard() {
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
   // 설명: 누락 항목별 답변을 저장합니다.
   const [clarificationAnswers, setClarificationAnswers] = useState<ClarificationAnswers>({});
+
+  // 설명: AUTO_PURCHASE 마감일 (달력으로 선택)
+  const [scheduledEndAt, setScheduledEndAt] = useState<Date | undefined>(addDays(new Date(), 7));
+
+  // 설명: forceResubscribe 재요청 시 마지막으로 제출한 상품 ID를 재사용합니다.
+  const lastSubmittedProductIdsRef = useRef<string[]>([]);
+  // 설명: 재구독 확인 팝업이 중복으로 뜨지 않도록 제어합니다.
+  const resubscribePopupActiveRef = useRef(false);
+
+  const commandId = parsedPreview?.data.commandId ?? null;
+
+  // 설명: command-service 세션을 다시 조회해 최신 후보 상품/검증 결과를 화면 상태에 반영합니다.
+  const syncSessionState = (sessionResponse: DashboardCommandDetailResponse) => {
+    if (!sessionResponse.success) {
+      return null;
+    }
+
+    setCandidates(sessionResponse.data.candidates ?? []);
+    setValidationResult(sessionResponse.data.validationResult ?? null);
+    return sessionResponse.data;
+  };
+
+  // 설명: parse 직후에는 세션이 SEARCHING 상태이고 후보 상품이 아직 비어 있을 수 있어,
+  //       Kafka 기반 검색 결과가 세션에 반영될 때까지 짧게 폴링합니다.
+  const waitForCandidateSession = async (commandId: string) => {
+    const maxAttempts = 20;
+    const delayMs = 1500;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
+        const sessionData = syncSessionState(sessionResponse);
+
+        if (!sessionData) {
+          return null;
+        }
+
+        const hasCandidates = (sessionData.candidates?.length ?? 0) > 0;
+        const isCandidateReadyStatus =
+          sessionData.status === 'PRODUCT_SELECTION_REQUIRED' ||
+          sessionData.status === 'PRODUCT_SELECTED' ||
+          sessionData.status === 'RESUBSCRIBE_CONFIRMATION_REQUIRED';
+        const isTerminalStatus = sessionData.status === 'FAILED' || sessionData.status === 'CANCELLED';
+
+        if (hasCandidates || isCandidateReadyStatus || isTerminalStatus) {
+          return sessionData;
+        }
+      } catch {
+        // 폴링 중 일시 실패는 치명적이지 않으므로 다음 시도에서 재확인한다.
+      }
+
+      if (attempt < maxAttempts - 1) {
+        await sleep(delayMs);
+      }
+    }
+
+    return null;
+  };
   
   // 설명: 상단 안내 문구를 주기적으로 바꿉니다.
   useEffect(() => {
@@ -131,6 +197,115 @@ export default function Dashboard() {
     };
   }, []);
 
+  // 설명: 상품 선택 전송 후 command-service 상태를 폴링해 재구독 확인/완료 상태를 처리합니다.
+  useEffect(() => {
+    if (!commandId || !selectionSubmitting) {
+      return;
+    }
+
+    const TERMINAL_STATUSES = [
+      'MONITORING_STARTED',
+      'PRICE_CHECK_COMPLETED',
+      'AUTO_PURCHASE_COMPLETED',
+      'BROWSER_PURCHASE_IN_PROGRESS',
+      'FAILED',
+      'CANCELLED',
+    ];
+
+    const intervalId = window.setInterval(async () => {
+      if (resubscribePopupActiveRef.current) {
+        return;
+      }
+
+      try {
+        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
+        if (!sessionResponse.success) {
+          return;
+        }
+
+        const sessionData = syncSessionState(sessionResponse);
+        if (!sessionData) {
+          return;
+        }
+
+        if (sessionData.status === 'RESUBSCRIBE_CONFIRMATION_REQUIRED') {
+          window.clearInterval(intervalId);
+          resubscribePopupActiveRef.current = true;
+
+          const confirmResult = await Swal.fire({
+            icon: 'question',
+            title: '기존 모니터링 확인',
+            html: `
+              <p class="text-sm text-slate-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
+              <p class="text-sm text-slate-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '재시작/갱신',
+            cancelButtonText: '취소',
+            confirmButtonColor: '#1E4D8C',
+            cancelButtonColor: '#94A3B8',
+            reverseButtons: true,
+          });
+
+          if (confirmResult.isConfirmed) {
+            try {
+              const payload: DashboardCommandSelectionRequest = {
+                selectedProductIds: lastSubmittedProductIdsRef.current,
+                forceResubscribe: true,
+              };
+              const response: DashboardCommandSelectionResponse = await submitCommandSelection(commandId, payload);
+              if (!response.success) {
+                throw new Error(response.message);
+              }
+            } catch (error: unknown) {
+              setSelectionSubmitting(false);
+              await Swal.fire({
+                icon: 'error',
+                title: '갱신 실패',
+                text: error instanceof Error ? error.message : '오류가 발생했습니다.',
+                confirmButtonText: '확인',
+                confirmButtonColor: '#1E4D8C',
+              });
+            }
+          } else {
+            setSelectionSubmitting(false);
+            await Swal.fire({
+              icon: 'info',
+              title: '선택 유지',
+              text: '기존 모니터링을 유지합니다. 새로운 조건을 다시 시도해보세요.',
+              confirmButtonText: '확인',
+              confirmButtonColor: '#1E4D8C',
+            });
+          }
+
+          resubscribePopupActiveRef.current = false;
+          return;
+        }
+
+        if (TERMINAL_STATUSES.includes(sessionData.status)) {
+          window.clearInterval(intervalId);
+          setSelectionSubmitting(false);
+
+          if (
+            sessionData.status === 'MONITORING_STARTED' ||
+            sessionData.status === 'PRICE_CHECK_COMPLETED' ||
+            sessionData.status === 'AUTO_PURCHASE_COMPLETED' ||
+            sessionData.status === 'BROWSER_PURCHASE_IN_PROGRESS'
+          ) {
+            setSelectedProductIds([]);
+            await showSuccessToast(
+              sessionData.status === 'BROWSER_PURCHASE_IN_PROGRESS' ? '자동 구매 시작됨' : '상품 선택 완료',
+            );
+          }
+        }
+      } catch {
+        // 일시적 네트워크 오류는 다음 주기에 재시도한다.
+      }
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [commandId, selectionSubmitting]);
+
   // 설명: 새 분석 결과를 화면 초기 상태에 반영합니다.
   const applyParsedPreview = (preview: DashboardCommandParseSuccessResponse) => {
     setParsedPreview(preview);
@@ -141,6 +316,8 @@ export default function Dashboard() {
     setShowClarificationModal(false);
     setClarificationInput('');
     setClarificationAnswers({});
+    lastSubmittedProductIdsRef.current = [];
+    resubscribePopupActiveRef.current = false;
   };
 
   // 설명: 검색 결과를 초기화하고 새로 검색할 수 있게 합니다.
@@ -152,10 +329,17 @@ export default function Dashboard() {
     setShowUrlInput(false);
     setProductUrlInputs(['']);
     setNaturalLanguageInput('');
+    setScheduledEndAt(addDays(new Date(), 7));
+    lastSubmittedProductIdsRef.current = [];
+    resubscribePopupActiveRef.current = false;
   };
 
   // 설명: 자연어 명령을 분석하고 결과를 불러옵니다.
   const handleAnalyzeClick = async (): Promise<void> => {
+    if (isAnalyzing) {
+      return;
+    }
+
     const commandText = naturalLanguageInput.trim();
     if (!commandText) {
       await Swal.fire({ icon: 'warning', title: '자연어 입력 필요', text: '명령어를 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
@@ -174,21 +358,28 @@ export default function Dashboard() {
 
       applyParsedPreview(response);
 
+      // 설명: AUTO_PURCHASE는 누락 여부와 관계없이 항상 조건 보완 모달을 띄운다
+      if (response.data.intent === 'AUTO_PURCHASE') {
+        const pd = response.data.parsedCommand;
+        const initial: ClarificationAnswers = {};
+        if (pd.productName) initial.productName = pd.productName;
+        if (pd.platforms?.length) initial.platform = pd.platforms.join(',');
+        if (pd.maxPrice != null) initial.maxPrice = String(pd.maxPrice);
+        setClarificationAnswers(initial);
+        setShowClarificationModal(true);
+      }
+
       // 설명: 필요하면 상세 세션도 함께 조회합니다.
       const commandId = response.data.commandId;
-      const hasMissingFields = (response.data.missingFields?.length ?? 0) > 0;
+      const hasMissingFields = (response.data.missingRequiredFields?.length ?? 0) > 0;
 
       // 미싱필드가 없을 때만 명령 세션 조회해서 상품 목록 받아옴
       if (!hasMissingFields && commandId != null) {
+        setIsFetchingCandidates(true);
         try {
-          const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
-
-          if (sessionResponse.success) {
-            setCandidates(sessionResponse.data.candidates ?? []);
-            setValidationResult(sessionResponse.data.validationResult ?? null);
-          }
-        } catch {
-          // 상품 목록 조회 실패는 치명적이지 않음
+          await waitForCandidateSession(commandId);
+        } finally {
+          setIsFetchingCandidates(false);
         }
       }
 
@@ -212,13 +403,13 @@ export default function Dashboard() {
         message: 'Mock parse response',
         data: {
           intent: 'shopping.monitor',
-          parsedData: {
+          parsedCommand: {
             productName: '갤럭시 버즈 FE',
-            platform: '쿠팡',
+            platforms: ['COUPANG'],
             maxPrice: 100000,
             mode: 'ALERT_ONLY',
           },
-          missingFields: ['productName', 'maxPrice'],
+          missingRequiredFields: ['productName', 'maxPrice'],
           ambiguousFields: ['color'],
           needsClarification: true,
           confidence: 0.98,
@@ -256,97 +447,22 @@ export default function Dashboard() {
 
   // 설명: 선택한 상품을 서버로 전송하고, 중복 모니터링이 감지되면 재시작 확인을 받습니다.
   const handleSelectionSubmit = async (): Promise<void> => {
-    const commandId = parsedPreview?.data.commandId;
-
     if (!commandId || selectedProductIds.length === 0) {
       return;
     }
 
-    const doSelection = async (forceResubscribe: boolean): Promise<string> => {
-      const payload: DashboardCommandSelectionRequest = {
-        selectedProductIds: selectedProductIds,
-        forceResubscribe,
-      };
-
-      const response: DashboardCommandSelectionResponse = await submitCommandSelection(commandId, payload);
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      return response.message;
-    };
-
-    const loadSession = async () => {
-      try {
-        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
-
-        if (sessionResponse.success) {
-          setCandidates(sessionResponse.data.candidates ?? []);
-          setValidationResult(sessionResponse.data.validationResult ?? null);
-
-          return sessionResponse.data;
-        }
-      } catch {
-        // 세션 조회 실패는 치명적이지 않음
-      }
-
-      return null;
-    };
-
     try {
       setSelectionSubmitting(true);
+      lastSubmittedProductIdsRef.current = [...selectedProductIds];
 
-      // 1차 제출: forceResubscribe = false
-      await doSelection(false);
-
-      // 선택 완료 후 바로 세션 조회
-      const sessionData = await loadSession();
-
-      // 중복 모니터링 확인이 필요한 경우
-      if (
-        sessionData?.status === 'RESUBSCRIBE_CONFIRMATION_REQUIRED' &&
-        (sessionData.validationResult?.duplicateProducts?.length ?? 0) > 0
-      ) {
-        const confirmResult = await Swal.fire({
-          icon: 'question',
-          title: '기존 모니터링 확인',
-          html: `
-            <p class="text-sm text-slate-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
-            <p class="text-sm text-slate-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
-          `,
-          showCancelButton: true,
-          confirmButtonText: '재시작/갱신',
-          cancelButtonText: '취소',
-          confirmButtonColor: '#1E4D8C',
-          cancelButtonColor: '#94A3B8',
-          reverseButtons: true,
-        });
-
-        if (confirmResult.isConfirmed) {
-      // 2차 제출: forceResubscribe = true
-          await doSelection(true);
-
-          // 최종 세션 조회
-          await loadSession();
-
-          setSelectedProductIds([]);
-
-          await showSuccessToast('모니터링 갱신 완료');
-        } else {
-          await Swal.fire({
-            icon: 'info',
-            title: '선택 유지',
-            text: '기존 모니터링을 유지합니다. 새로운 조건을 다시 시도해보세요.',
-            confirmButtonText: '확인',
-            confirmButtonColor: '#1E4D8C',
-          });
-        }
-      } else {
-        // 일반 성공
-        setSelectedProductIds([]);
-
-        await showSuccessToast('상품 선택 완료');
+      const payload: DashboardCommandSelectionRequest = {
+        selectedProductIds,
+        forceResubscribe: false,
+        scheduledEndAt: scheduledEndAt ? scheduledEndAt.toISOString() : null,
+      };
+      const response: DashboardCommandSelectionResponse = await submitCommandSelection(commandId, payload);
+      if (!response.success) {
+        throw new Error(response.message);
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '상품 선택을 전송하지 못했습니다.';
@@ -357,8 +473,9 @@ export default function Dashboard() {
         confirmButtonText: '확인',
         confirmButtonColor: '#1E4D8C',
       });
-    } finally {
       setSelectionSubmitting(false);
+    } finally {
+      // 성공 시 후속 상태 변화는 폴링 useEffect가 처리한다.
     }
   };
 
@@ -453,15 +570,11 @@ export default function Dashboard() {
       // 설명: 보완 후 최신 후보 목록을 다시 조회합니다.
       const sessionId = parsedPreview.data.commandId;
       if (sessionId != null) {
+        setIsFetchingCandidates(true);
         try {
-          const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(sessionId);
-
-          if (sessionResponse.success) {
-            setCandidates(sessionResponse.data.candidates ?? []);
-            setValidationResult(sessionResponse.data.validationResult ?? null);
-          }
-        } catch {
-          // 세션 조회 실패는 치명적이지 않음
+          await waitForCandidateSession(sessionId);
+        } finally {
+          setIsFetchingCandidates(false);
         }
       }
 
@@ -481,7 +594,9 @@ export default function Dashboard() {
   };
 
   // 설명: 현재 분석에서 누락된 항목을 꺼냅니다.
-  const missingFields = parsedPreview?.data.missingFields ?? [];
+  const missingFields = parsedPreview?.data.missingRequiredFields ?? [];
+  // 설명: AUTO_PURCHASE 인텐트인지 확인합니다.
+  const isAutoPurchase = parsedPreview?.data.intent === 'AUTO_PURCHASE';
 
   // 설명: 대시보드의 전체 화면 레이아웃을 그립니다.
   return (
@@ -595,90 +710,184 @@ export default function Dashboard() {
                   </div>
 
                   <div className="p-6 space-y-6 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-                    {/* AI가 이해한 내용 (Inset 스타일) */}
-                    {(() => {
-                      const d = parsedPreview?.data.parsedData;
-                      if (!d) return null;
-                      const items: { label: string; value: string }[] = [];
-                      if (d.productName) items.push({ label: '상품', value: d.productName });
-                      if (d.brand) items.push({ label: '브랜드', value: d.brand });
-                      if (d.platform) items.push({ label: '플랫폼', value: d.platform });
-                      if (d.maxPrice != null) items.push({ label: '목표가', value: `₩${d.maxPrice.toLocaleString()}` });
-                      if (d.mode) items.push({ label: '모드', value: d.mode === 'AUTO_PAYMENT' ? '자동결제' : '알림' });
-                      if (items.length === 0) return null;
-                      return (
-                        <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 ring-1 ring-slate-100 dark:ring-slate-700">
-                          <div className="flex items-center gap-1.5 mb-3">
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
-                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">AI가 이해한 조건</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {items.map((item, i) => (
-                              <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E4D8C]/5 dark:bg-[#1E4D8C]/15 text-[#1E4D8C] dark:text-[#7BAEDA]">
-                                <span className="opacity-60">{item.label}:</span>
-                                {item.value}
-                              </span>
-                            ))}
+                    {isAutoPurchase ? (
+                      /* ── AUTO_PURCHASE: 항상 3개 필드만 표시 ── */
+                      <div className="space-y-4">
+                        {/* 안내 문구 */}
+                        <div className="bg-gradient-to-r from-[#1E4D8C]/5 to-[#0F3460]/5 dark:from-[#1E4D8C]/10 dark:to-[#0F3460]/10 rounded-xl p-3 text-sm text-[#1E4D8C] dark:text-[#7BAEDA] font-medium">
+                          자동 결제에 필요한 조건을 입력해주세요.
+                        </div>
+
+                        {/* 상품명 */}
+                        <div>
+                          <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">상품명</Label>
+                          <Input
+                            value={clarificationAnswers['productName'] ?? ''}
+                            onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, productName: e.target.value }))}
+                            placeholder="예: 에디파이어 스피커"
+                            className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/20 focus-visible:border-[#1E4D8C] rounded-xl h-10 text-sm transition-all"
+                          />
+                        </div>
+
+                        {/* 플랫폼 — 버튼 다중 선택 */}
+                        <div>
+                          <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">플랫폼</Label>
+                          <div className="flex gap-2 mt-1">
+                            {([{ value: 'NAVER', label: '네이버' }, { value: 'ALIEXPRESS', label: '알리익스프레스' }] as const).map(({ value, label }) => {
+                              const selected = (clarificationAnswers['platform'] ?? '').split(',').filter(Boolean).includes(value);
+                              return (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = new Set((clarificationAnswers['platform'] ?? '').split(',').filter(Boolean));
+                                    if (current.has(value)) { current.delete(value); } else { current.add(value); }
+                                    setClarificationAnswers((prev) => ({ ...prev, platform: Array.from(current).join(',') }));
+                                  }}
+                                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${
+                                    selected
+                                      ? 'border-[#1E4D8C] bg-[#1E4D8C] text-white dark:border-[#7BAEDA] dark:bg-[#7BAEDA] dark:text-slate-900 shadow-md'
+                                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-[#1E4D8C]/50 dark:hover:border-[#7BAEDA]/50 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA]'
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
-                      );
-                    })()}
 
-                    {/* 누락된 항목 (Left border accent) */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <AlertTriangle className="w-4 h-4 text-amber-500" />
-                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-50">
-                          추가 확인이 필요한 항목 <span className="text-amber-500 font-bold">{missingFields.length > 0 ? missingFields.length : ''}</span>
-                        </p>
+                        {/* 최대가 */}
+                        <div>
+                          <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">최대가</Label>
+                          <Input
+                            value={clarificationAnswers['maxPrice'] ?? ''}
+                            onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, maxPrice: e.target.value }))}
+                            placeholder="예: 10000"
+                            inputMode="numeric"
+                            className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/20 focus-visible:border-[#1E4D8C] rounded-xl h-10 text-sm transition-all"
+                          />
+                        </div>
+
+                        {/* 모니터링 마감일 — 달력 */}
+                        <div>
+                          <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">
+                            모니터링 마감일
+                          </Label>
+                          {/* 선택된 날짜 표시 배지 */}
+                          <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] text-xs font-semibold">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {scheduledEndAt
+                              ? format(scheduledEndAt, 'yyyy년 M월 d일', { locale: ko })
+                              : '날짜를 선택해주세요'}
+                          </div>
+                          {/* classNames 오버라이드 없이 기본 rdp 스타일 유지 — replace 방식이므로 root 클래스 교체 시 레이아웃 깨짐 */}
+                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex justify-center">
+                            <DayPicker
+                              mode="single"
+                              selected={scheduledEndAt}
+                              onSelect={(date) => { if (date) setScheduledEndAt(date); }}
+                              locale={ko}
+                              disabled={{ before: addDays(new Date(), 1) }}
+                              defaultMonth={scheduledEndAt ?? addDays(new Date(), 7)}
+                            />
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+                            기본값 7일 · 내일 이후만 선택 가능
+                          </p>
+                        </div>
                       </div>
-
-                      {missingFields.length > 0 ? (
-                        <div className="space-y-3">
-                          {missingFields.map((field) => {
-                            const config = getClarificationFieldConfig(field);
-                            const isNumericField = field === 'maxPrice' || field === 'minPrice';
-
-                            return (
-                              <div key={field} className="relative">
-                                <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400 rounded-full" />
-                                <div className="pl-4">
-                                  <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">{config.label}</Label>
-                                  <Input
-                                    value={clarificationAnswers[field] ?? ''}
-                                    onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
-                                    placeholder={config.placeholder}
-                                    inputMode={isNumericField ? 'numeric' : 'text'}
-                                    className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 rounded-xl h-10 text-sm transition-all"
-                                  />
-                                </div>
+                    ) : (
+                      /* ── 기존: 일반 조건 보완 UI ── */
+                      <>
+                        {/* AI가 이해한 내용 (Inset 스타일) */}
+                        {(() => {
+                          const d = parsedPreview?.data.parsedCommand;
+                          if (!d) return null;
+                          const items: { label: string; value: string }[] = [];
+                          if (d.productName) items.push({ label: '상품', value: d.productName });
+                          if (d.brand) items.push({ label: '브랜드', value: d.brand });
+                          if (d.platforms?.[0]) items.push({ label: '플랫폼', value: d.platforms[0] });
+                          if (d.maxPrice != null) items.push({ label: '목표가', value: `₩${d.maxPrice.toLocaleString()}` });
+                          if (d.mode) items.push({ label: '모드', value: d.mode === 'AUTO_PAYMENT' ? '자동결제' : '알림' });
+                          if (items.length === 0) return null;
+                          return (
+                            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 ring-1 ring-slate-100 dark:ring-slate-700">
+                              <div className="flex items-center gap-1.5 mb-3">
+                                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">AI가 이해한 조건</p>
                               </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 shrink-0" />
-                          모든 항목이 분석되었어요. 추가 설명이 필요하면 아래를 활용하세요.
-                        </div>
-                      )}
-                    </div>
+                              <div className="flex flex-wrap gap-2">
+                                {items.map((item, i) => (
+                                  <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#1E4D8C]/5 dark:bg-[#1E4D8C]/15 text-[#1E4D8C] dark:text-[#7BAEDA]">
+                                    <span className="opacity-60">{item.label}:</span>
+                                    {item.value}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
 
-                    {/* 추가 설명 (선택) */}
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <MessageSquare className="w-4 h-4 text-slate-400" />
-                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                          추가 설명 <span className="font-normal text-slate-400">(선택)</span>
-                        </p>
-                      </div>
-                      <textarea
-                        value={clarificationInput}
-                        onChange={(e) => setClarificationInput(e.target.value)}
-                        placeholder="AI에게 덧붙일 말이 있다면 적어주세요."
-                        className="min-h-[80px] w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none resize-none focus:ring-2 focus:ring-[#1E4D8C]/30 transition-all"
-                      />
-                    </div>
+                        {/* 누락된 항목 (Left border accent) */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-3">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            <p className="text-xs font-semibold text-slate-900 dark:text-slate-50">
+                              추가 확인이 필요한 항목 <span className="text-amber-500 font-bold">{missingFields.length > 0 ? missingFields.length : ''}</span>
+                            </p>
+                          </div>
+
+                          {missingFields.length > 0 ? (
+                            <div className="space-y-3">
+                              {missingFields.map((field) => {
+                                const config = getClarificationFieldConfig(field);
+                                const isNumericField = field === 'maxPrice' || field === 'minPrice';
+
+                                return (
+                                  <div key={field} className="relative">
+                                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400 rounded-full" />
+                                    <div className="pl-4">
+                                      <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">{config.label}</Label>
+                                      <Input
+                                        value={clarificationAnswers[field] ?? ''}
+                                        onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
+                                        placeholder={config.placeholder}
+                                        inputMode={isNumericField ? 'numeric' : 'text'}
+                                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 rounded-xl h-10 text-sm transition-all"
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-950/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 shrink-0" />
+                              모든 항목이 분석되었어요. 추가 설명이 필요하면 아래를 활용하세요.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 추가 설명 (선택) */}
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <MessageSquare className="w-4 h-4 text-slate-400" />
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                              추가 설명 <span className="font-normal text-slate-400">(선택)</span>
+                            </p>
+                          </div>
+                          <textarea
+                            value={clarificationInput}
+                            onChange={(e) => setClarificationInput(e.target.value)}
+                            placeholder="AI에게 덧붙일 말이 있다면 적어주세요."
+                            className="min-h-[80px] w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none resize-none focus:ring-2 focus:ring-[#1E4D8C]/30 transition-all"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* 푸터 */}
@@ -692,7 +901,7 @@ export default function Dashboard() {
                       취소
                     </Button>
                     <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-5 py-2 bg-[#1E4D8C] hover:bg-[#0F3460] text-white shadow-md shadow-[#1E4D8C]/20 border-none font-bold text-sm transition-all">
-                      {clarificationSubmitting ? '전송 중...' : '조건 적용하기'}
+                      {clarificationSubmitting ? '전송 중...' : isAutoPurchase ? '생성' : '조건 적용하기'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -706,8 +915,17 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {/* 상품 후보 로딩 중 */}
+              {isFetchingCandidates && (
+                <div className="mx-2 mt-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 flex flex-col items-center gap-3 shadow-sm">
+                  <LogoIcon className="w-7 h-7 animate-spin" animated={false} />
+                  <p className="text-sm text-slate-500 dark:text-slate-300 font-medium">상품 검색 중입니다...</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">후보 상품을 불러오고 있어요</p>
+                </div>
+              )}
+
               {/* 설명: 후보 상품 목록과 선택 버튼을 보여줍니다. */}
-              {candidates.length > 0 ? (
+              {!isFetchingCandidates && candidates.length > 0 ? (
                 <div className="mx-2 mt-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">

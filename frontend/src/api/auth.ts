@@ -1,4 +1,5 @@
 import { createApiClient } from './apiClientFactory';
+import { useAuthStore } from '../store/authStore';
 import type { User } from '@/types';
 
 export const authApiClient = createApiClient({
@@ -66,6 +67,9 @@ export async function fetchAuthMe(): Promise<User | null> {
       return null;
     }
 
+    // 인증 성공 시 userId를 store에 저장해 다른 API에서 X-User-Id로 활용한다.
+    useAuthStore.getState().setUserId(data.data.id);
+
     return {
       id: data.data.id,
       email: data.data.email,
@@ -97,4 +101,15 @@ export async function logoutAuth(): Promise<string> {
   }
 
   return data.message;
+}
+
+/** 확장 프로그램 연결용 pairing token을 발급한다. (단기 JWT, role=PAIRING) */
+export async function fetchPairingToken(): Promise<string> {
+  const { data } = await authApiClient.post<{
+    success: boolean;
+    data: { pairingToken: string };
+    message: string;
+  }>('/api/v1/auth/pairing-token');
+  if (!data.success) throw new Error(data.message);
+  return data.data.pairingToken;
 }

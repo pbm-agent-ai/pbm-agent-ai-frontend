@@ -44,11 +44,18 @@ export const createApiClient = ({
       // 2026-04-30 수정: 요청마다 현재 메모리에 저장된 accessToken과 tokenType을 읽어서 Authorization 헤더를 서버 응답 스펙대로 붙인다.
       const token = useAuthStore.getState().accessToken;
       const tokenType = useAuthStore.getState().tokenType ?? 'Bearer';
+      const userId = useAuthStore.getState().userId;
 
       config.headers.set('Content-Type', 'application/json');
 
       if (token) {
         config.headers.set('Authorization', `${tokenType} ${token}`);
+      }
+
+      // Gateway가 JWT를 검증해 X-User-Id를 주입하지만,
+      // 로컬 개발 시 Vite proxy로 서비스에 직접 연결할 때는 프론트에서 직접 전달한다.
+      if (userId != null) {
+        config.headers.set('X-User-Id', String(userId));
       }
 
       return config;

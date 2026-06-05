@@ -1,5 +1,6 @@
-import apiClient from './axios';
-import commandApiClient from './CommandAxios';
+import shoppingApiClient from './shoppingAxios';
+import { createApiClient } from './apiClientFactory';
+import { fetchMyPayments } from './payments';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardClarificationSubmissionResponse,
@@ -12,62 +13,48 @@ import type {
   DashboardStatsSummary,
 } from '../types/dashboard';
 
-// [추가] 대시보드 관련 API 호출을 한 곳에 모아둔 서비스 레이어다.
+// monitoring/payment 서비스에서 집계한 대시보드 통계를 만들기 위한 클라이언트
+const monitoringApiClient = createApiClient({ baseURL: import.meta.env.VITE_API_BASE_URL ?? '' });
 
+interface MonitoringSubItem {
+  id: number;
+  status: string;
+  snapshotPrice?: number | null;
+  targetPrice?: number | null;
+}
+interface MonitoringListApiResponse {
+  success: boolean;
+  data: MonitoringSubItem[];
+}
+
+/**
+ * 대시보드 핵심 지표 요약을 반환한다.
+ * 단일 집계 API가 없으므로 monitoring + payment API를 병렬 호출해 프론트에서 합산한다.
+ */
 export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummary> {
-  const { data } = await apiClient.get<
-    | DashboardStatsSummary
-    | {
-        data?: DashboardStatsSummary | {
-          monitoringCount?: number;
-          completedPaymentCount?: number;
-          waitingCount?: number;
-          totalSavingsAmount?: number;
-        };
-        monitoringCount?: number;
-        completedPaymentCount?: number;
-        waitingCount?: number;
-        totalSavingsAmount?: number;
-      }
-  >('/api/stats/summary');
+  const [monitoringRes, payments] = await Promise.allSettled([
+    monitoringApiClient.get<MonitoringListApiResponse>('/api/v1/monitoring/subscriptions'),
+    fetchMyPayments(),
+  ]);
 
-  const normalize = (value: unknown): DashboardStatsSummary | null => {
-    if (!value || typeof value !== 'object') {
-      return null;
-    }
+  const subs: MonitoringSubItem[] =
+    monitoringRes.status === 'fulfilled' ? (monitoringRes.value.data?.data ?? []) : [];
 
-    const summary = value as {
-      monitoringCount?: number;
-      completedPaymentCount?: number;
-      waitingCount?: number;
-      totalSavingsAmount?: number;
-    };
+  const paymentList =
+    payments.status === 'fulfilled' ? payments.value : [];
 
-    return {
-      monitoringCount: Number(summary.monitoringCount ?? 0),
-      completedPaymentCount: Number(summary.completedPaymentCount ?? 0),
-      waitingCount: Number(summary.waitingCount ?? 0),
-      totalSavingsAmount: Number(summary.totalSavingsAmount ?? 0),
-    };
-  };
-
-  if (typeof data === 'object' && data !== null && 'data' in data) {
-    const nested = normalize((data as { data?: unknown }).data);
-    if (nested) {
-      return nested;
-    }
-  }
-
-  const direct = normalize(data);
-  if (direct) {
-    return direct;
-  }
+  const activeCount = subs.filter((s) => s.status === 'ACTIVE').length;
+  const triggeredCount = subs.filter((s) => s.status === 'TRIGGERED').length;
+  const completedPaymentCount = paymentList.filter((p) => p.status === 'SUCCESS').length;
+  const totalSavingsAmount = paymentList
+    .filter((p) => p.status === 'SUCCESS')
+    .reduce((sum, p) => sum + (p.amount ?? 0), 0);
 
   return {
-    monitoringCount: 0,
-    completedPaymentCount: 0,
-    waitingCount: 0,
-    totalSavingsAmount: 0,
+    monitoringCount: activeCount,
+    completedPaymentCount,
+    waitingCount: triggeredCount,
+    totalSavingsAmount,
   };
 }
 
@@ -75,7 +62,7 @@ export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummar
 export async function parseDashboardCommand(
   payload: DashboardCommandParseRequest,
 ): Promise<DashboardCommandParseResponse> {
-  const { data } = await commandApiClient.post<DashboardCommandParseResponse>('/api/v1/commands/parse', payload);
+  const { data } = await shoppingApiClient.post<DashboardCommandParseResponse>('/api/v1/commands/parse', payload);
   return data;
 }
 
@@ -83,7 +70,7 @@ export async function submitDashboardClarification(
   commandId: string,
   payload: DashboardClarificationSubmissionRequest,
 ): Promise<DashboardClarificationSubmissionResponse> {
-  const { data } = await commandApiClient.post<DashboardClarificationSubmissionResponse>(
+  const { data } = await shoppingApiClient.post<DashboardClarificationSubmissionResponse>(
     `/api/v1/commands/${commandId}/clarifications`,
     payload,
   );
@@ -91,11 +78,15 @@ export async function submitDashboardClarification(
 }
 
 // 2026-05-20 수정: 명령 세션 조회 (상품 후보 목록)
+// size=30: 한 번에 최대 30개 후보를 가져온다 (프론트에서 10개씩 페이지네이션)
 export async function fetchCommandDetail(
   commandId: string,
+  page = 0,
+  size = 30,
 ): Promise<DashboardCommandDetailResponse> {
-  const { data } = await commandApiClient.get<DashboardCommandDetailResponse>(
+  const { data } = await shoppingApiClient.get<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}`,
+    { params: { page, size } },
   );
   return data;
 }
@@ -105,7 +96,7 @@ export async function submitCommandProductLinks(
   commandId: string,
   payload: DashboardCommandProductLinksRequest,
 ): Promise<DashboardCommandDetailResponse> {
-  const { data } = await commandApiClient.post<DashboardCommandDetailResponse>(
+  const { data } = await shoppingApiClient.post<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}/product-links`,
     payload,
   );
@@ -117,7 +108,7 @@ export async function submitCommandSelection(
   commandId: string,
   payload: DashboardCommandSelectionRequest,
 ): Promise<DashboardCommandSelectionResponse> {
-  const { data } = await commandApiClient.post<DashboardCommandSelectionResponse>(
+  const { data } = await shoppingApiClient.post<DashboardCommandSelectionResponse>(
     `/api/v1/commands/${commandId}/selection`,
     payload,
   );

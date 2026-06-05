@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { ConditionCardItem } from './condition.ts';
 
 
@@ -16,6 +17,12 @@ export interface DashboardMonitoringItem {
   targetPrice: string;
 }
 //
+export interface DashboardStat {
+  label: string;
+  value: string;
+  color: string;
+  icon: ComponentType<{ className?: string }>;
+}
 
 // [추가] 핵심 지표 카드에 필요한 요약 수치다.
 export interface DashboardStatsSummary {
@@ -45,7 +52,7 @@ export interface DashboardParsedCommand {
   model?: string;
   color?: string;
   size?: string;
-  platform?: string;
+  platforms?: string[];
   maxPrice?: number;
   minPrice?: number;
   currency?: string;
@@ -57,8 +64,8 @@ export interface DashboardParsedCommand {
 export interface DashboardCommandParseSuccessData {
   // 2026-05-19 수정: parse 응답 메타를 화면 상태로 그대로 쓴다.
   intent: string;
-  parsedData: DashboardParsedCommand;
-  missingFields: string[];
+  parsedCommand: DashboardParsedCommand;
+  missingRequiredFields: string[];
   ambiguousFields: string[];
   needsClarification: boolean;
   confidence: number;
@@ -196,6 +203,8 @@ export type DashboardCommandDetailResponse = DashboardCommandDetailSuccessRespon
 export interface DashboardCommandSelectionRequest {
   selectedProductIds: string[];
   forceResubscribe?: boolean;
+  /** 모니터링 마감일 (ISO 8601, null이면 백엔드 기본 7일 적용) */
+  scheduledEndAt?: string | null;
 }
 
 export interface DashboardCommandSelectionSuccessResponse {

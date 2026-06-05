@@ -36,8 +36,8 @@ const Mouth = ({ mouth }: { mouth?: 'auto' | 'smile' | 'open' }) => (
 );
 const Tear = ({ cx, begin }: { cx: number; begin?: string }) => (
   <circle cx={cx} cy="17" r="1.3" fill="#60A5FA">
-    <animate attributeName="cy" values="17;17;30" dur="1.5s" repeatCount="indefinite" keyTimes="0;0.3;1" />
-    <animate attributeName="opacity" values="0;0;0.8;0" dur="1.5s" repeatCount="indefinite" keyTimes="0;0.3;0.7;1" />
+    <animate attributeName="cy" values="17;17;30" dur="1.5s" repeatCount="indefinite" keyTimes="0;0.3;1" begin={begin} />
+    <animate attributeName="opacity" values="0;0;0.8;0" dur="1.5s" repeatCount="indefinite" keyTimes="0;0.3;0.7;1" begin={begin} />
   </circle>
 );
 const StaticEye = ({ cx }: { cx: number }) => (

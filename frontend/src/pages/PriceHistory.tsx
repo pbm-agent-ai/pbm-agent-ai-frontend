@@ -175,7 +175,7 @@ export default function PriceHistory() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetchConditionList({ size: 100 });
+        const res = await fetchConditionList();
         setConditions(res.data.conditions);
         if (res.data.conditions.length > 0) {
           setSelectedConditionId(res.data.conditions[0].conditionId);

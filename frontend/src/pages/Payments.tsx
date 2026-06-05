@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronDown, CreditCard, ExternalLink, Search } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { CreditCard, ExternalLink, Search, Loader2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import {
   Select,
@@ -8,234 +8,190 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../components/ui/select';
+import { fetchMyPayments, fetchPaymentDetail, type PaymentSummary, type PaymentDetail } from '../api/payments';
+import { fetchAuthMe } from '../api/auth';
+import { fetchMyWallet, fetchMyWalletBalance } from '../api/wallet';
 
-// ── 타입 ────────────────────────────────────────────────────────
-
-type OrderItem = {
-  id: number;
-  emoji: string;
-  product: string;
-  platform: string;
-  option: string;
-  amount: number;
-  savings: number;
-  txHash: string;
+// ── 상태 표시 스타일 맵 ─────────────────────────────────────────
+const statusStyleMap: Record<string, { label: string; dot: string; bg: string }> = {
+  SUCCESS:  { label: '결제완료', dot: 'bg-[#1E4D8C]',  bg: 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10' },
+  PENDING:  { label: '처리중',   dot: 'bg-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+  FAILED:   { label: '결제실패', dot: 'bg-red-500',   bg: 'bg-red-50 dark:bg-red-500/10' },
 };
-
-type OrderGroup = {
-  date: string;
-  orderNumber: string;
-  status: '결제완료' | '절약완료';
-  items: OrderItem[];
-};
-
-// ── 데이터 ──────────────────────────────────────────────────────
-
-const orderGroups: OrderGroup[] = [
-  {
-    date: '2026.03.28',
-    orderNumber: 'ORD-20260328-001',
-    status: '절약완료',
-    items: [
-      {
-        id: 1,
-        emoji: '✈️',
-        product: '인천-도쿄 왕복 항공권',
-        platform: 'naver-flights',
-        option: '직항 · 왕복 · 일반석',
-        amount: 248000,
-        savings: 52000,
-        txHash: '0x7f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91385',
-      },
-    ],
-  },
-  {
-    date: '2026.03.25',
-    orderNumber: 'ORD-20260325-001',
-    status: '결제완료',
-    items: [
-      {
-        id: 2,
-        emoji: '🎧',
-        product: 'Sony WH-1000XM5 헤드폰',
-        platform: 'coupang',
-        option: '블랙 · 무선',
-        amount: 329000,
-        savings: 41000,
-        txHash: '0x3c9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91386',
-      },
-    ],
-  },
-  {
-    date: '2026.03.22',
-    orderNumber: 'ORD-20260322-001',
-    status: '결제완료',
-    items: [
-      {
-        id: 3,
-        emoji: '👟',
-        product: '나이키 에어맥스 270',
-        platform: 'gmarket',
-        option: '270mm · 화이트',
-        amount: 149000,
-        savings: 31000,
-        txHash: '0x8d9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91387',
-      },
-    ],
-  },
-  {
-    date: '2026.03.18',
-    orderNumber: 'ORD-20260318-001',
-    status: '결제완료',
-    items: [
-      {
-        id: 4,
-        emoji: '💻',
-        product: 'Apple Magic Keyboard',
-        platform: '11st',
-        option: '한국어 · 화이트',
-        amount: 168000,
-        savings: 22000,
-        txHash: '0x2a9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91388',
-      },
-    ],
-  },
-  {
-    date: '2026.03.15',
-    orderNumber: 'ORD-20260315-001',
-    status: '결제완료',
-    items: [
-      {
-        id: 5,
-        emoji: '📱',
-        product: 'Samsung Galaxy Buds2 Pro',
-        platform: 'coupang',
-        option: '그라파이트 · 무선이어폰',
-        amount: 189000,
-        savings: 41000,
-        txHash: '0x5e9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91389',
-      },
-      {
-        id: 6,
-        emoji: '🎮',
-        product: 'Nintendo Switch OLED',
-        platform: 'gmarket',
-        option: '화이트 · 본체+조이콘',
-        amount: 398000,
-        savings: 52000,
-        txHash: '0x1b9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91390',
-      },
-    ],
-  },
-  {
-    date: '2026.03.08',
-    orderNumber: 'ORD-20260308-001',
-    status: '절약완료',
-    items: [
-      {
-        id: 7,
-        emoji: '⌚',
-        product: 'Apple Watch Series 9',
-        platform: 'coupang',
-        option: '미드나이트 · 45mm GPS',
-        amount: 489000,
-        savings: 61000,
-        txHash: '0x9c9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91391',
-      },
-    ],
-  },
-  {
-    date: '2026.03.05',
-    orderNumber: 'ORD-20260305-001',
-    status: '절약완료',
-    items: [
-      {
-        id: 8,
-        emoji: '📷',
-        product: 'Sony Alpha 7C II',
-        platform: '11st',
-        option: '실버 · 바디+28-60mm 렌즈킷',
-        amount: 2190000,
-        savings: 310000,
-        txHash: '0x4f9fade1c0d57a7af66ab4ead79fade1c0d57a7af66ab4ead7c2c2eb7b11a91392',
-      },
-    ],
-  },
-];
-
-const totalPayment = orderGroups.reduce((sum, g) => sum + g.items.reduce((s, i) => s + i.amount, 0), 0);
-const totalSavings = orderGroups.reduce((sum, g) => sum + g.items.reduce((s, i) => s + i.savings, 0), 0);
 
 // ── 유틸 ────────────────────────────────────────────────────────
 
 const formatPrice = (price: number) => `₩${price.toLocaleString()}`;
+const formatCurrencyAmount = (value?: number | null) => `₩${Math.floor(value ?? 0).toLocaleString()}`;
+
+/** ISO 날짜 문자열 → "YYYY.MM.DD" */
+const formatDate = (iso: string): string => {
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** paymentId → 짧은 주문번호 형태로 변환 */
+const toOrderNumber = (paymentId: string): string =>
+  paymentId.length > 20 ? `ORD-${paymentId.slice(0, 12).toUpperCase()}` : `ORD-${paymentId.toUpperCase()}`;
 
 const getPlatformName = (platform: string): string => {
   const map: Record<string, string> = {
+    NAVER: '네이버쇼핑',
     naver: '네이버쇼핑',
+    COUPANG: '쿠팡',
     coupang: '쿠팡',
     'naver-flights': '네이버항공',
     naver_flight: '네이버항공',
+    ALIEXPRESS: '알리익스프레스',
+    aliexpress: '알리익스프레스',
   };
   return map[platform] || platform;
 };
 
 const getPlatformColor = (platform: string): string => {
-  const map: Record<string, string> = {
-    naver: '#03c75a',
-    coupang: '#ff6b6b',
-    'naver-flights': '#03c75a',
-    naver_flight: '#03c75a',
-  };
-  return map[platform] || '#1E4D8C';
+  const key = platform.toLowerCase();
+  if (key.includes('naver')) return '#03c75a';
+  if (key.includes('coupang')) return '#ff6b6b';
+  if (key.includes('ali')) return '#ff6a00';
+  return '#1E4D8C';
 };
 
-const statusStyleMap: Record<OrderGroup['status'], { label: string; dot: string; bg: string }> = {
-  결제완료: { label: '결제완료', dot: 'bg-[#1E4D8C]', bg: 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10' },
-
-  절약완료: { label: '절약완료', dot: 'bg-[#D97706]', bg: 'bg-[#FEF3C7] dark:bg-amber-500/10' },
+/** 금액 필터 기준 */
+const matchesAmount = (amount: number, filter: string): boolean => {
+  switch (filter) {
+    case '~5만원':        return amount <= 50_000;
+    case '5만~10만원':   return amount > 50_000 && amount <= 100_000;
+    case '10만~30만원':  return amount > 100_000 && amount <= 300_000;
+    case '30만원~':       return amount > 300_000;
+    default:              return true; // 전체 금액
+  }
 };
 
-const dateOptions = ['전체 기간', '7일', '30일', '90일'];
-const platformOptions = ['전체 플랫폼', '네이버항공', '쿠팡', 'G마켓', '11번가'];
-const amountOptions = ['전체 금액', '~5만원', '5만~10만원', '10만~30만원', '30만원~'];
+/** 기간 필터 기준 */
+const matchesDate = (createdAt: string, filter: string): boolean => {
+  if (filter === '전체 기간') return true;
+  const days = filter === '7일' ? 7 : filter === '30일' ? 30 : 90;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return new Date(createdAt) >= cutoff;
+};
+
+const dateOptions     = ['전체 기간', '7일', '30일', '90일'];
+const amountOptions   = ['전체 금액', '~5만원', '5만~10만원', '10만~30만원', '30만원~'];
 
 // ── 컴포넌트 ────────────────────────────────────────────────────
 
 export default function Payments() {
-  const [selectedDate, setSelectedDate] = useState('전체 기간');
-  const [selectedPlatform, setSelectedPlatform] = useState('전체 플랫폼');
+  // ── 데이터 상태 ──
+  const [payments, setPayments]             = useState<PaymentSummary[]>([]);
+  const [loading, setLoading]               = useState(true);
+  const [walletLimit, setWalletLimit]       = useState<number | null>(null);
+  const [walletBalance, setWalletBalance]   = useState<number | null>(null);
+  // 클릭 시 상세(txHash) 캐시
+  const [details, setDetails]               = useState<Record<string, PaymentDetail>>({});
+  const [loadingTx, setLoadingTx]           = useState<Record<string, boolean>>({});
+
+  // ── 필터 상태 ──
+  const [searchQuery, setSearchQuery]       = useState('');
+  const [selectedDate, setSelectedDate]     = useState('전체 기간');
   const [selectedAmount, setSelectedAmount] = useState('전체 금액');
 
+  // ── 데이터 로드 ──
+  useEffect(() => {
+    const load = async () => {
+      // fetchAuthMe를 호출해 userId를 store에 보장한다.
+      await fetchAuthMe();
+      const [data, wallet, balance] = await Promise.all([
+        fetchMyPayments(),
+        fetchMyWallet(),
+        fetchMyWalletBalance(),
+      ]);
+      setPayments(data);
+      setWalletLimit(wallet?.walletLimit ?? null);
+      setWalletBalance(balance?.pbmBalance ?? null);
+      setLoading(false);
+    };
+    void load();
+  }, []);
+
+  /** TX 상세 버튼 클릭 → 상세 조회 후 Sepolia Etherscan 새 탭 열기 */
+  const handleTxDetail = useCallback(async (paymentId: string) => {
+    // 캐시 히트
+    if (details[paymentId]?.transactionHash) {
+      window.open(`https://sepolia.etherscan.io/tx/${details[paymentId].transactionHash}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setLoadingTx((prev) => ({ ...prev, [paymentId]: true }));
+    const detail = await fetchPaymentDetail(paymentId);
+    setLoadingTx((prev) => ({ ...prev, [paymentId]: false }));
+    if (detail) {
+      setDetails((prev) => ({ ...prev, [paymentId]: detail }));
+      if (detail.transactionHash) {
+        window.open(`https://sepolia.etherscan.io/tx/${detail.transactionHash}`, '_blank', 'noopener,noreferrer');
+      }
+    }
+  }, [details]);
+
+  // ── 필터 적용 ──
+  const filtered = payments.filter((p) => {
+    if (searchQuery && !p.productName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (!matchesDate(p.createdAt, selectedDate)) return false;
+    if (!matchesAmount(p.amount, selectedAmount)) return false;
+    return true;
+  });
+
+  // ── 요약 통계 (SUCCESS 기준) ──
+  const successPayments  = payments.filter((p) => p.status === 'SUCCESS');
+  const totalPayment     = successPayments.reduce((sum, p) => sum + p.amount, 0);
+
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
+    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto">
+
           {/* ═══════════ Page Header ═══════════ */}
           <div className="mb-8 md:mb-12 flex items-start gap-4 md:gap-5">
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] text-white shrink-0">
               <CreditCard className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50">결제 내역</h1>
-              <p className="text-slate-700 dark:text-slate-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">결제 내역</h1>
+              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
             </div>
           </div>
 
-          {/* ═══════════ My Page Summary Stats (Musinsa-style) ═══════════ */}
-          <div className="mb-5 bg-white dark:bg-slate-800 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-            <div className="grid grid-cols-3 divide-x divide-slate-200 dark:divide-slate-700">
+          {/* ═══════════ Summary Stats ═══════════ */}
+          <div className="mb-5 bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-700">
               <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">결제 건수</p>
-                <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">{orderGroups.length}건</p>
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 건수</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  {loading ? '—' : `${successPayments.length}건`}
+                </p>
               </div>
               <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">결제 금액</p>
-                <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">{formatPrice(totalPayment)}</p>
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 금액</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  {loading ? '—' : formatPrice(totalPayment)}
+                </p>
               </div>
               <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-[#D97706] dark:text-amber-400 tracking-wide">절약 금액</p>
-                <p className="text-xl font-extrabold text-[#D97706] dark:text-amber-400 mt-1.5">{formatPrice(totalSavings)}</p>
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">전체 내역</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  {loading ? '—' : `${payments.length}건`}
+                </p>
+              </div>
+              <div className="py-5 text-center">
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑 한도</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  {loading ? '—' : formatCurrencyAmount(walletLimit)}
+                </p>
+              </div>
+              <div className="py-5 text-center">
+                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑 잔액</p>
+                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  {loading ? '—' : formatCurrencyAmount(walletBalance)}
+                </p>
               </div>
             </div>
           </div>
@@ -243,11 +199,13 @@ export default function Payments() {
           {/* ═══════════ Search Bar ═══════════ */}
           <div className="mb-5">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="상품명 검색"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-300 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-slate-400"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 dark:text-zinc-300 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400"
               />
             </div>
           </div>
@@ -255,7 +213,7 @@ export default function Payments() {
           {/* ═══════════ Filters ═══════════ */}
           <div className="flex items-center gap-2 mb-6 flex-wrap">
             <Select value={selectedDate} onValueChange={setSelectedDate}>
-              <SelectTrigger className="w-[120px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[120px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 기간" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[140px]">
@@ -265,19 +223,8 @@ export default function Payments() {
               </SelectContent>
             </Select>
 
-            <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-              <SelectTrigger className="w-[130px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
-                <SelectValue placeholder="전체 플랫폼" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl min-w-[150px]">
-                {platformOptions.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-              <SelectTrigger className="w-[140px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 금액" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[160px]">
@@ -288,132 +235,136 @@ export default function Payments() {
             </Select>
           </div>
 
-          {/* ═══════════ Order Cards ═══════════ */}
-          <div className="space-y-4">
-            {orderGroups.map((group) => {
-              const statusStyle = statusStyleMap[group.status];
-              const groupTotal = group.items.reduce((s, i) => s + i.amount, 0);
-              const groupSavings = group.items.reduce((s, i) => s + i.savings, 0);
+          {/* ═══════════ Loading ═══════════ */}
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-[#1E4D8C] dark:text-[#7BAEDA]" />
+            </div>
+          )}
 
-              return (
-                <div
-                  key={group.orderNumber}
-                  className="rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden"
-                >
-                  {/* ── Order Header ── */}
-                  <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-700 gap-2">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <span className="text-sm font-bold text-slate-900 dark:text-slate-50 shrink-0">{group.date}</span>
-                      <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-400 font-mono truncate">{group.orderNumber}</span>
+          {/* ═══════════ Payment Cards ═══════════ */}
+          {!loading && (
+            <div className="space-y-4">
+              {filtered.map((payment) => {
+                const statusStyle = statusStyleMap[payment.status] ?? statusStyleMap['PENDING'];
+                const detail      = details[payment.paymentId];
+                const isTxLoading = loadingTx[payment.paymentId];
+
+                return (
+                  <div
+                    key={payment.paymentId}
+                    className="rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden"
+                  >
+                    {/* ── Card Header ── */}
+                    <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-700 gap-2">
+                      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50 shrink-0">
+                          {formatDate(payment.createdAt)}
+                        </span>
+                        <span className="text-[10px] sm:text-[11px] text-zinc-400 dark:text-zinc-400 font-mono truncate">
+                          {toOrderNumber(payment.paymentId)}
+                        </span>
+                      </div>
+                      <div className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 ${statusStyle.bg}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
+                        <span className="text-zinc-900 dark:text-zinc-100">{statusStyle.label}</span>
+                      </div>
                     </div>
-                    <div className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 ${statusStyle.bg}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                      <span className="text-slate-900 dark:text-slate-100">{statusStyle.label}</span>
-                    </div>
-                  </div>
 
-                  {/* ── Order Items ── */}
-                  <div>
-                    {group.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 border-b border-[#F1F5F9] dark:border-slate-700/50 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          {/* Thumbnail */}
-                          <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
-                            {item.emoji}
-                          </div>
+                    {/* ── Product Row ── */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* Thumbnail */}
+                        <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                          🛒
+                        </div>
 
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          {/* 플랫폼 배지 (productUrl에서 플랫폼 추론, 없으면 PBM) */}
+                          {detail?.productUrl && (
                             <Badge
                               variant="outline"
                               className="text-[11px] font-bold px-2 py-0.5 rounded-md border mb-1"
                               style={{
-                                color: getPlatformColor(item.platform),
-                                borderColor: `${getPlatformColor(item.platform)}33`,
-                                backgroundColor: `${getPlatformColor(item.platform)}12`,
+                                color: getPlatformColor(detail.productUrl),
+                                borderColor: `${getPlatformColor(detail.productUrl)}33`,
+                                backgroundColor: `${getPlatformColor(detail.productUrl)}12`,
                               }}
                             >
-                              {getPlatformName(item.platform)}
+                              {getPlatformName(
+                                detail.productUrl.includes('naver') ? 'naver'
+                                : detail.productUrl.includes('coupang') ? 'coupang'
+                                : detail.productUrl.includes('aliexpress') ? 'aliexpress'
+                                : 'PBM'
+                              )}
                             </Badge>
-                            <p className="text-sm font-bold text-slate-900 dark:text-slate-50 truncate leading-snug">
-                              {item.product}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                              {item.option}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        <div className="text-left sm:text-right shrink-0 pl-[72px] sm:pl-0">
-                          <p className="text-sm font-extrabold text-slate-900 dark:text-slate-50">
-                            {formatPrice(item.amount)}
+                          )}
+                          <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate leading-snug">
+                            {payment.productName}
                           </p>
-                          <p className="text-[11px] font-semibold text-[#D97706] dark:text-amber-400">
-                            -{formatPrice(item.savings)}
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                            {payment.currency}
                           </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* ── Order Footer ── */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
-                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                      <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        총 결제금액
-                      </span>
-                      <span className="text-sm font-extrabold text-slate-900 dark:text-slate-50 whitespace-nowrap">
-                        {formatPrice(groupTotal)}
-                      </span>
-                      {groupSavings > 0 && (
-                        <>
-                          <span className="text-[#CBD5E1] dark:text-slate-700 text-xs shrink-0">|</span>
-                          <span className="text-xs font-semibold text-[#D97706] dark:text-amber-400 whitespace-nowrap">
-                            -{formatPrice(groupSavings)} 절약
-                          </span>
-                        </>
-                      )}
+                      {/* Price */}
+                      <div className="text-left sm:text-right shrink-0 pl-[72px] sm:pl-0">
+                        <p className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">
+                          {formatPrice(payment.amount)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {group.items[0] && (
-                        <a
-                          href={`https://etherscan.io/tx/${group.items[0].txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 transition-all"
-                        >
-                          TX 상세
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      )}
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 transition-all"
-                      >
-                        상세보기
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
+
+                    {/* ── Card Footer ── */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">총 결제금액</span>
+                        <span className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50 whitespace-nowrap">
+                          {formatPrice(payment.amount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* TX 상세 — txHash가 없으면 클릭 시 조회 */}
+                        {payment.status === 'SUCCESS' && (
+                          <button
+                            type="button"
+                            onClick={() => void handleTxDetail(payment.paymentId)}
+                            disabled={isTxLoading}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 transition-all disabled:opacity-60"
+                          >
+                            {isTxLoading ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                TX 상세
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* ── Empty State ── */}
-          {orderGroups.length === 0 && (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
+          {!loading && filtered.length === 0 && (
+            <div className="rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
                 <CreditCard className="w-7 h-7 text-[#1E4D8C] dark:text-[#7BAEDA]" />
               </div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-1">결제 내역이 없습니다</p>
-              <p className="text-xs text-slate-700 dark:text-slate-300">조건 매칭이 완료되면 내역이 여기에 표시됩니다.</p>
+              <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">결제 내역이 없습니다</p>
+              <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                {payments.length > 0 ? '검색 조건과 일치하는 내역이 없습니다.' : '조건 매칭이 완료되면 내역이 여기에 표시됩니다.'}
+              </p>
             </div>
           )}
+
         </div>
       </section>
     </div>
