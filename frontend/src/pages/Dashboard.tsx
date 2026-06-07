@@ -27,6 +27,37 @@ import type {
 
 type ClarificationAnswers = Record<string, string>;
 
+/**
+ * 플랫폼별로 그룹화 후 라운드로빈으로 섞는다.
+ * 단일 플랫폼이면 원본 순서 그대로 반환한다.
+ *
+ * 예: [N1,N2,N3, A1,A2] → [N1,A1, N2,A2, N3]
+ */
+function interleaveByPlatform(
+  list: DashboardCommandCandidateItem[],
+): DashboardCommandCandidateItem[] {
+  const groups: Record<string, DashboardCommandCandidateItem[]> = {};
+  for (const item of list) {
+    const key = item.platform ?? 'unknown';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(item);
+  }
+
+  const buckets = Object.values(groups);
+  // 단일 플랫폼이면 그대로 반환
+  if (buckets.length <= 1) return list;
+
+  // 라운드로빈: 각 플랫폼에서 한 개씩 번갈아 가져옴
+  const result: DashboardCommandCandidateItem[] = [];
+  const maxLen = Math.max(...buckets.map((b) => b.length));
+  for (let i = 0; i < maxLen; i++) {
+    for (const bucket of buckets) {
+      if (i < bucket.length) result.push(bucket[i]);
+    }
+  }
+  return result;
+}
+
 // 설명: 흐름을 끊지 않는 토스트 성공 알림
 const showSuccessToast = async (title: string) => {
   await Swal.fire({
@@ -133,12 +164,13 @@ export default function Dashboard() {
   const commandId = parsedPreview?.data.commandId ?? null;
 
   // 설명: command-service 세션을 다시 조회해 최신 후보 상품/검증 결과를 화면 상태에 반영합니다.
+  // 멀티 플랫폼 결과는 라운드로빈으로 섞어서 표시한다.
   const syncSessionState = (sessionResponse: DashboardCommandDetailResponse) => {
     if (!sessionResponse.success) {
       return null;
     }
 
-    setCandidates(sessionResponse.data.candidates ?? []);
+    setCandidates(interleaveByPlatform(sessionResponse.data.candidates ?? []));
     setValidationResult(sessionResponse.data.validationResult ?? null);
     return sessionResponse.data;
   };
@@ -358,18 +390,16 @@ export default function Dashboard() {
 
       applyParsedPreview(response);
 
-      // 설명: AUTO_PURCHASE는 누락 여부와 관계없이 항상 조건 보완 모달을 띄운다
-      if (response.data.intent === 'AUTO_PURCHASE') {
-        const pd = response.data.parsedCommand;
-        const initial: ClarificationAnswers = {};
-        if (pd.productName) initial.productName = pd.productName;
-        if (pd.platforms?.length) initial.platform = pd.platforms.join(',');
-        if (pd.maxPrice != null) initial.maxPrice = String(pd.maxPrice);
-        setClarificationAnswers(initial);
-        setShowClarificationModal(true);
+      // URL_MONITOR: 모달 없이 바로 모니터링 등록 상태로 이동
+      if (response.data.intent === 'URL_MONITOR') {
+        if (!response.data.needsClarification && response.data.commandId) {
+          await showSuccessToast('URL 모니터링 등록 완료');
+        }
+        return; // 모달, 후보 조회 없이 종료
       }
 
       // 설명: 필요하면 상세 세션도 함께 조회합니다.
+      // AUTO_PURCHASE도 이제 동일하게 처리 (조건 모달은 상품 선택 후 "조건 생성하기"에서 열림)
       const commandId = response.data.commandId;
       const hasMissingFields = (response.data.missingRequiredFields?.length ?? 0) > 0;
 
@@ -509,7 +539,7 @@ export default function Dashboard() {
         throw new Error(response.message);
       }
 
-      setCandidates(response.data.candidates ?? []);
+      setCandidates(interleaveByPlatform(response.data.candidates ?? []));
       setValidationResult(response.data.validationResult ?? null);
       setProductUrlInputs(['']);
 
@@ -697,9 +727,13 @@ export default function Dashboard() {
                           <Sparkles className="w-4 h-4 text-[#1E4D8C] dark:text-[#7BAEDA]" />
                         </div>
                         <div>
-                          <DialogTitle className="text-slate-900 dark:text-slate-50 text-lg font-bold">조건 보완</DialogTitle>
+                          <DialogTitle className="text-slate-900 dark:text-slate-50 text-lg font-bold">
+                            {selectedProductIds.length > 0 ? '조건 확인' : '조건 보완'}
+                          </DialogTitle>
                           <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">
-                            AI가 파악한 조건을 확인하고, 부족한 정보를 채워주세요.
+                            {selectedProductIds.length > 0
+                              ? '선택한 상품의 모니터링 조건을 확인하고 시작하세요.'
+                              : 'AI가 파악한 조건을 확인하고, 부족한 정보를 채워주세요.'}
                           </DialogDescription>
                         </div>
                       </div>
@@ -710,8 +744,56 @@ export default function Dashboard() {
                   </div>
 
                   <div className="p-6 space-y-6 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
-                    {isAutoPurchase ? (
-                      /* ── AUTO_PURCHASE: 항상 3개 필드만 표시 ── */
+                    {selectedProductIds.length > 0 ? (
+                      /* ── 조건 생성하기 경로: 선택 상품 요약 + 마감일 확인 ── */
+                      <div className="space-y-4">
+                        <div className="bg-gradient-to-r from-[#1E4D8C]/5 to-[#0F3460]/5 dark:from-[#1E4D8C]/10 dark:to-[#0F3460]/10 rounded-xl p-3 text-sm text-[#1E4D8C] dark:text-[#7BAEDA] font-medium">
+                          선택한 상품을 기반으로 자동 결제 조건을 생성합니다.
+                        </div>
+
+                        {/* 선택 상품 수 */}
+                        <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-900/50">
+                          <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="text-sm text-slate-600 dark:text-slate-400">선택된 상품</span>
+                          <span className="ml-auto text-sm font-bold text-slate-900 dark:text-slate-50">{selectedProductIds.length}개</span>
+                        </div>
+
+                        {/* 목표가 (read-only) */}
+                        {parsedPreview?.data.parsedCommand?.maxPrice != null && (
+                          <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 bg-slate-50 dark:bg-slate-900/50">
+                            <span className="text-sm text-slate-600 dark:text-slate-400">목표가</span>
+                            <span className="ml-auto text-sm font-bold text-[#1E4D8C] dark:text-[#7BAEDA]">
+                              ₩{parsedPreview.data.parsedCommand.maxPrice.toLocaleString()} 이하
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 모니터링 마감일 달력 */}
+                        <div>
+                          <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">모니터링 마감일</Label>
+                          <div className="mb-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] text-xs font-semibold">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {scheduledEndAt
+                              ? format(scheduledEndAt, 'yyyy년 M월 d일', { locale: ko })
+                              : '날짜를 선택해주세요'}
+                          </div>
+                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex justify-center">
+                            <DayPicker
+                              mode="single"
+                              selected={scheduledEndAt}
+                              onSelect={(date) => { if (date) setScheduledEndAt(date); }}
+                              locale={ko}
+                              disabled={{ before: addDays(new Date(), 1) }}
+                              defaultMonth={scheduledEndAt ?? addDays(new Date(), 7)}
+                            />
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">기본값 7일 · 내일 이후만 선택 가능</p>
+                        </div>
+                      </div>
+                    ) : isAutoPurchase ? (
+                      /* ── AUTO_PURCHASE 보완 입력 (누락 필드가 있는 경우) ── */
                       <div className="space-y-4">
                         {/* 안내 문구 */}
                         <div className="bg-gradient-to-r from-[#1E4D8C]/5 to-[#0F3460]/5 dark:from-[#1E4D8C]/10 dark:to-[#0F3460]/10 rounded-xl p-3 text-sm text-[#1E4D8C] dark:text-[#7BAEDA] font-medium">
@@ -900,8 +982,24 @@ export default function Dashboard() {
                     >
                       취소
                     </Button>
-                    <Button type="button" onClick={() => void handleClarificationSubmit()} disabled={clarificationSubmitting} className="rounded-xl px-5 py-2 bg-[#1E4D8C] hover:bg-[#0F3460] text-white shadow-md shadow-[#1E4D8C]/20 border-none font-bold text-sm transition-all">
-                      {clarificationSubmitting ? '전송 중...' : isAutoPurchase ? '생성' : '조건 적용하기'}
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        if (selectedProductIds.length > 0) {
+                          // 조건 생성하기 경로: 재파싱 없이 선택된 상품 그대로 등록
+                          setShowClarificationModal(false);
+                          void handleSelectionSubmit();
+                        } else {
+                          // 보완 입력 경로: 재파싱 후 검색
+                          void handleClarificationSubmit();
+                        }
+                      }}
+                      disabled={selectedProductIds.length > 0 ? selectionSubmitting : clarificationSubmitting}
+                      className="rounded-xl px-5 py-2 bg-[#1E4D8C] hover:bg-[#0F3460] text-white shadow-md shadow-[#1E4D8C]/20 border-none font-bold text-sm transition-all"
+                    >
+                      {selectedProductIds.length > 0
+                        ? (selectionSubmitting ? '등록 중...' : '조건 생성하기')
+                        : (clarificationSubmitting ? '전송 중...' : isAutoPurchase ? '검색하기' : '조건 적용하기')}
                     </Button>
                   </div>
                 </DialogContent>
@@ -1018,11 +1116,14 @@ export default function Dashboard() {
                       </div>
                       <Button
                         type="button"
-                        onClick={() => void handleSelectionSubmit()}
+                        onClick={() => {
+                          setClarificationAnswers({});
+                          setShowClarificationModal(true);
+                        }}
                         disabled={selectionSubmitting}
                         className="rounded-xl bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-6 py-2 font-bold shadow-md shadow-[#1E4D8C]/20 transition-all"
                       >
-                        {selectionSubmitting ? '전송 중...' : '모니터링 등록'}
+                        조건 생성하기
                       </Button>
                     </div>
                   )}

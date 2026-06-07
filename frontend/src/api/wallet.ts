@@ -1,4 +1,5 @@
 import { createApiClient } from './apiClientFactory';
+import { useAuthStore } from '../store/authStore';
 
 const walletApiClient = createApiClient({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
@@ -185,4 +186,301 @@ export async function fetchMyWalletBalance(): Promise<WalletBalanceResponse | nu
   } catch {
     return null;
   }
+}
+
+// ── 토큰 충전 ────────────────────────────────────────────────────────────────
+
+export type TokenTransactionType = 'CHARGE' | 'DEDUCT' | 'FEE';
+export type TokenTransactionStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
+
+/** 토큰 충전 결과 */
+export interface TokenChargeResponse {
+  transactionId: number;
+  walletAddress: string;
+  amountPbm: number;
+  amountWei: string;
+  txHash: string | null;
+  status: TokenTransactionStatus;
+  createdAt: string;
+}
+
+/** 충전·차감·수수료 통합 거래 내역 항목 */
+export interface TokenTransactionResponse {
+  id: number;
+  type: TokenTransactionType;
+  amountPbm: number;
+  amountWei: string;
+  txHash: string | null;
+  status: TokenTransactionStatus;
+  note: string | null;
+  createdAt: string;
+}
+
+/**
+ * PBM 토큰을 충전한다.
+ * 마스터 지갑 → 사용자 PBMSmartAccount로 ERC-20 transfer 실행.
+ * 블록체인 확정까지 대기하므로 수십 초 소요될 수 있다.
+ *
+ * @param amountPbm 충전 수량 (PBM 정수 단위)
+ */
+export async function chargeWallet(amountPbm: number): Promise<TokenChargeResponse> {
+  const { data } = await walletApiClient.post<ApiResponse<TokenChargeResponse>>(
+    '/api/v1/wallet/charge',
+    { amountPbm },
+  );
+  if (!data.success) {
+    throw new Error(data.message ?? '충전에 실패했습니다.');
+  }
+  return data.data;
+}
+
+/**
+ * 충전·차감·수수료 전체 거래 내역을 최신순으로 조회한다.
+ */
+export async function fetchTransactionHistory(): Promise<TokenTransactionResponse[]> {
+  try {
+    const { data } = await walletApiClient.get<ApiResponse<TokenTransactionResponse[]>>(
+      '/api/v1/wallet/transactions',
+    );
+    return data.success ? (data.data ?? []) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * 충전 내역만 조회한다.
+ */
+export async function fetchChargeHistory(): Promise<TokenTransactionResponse[]> {
+  try {
+    const { data } = await walletApiClient.get<ApiResponse<TokenTransactionResponse[]>>(
+      '/api/v1/wallet/charge/history',
+    );
+    return data.success ? (data.data ?? []) : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── 지갑 생성 진행 단계 SSE ──────────────────────────────────────────────────
+
+export interface WalletProvisioningCallbacks {
+  /** 각 단계 이벤트 수신 시 (폴링의 fetchProvisioningStatus()와 동일한 구조) */
+  onStep: (status: ProvisioningStatusResponse) => void;
+  /** "DONE" 이벤트 수신 시 (정상 완료) */
+  onDone: () => void;
+  /** "FAILED" 이벤트 수신 시 */
+  onFailed: (reason: string) => void;
+}
+
+/**
+ * 지갑 생성 진행 단계 SSE 스트림을 구독한다.
+ * SSE 이벤트 data는 RawProvisioningStatusResponse 구조이므로
+ * 기존 toProvisioningStatusResponse() 변환 함수를 그대로 재사용한다.
+ *
+ * 사용 흐름:
+ *   1. subscribeToWalletCreation() 호출 → CONNECTED 이벤트 수신 시 onConnected 콜백 실행
+ *   2. onConnected 안에서 createMyWallet()을 호출하여 지갑 생성 시작
+ *   3. 각 단계 이벤트가 onStep으로 전달됨 (provisioningSteps UI 업데이트)
+ *   4. DONE / FAILED 이벤트 수신 시 스트림 자동 종료
+ *
+ * @returns 스트림을 강제 종료할 수 있는 AbortController
+ */
+export function subscribeToWalletCreation(
+  callbacks: WalletProvisioningCallbacks,
+  onConnected: () => void,
+): AbortController {
+  const store = useAuthStore.getState();
+  const token = store.accessToken;
+  const tokenType = store.tokenType ?? 'Bearer';
+  const userId = store.userId;
+  const controller = new AbortController();
+  const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+  (async () => {
+    try {
+      const response = await fetch(`${baseURL}/api/v1/wallet/provisioning-status/stream`, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/event-stream',
+          ...(token ? { Authorization: `${tokenType} ${token}` } : {}),
+          ...(userId != null ? { 'X-User-Id': String(userId) } : {}),
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        callbacks.onFailed('SSE 스트림 연결 실패');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentEvent = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice('event:'.length).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice('data:'.length).trim();
+            try {
+              if (currentEvent === 'CONNECTED') {
+                onConnected();
+              } else if (currentEvent === 'DONE') {
+                callbacks.onDone();
+                controller.abort();
+                return;
+              } else if (currentEvent === 'FAILED') {
+                const payload = JSON.parse(dataStr) as RawProvisioningStatusResponse;
+                callbacks.onFailed(payload.errorMessage ?? '지갑 생성에 실패했습니다.');
+                controller.abort();
+                return;
+              } else {
+                // 진행 단계 이벤트 — 폴링과 동일한 RawProvisioningStatusResponse 구조
+                const payload = JSON.parse(dataStr) as RawProvisioningStatusResponse;
+                callbacks.onStep(toProvisioningStatusResponse(payload));
+              }
+            } catch { /* JSON 파싱 실패 무시 */ }
+            currentEvent = '';
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        callbacks.onFailed('SSE 연결 중 오류 발생');
+      }
+    }
+  })();
+
+  return controller;
+}
+
+// ── 충전 진행 단계 SSE ────────────────────────────────────────────────────────
+
+export type ChargeProgressStep =
+  | 'CONNECTED'
+  | 'REQUEST_RECEIVED'
+  | 'DB_SAVED'
+  | 'TX_SENT'
+  | 'TX_CONFIRMED'
+  | 'CHARGE_COMPLETED'
+  | 'GAS_CALCULATED'
+  | 'GAS_DEDUCT_STARTED'
+  | 'GAS_TX_SENT'
+  | 'GAS_TX_CONFIRMED'
+  | 'GAS_DEDUCT_COMPLETED'
+  | 'GAS_DEDUCT_FAILED'
+  | 'DONE'
+  | 'FAILED';
+
+export interface ChargeProgressEvent {
+  step: ChargeProgressStep;
+  message: string;
+  detail: string | null;
+}
+
+export interface ChargeProgressCallbacks {
+  /** 각 단계 이벤트 수신 시 */
+  onStep: (event: ChargeProgressEvent) => void;
+  /** "DONE" 이벤트 수신 시 (정상 완료) */
+  onDone: () => void;
+  /** "FAILED" 이벤트 수신 시 */
+  onFailed: (reason: string) => void;
+}
+
+/**
+ * 충전 진행 단계 SSE 스트림을 구독한다.
+ * EventSource는 Authorization 헤더를 지원하지 않으므로 fetch + ReadableStream으로 구현한다.
+ *
+ * 사용 흐름:
+ *   1. subscribeToChargeProgress() 호출 → CONNECTED 이벤트를 받으면 onConnected 콜백 실행
+ *   2. onConnected 안에서 chargeWallet()을 호출하여 충전 시작
+ *   3. 각 단계 이벤트가 onStep으로 전달됨
+ *   4. DONE / FAILED 이벤트 수신 시 스트림 자동 종료
+ *
+ * @returns 스트림을 강제 종료할 수 있는 AbortController
+ */
+export function subscribeToChargeProgress(
+  callbacks: ChargeProgressCallbacks,
+  onConnected: () => void,
+): AbortController {
+  const store = useAuthStore.getState();
+  const token = store.accessToken;
+  const tokenType = store.tokenType ?? 'Bearer';
+  const userId = store.userId;
+  const controller = new AbortController();
+  const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+  (async () => {
+    try {
+      const response = await fetch(`${baseURL}/api/v1/wallet/charge/stream`, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/event-stream',
+          ...(token ? { Authorization: `${tokenType} ${token}` } : {}),
+          ...(userId != null ? { 'X-User-Id': String(userId) } : {}),
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        callbacks.onFailed('SSE 스트림 연결 실패');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentEvent = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice('event:'.length).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice('data:'.length).trim();
+            try {
+              const payload: ChargeProgressEvent = JSON.parse(dataStr);
+              if (currentEvent === 'CONNECTED') {
+                onConnected();
+              } else if (currentEvent === 'DONE') {
+                callbacks.onDone();
+                controller.abort();
+                return;
+              } else if (currentEvent === 'FAILED') {
+                callbacks.onFailed(payload.detail ?? payload.message ?? '알 수 없는 오류');
+                controller.abort();
+                return;
+              } else {
+                callbacks.onStep(payload);
+              }
+            } catch { /* JSON 파싱 실패 무시 */ }
+            currentEvent = '';
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        callbacks.onFailed('SSE 연결 중 오류 발생');
+      }
+    }
+  })();
+
+  return controller;
 }

@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
 import { changeAuthPassword, fetchAuthMe, fetchPairingToken } from '../api/auth';
-import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, fetchProvisioningStatus, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep } from '../api/wallet';
+import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, subscribeToWalletCreation, chargeWallet, subscribeToChargeProgress, fetchTransactionHistory, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep, type TokenTransactionResponse, type ChargeProgressEvent, type ChargeProgressStep } from '../api/wallet';
 
 type ExtensionStatus = 'idle' | 'detecting' | 'not-installed' | 'pairing' | 'paired' | 'error';
 
@@ -47,6 +47,32 @@ export default function Settings() {
   const [provisioningSteps, setProvisioningSteps]     = useState<ProvisioningStep[]>([]);
   const [provisioningError, setProvisioningError]     = useState<string | null>(null);
   const [walletLimitInput, setWalletLimitInput]       = useState('400000');
+  // ── 토큰 충전 상태 ──
+  const [chargeAmountInput, setChargeAmountInput]     = useState('');
+  const [isCharging, setIsCharging]                   = useState(false);
+  const [chargeError, setChargeError]                 = useState<string | null>(null);
+  const [chargeSuccess, setChargeSuccess]             = useState<string | null>(null);
+  const [chargeSteps, setChargeSteps]                 = useState<ChargeProgressEvent[]>([]);
+  const [transactions, setTransactions]               = useState<TokenTransactionResponse[]>([]);
+  const [showTransactions, setShowTransactions]       = useState(false);
+
+  // 충전 단계 메타 (라벨·아이콘)
+  const STEP_META: Record<ChargeProgressStep, string> = {
+    CONNECTED:            '스트림 연결',
+    REQUEST_RECEIVED:     '충전 요청 수신',
+    DB_SAVED:             '충전 내역 저장',
+    TX_SENT:              '트랜잭션 전송',
+    TX_CONFIRMED:         '트랜잭션 확정',
+    CHARGE_COMPLETED:     'PBM 충전 완료',
+    GAS_CALCULATED:       '가스비 계산',
+    GAS_DEDUCT_STARTED:   '가스비 차감 시작',
+    GAS_TX_SENT:          '차감 트랜잭션 전송',
+    GAS_TX_CONFIRMED:     '차감 트랜잭션 확정',
+    GAS_DEDUCT_COMPLETED: '가스비 차감 완료',
+    GAS_DEDUCT_FAILED:    '가스비 차감 실패',
+    DONE:                 '처리 완료',
+    FAILED:               '실패',
+  };
   const [activeTab, setActiveTab] = useState<'account' | 'notifications' | 'payment' | 'integration'>('account');
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>('idle');
   const [extensionVersion, setExtensionVersion] = useState('');
@@ -54,26 +80,22 @@ export default function Settings() {
   const [extensionError, setExtensionError] = useState('');
 
   // ── Provisioning Polling ──
-  const pollingRef = useRef<number | null>(null);
+  // 지갑 생성 SSE AbortController (언마운트 시 스트림 정리용)
+  const walletSseRef = useRef<AbortController | null>(null);
+  // 토큰 충전 SSE AbortController (언마운트 시 스트림 정리용)
+  const chargeSseRef = useRef<AbortController | null>(null);
 
-  const clearProvisioningPolling = useCallback(() => {
-    if (pollingRef.current !== null) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
+  const startWalletCreationStream = useCallback((walletLimitKrw: number) => {
+    // 기존 스트림 정리
+    walletSseRef.current?.abort();
 
-  const startProvisioningPolling = useCallback(() => {
-    const poll = async () => {
-      try {
-        const status = await fetchProvisioningStatus();
-        if (!status) return; // 아직 응답 없음 → 계속 폴링
-
-        setProvisioningSteps(status.steps);
-
-        if (status.status === 'completed') {
-          clearProvisioningPolling();
-          // 지갑/잔액 재조회
+    const controller = subscribeToWalletCreation(
+      {
+        onStep: (status) => {
+          setProvisioningSteps(status.steps);
+        },
+        onDone: async () => {
+          // 완료 → 지갑/잔액 재조회
           const [walletData, balanceData] = await Promise.all([
             fetchMyWallet(),
             fetchMyWalletBalance(),
@@ -82,32 +104,44 @@ export default function Settings() {
             setWallet(walletData);
             setWalletLimitInput(String(walletData.walletLimit));
           }
-          if (balanceData) {
-            setWalletBalance(balanceData);
-          }
+          if (balanceData) setWalletBalance(balanceData);
           setIsCreatingWallet(false);
-        } else if (status.status === 'failed') {
-          clearProvisioningPolling();
-          setProvisioningError(status.errorMessage || '지갑 생성에 실패했습니다.');
+        },
+        onFailed: (reason) => {
+          setProvisioningError(reason || '지갑 생성에 실패했습니다.');
+          setIsCreatingWallet(false);
+        },
+      },
+      async () => {
+        // CONNECTED → 지갑 생성 요청 전송
+        try {
+          const result = await createMyWallet(walletLimitKrw);
+          // 이미 지갑이 있으면 즉시 반환되는 경우 (동기 완료)
+          if (result?.walletAddress) {
+            setWallet(result);
+            setWalletLimitInput(String(result.walletLimit));
+            const refreshedBalance = await fetchMyWalletBalance();
+            setWalletBalance(refreshedBalance);
+            setIsCreatingWallet(false);
+            walletSseRef.current?.abort();
+          }
+        } catch (err) {
+          setProvisioningError(err instanceof Error ? err.message : '지갑 생성에 실패했습니다.');
           setIsCreatingWallet(false);
         }
-        // 'pending' / 'in_progress' → 계속 폴링
-      } catch {
-        // 폴링 자체 에러 → 무시하고 다음 인터벌에서 재시도
-      }
-    };
+      },
+    );
 
-    // 즉시 1회 폴링 후 2초 간격 반복
-    void poll();
-    pollingRef.current = window.setInterval(poll, 2000);
-  }, [clearProvisioningPolling]);
+    walletSseRef.current = controller;
+  }, []);
 
-  // 언마운트 시 폴링 정리
+  // 언마운트 시 SSE 스트림 정리 (지갑 생성 + 토큰 충전)
   useEffect(() => {
     return () => {
-      clearProvisioningPolling();
+      walletSseRef.current?.abort();
+      chargeSseRef.current?.abort();
     };
-  }, [clearProvisioningPolling]);
+  }, []);
 
   const platformOptions = [
     { id: 'naver-shopping', label: '네이버 쇼핑' },
@@ -922,6 +956,186 @@ export default function Settings() {
                         </div>
                       </div>
 
+                      <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
+
+                      {/* ── 토큰 충전 ── */}
+                      <div className="mb-4">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">PBM 토큰 충전</p>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 font-medium text-sm">PBM</span>
+                            <Input
+                              type="text"
+                              value={chargeAmountInput}
+                              onChange={(e) => {
+                                setChargeAmountInput(e.target.value.replace(/[^0-9]/g, ''));
+                                setChargeError(null);
+                                setChargeSuccess(null);
+                                if (!isCharging) setChargeSteps([]);
+                              }}
+                              placeholder="충전 수량"
+                              disabled={isCharging}
+                              className="pl-12 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-[#0F172A] dark:text-slate-50 placeholder:text-[#94A3B8] font-medium text-sm rounded-xl disabled:opacity-50"
+                            />
+                          </div>
+                          <Button
+                            onClick={() => {
+                              const amount = parseInt(chargeAmountInput, 10);
+                              if (isNaN(amount) || amount < 10000) {
+                                setChargeError('최소 충전 금액은 10,000 PBM입니다.');
+                                return;
+                              }
+                              setIsCharging(true);
+                              setChargeError(null);
+                              setChargeSuccess(null);
+                              setChargeSteps([]);
+
+                              // 기존 충전 SSE 정리 후 새 SSE 구독
+                              chargeSseRef.current?.abort();
+                              chargeSseRef.current = subscribeToChargeProgress(
+                                {
+                                  onStep: (event) => {
+                                    setChargeSteps((prev) => [...prev, event]);
+                                  },
+                                  onDone: async () => {
+                                    chargeSseRef.current = null;
+                                    setIsCharging(false);
+                                    setChargeSuccess(`${amount.toLocaleString()} PBM 충전이 완료되었습니다.`);
+                                    setChargeAmountInput('');
+                                    const refreshed = await fetchMyWalletBalance();
+                                    if (refreshed) setWalletBalance(refreshed);
+                                  },
+                                  onFailed: (reason) => {
+                                    chargeSseRef.current = null;
+                                    setIsCharging(false);
+                                    setChargeError(reason ?? '충전에 실패했습니다.');
+                                  },
+                                },
+                                async () => {
+                                  // CONNECTED → 충전 요청 전송
+                                  try {
+                                    await chargeWallet(amount);
+                                  } catch (err) {
+                                    // HTTP 요청 실패 시 서버 FAILED 이벤트가 오지 않으므로 직접 SSE 종료
+                                    chargeSseRef.current?.abort();
+                                    chargeSseRef.current = null;
+                                    setIsCharging(false);
+                                    setChargeError(err instanceof Error ? err.message : '충전에 실패했습니다.');
+                                  }
+                                },
+                              );
+                            }}
+                            disabled={!chargeAmountInput || parseInt(chargeAmountInput, 10) < 10000 || isCharging}
+                            className="shrink-0 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-10 px-5 text-sm font-bold shadow-[0_4px_10px_-4px_rgba(30,77,140,0.3)] transition-all duration-300 border-none"
+                          >
+                            {isCharging ? '충전 중...' : '충전하기'}
+                          </Button>
+                        </div>
+
+                        {/* 충전 진행 단계 */}
+                        {chargeSteps.length > 0 && (
+                          <div className="mt-3 space-y-1.5">
+                            {chargeSteps.map((step, i) => (
+                              <div key={i} className="flex items-start gap-2 text-xs">
+                                <span className="mt-0.5 w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                  <Check className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                                </span>
+                                <div>
+                                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                    {STEP_META[step.step] ?? step.step}
+                                  </span>
+                                  {step.detail && (
+                                    <span className="ml-1.5 text-slate-400 dark:text-slate-500 font-mono text-[10px]">
+                                      {step.detail}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {isCharging && (
+                              <div className="flex items-center gap-2 text-xs text-[#1E4D8C] dark:text-[#7BAEDA]">
+                                <div className="w-4 h-4 border-2 border-[#1E4D8C] border-t-transparent rounded-full animate-spin shrink-0" />
+                                <span>처리 중...</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {chargeError && (
+                          <p className="text-xs text-rose-500 mt-1.5">{chargeError}</p>
+                        )}
+                        {chargeSuccess && (
+                          <p className="text-xs text-emerald-500 mt-1.5">{chargeSuccess}</p>
+                        )}
+                        {!isCharging && chargeSteps.length === 0 && (
+                          <p className="text-[11px] text-[#94A3B8] dark:text-slate-500 mt-1">최소 10,000 PBM 이상 충전 가능 · 블록체인 처리로 수십 초 소요될 수 있습니다</p>
+                        )}
+                      </div>
+
+                      <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
+
+                      {/* ── 거래 내역 ── */}
+                      <div className="mb-4">
+                        <button
+                          type="button"
+                          className="flex items-center justify-between w-full text-xs font-medium text-slate-500 dark:text-slate-400 mb-2"
+                          onClick={async () => {
+                            if (!showTransactions) {
+                              const list = await fetchTransactionHistory();
+                              setTransactions(list);
+                            }
+                            setShowTransactions((v) => !v);
+                          }}
+                        >
+                          <span>거래 내역</span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showTransactions ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showTransactions && (
+                          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            {transactions.length === 0 ? (
+                              <p className="text-xs text-slate-400 text-center py-4">거래 내역이 없습니다.</p>
+                            ) : (
+                              transactions.map((tx) => (
+                                <div
+                                  key={tx.id}
+                                  className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/50 px-3 py-2 text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                      tx.type === 'CHARGE' ? 'bg-emerald-400' :
+                                      tx.type === 'DEDUCT' ? 'bg-rose-400' : 'bg-amber-400'
+                                    }`} />
+                                    <div>
+                                      <p className="font-medium text-slate-700 dark:text-slate-200">
+                                        {tx.type === 'CHARGE' ? '충전' : tx.type === 'DEDUCT' ? '결제 차감' : '수수료'}
+                                      </p>
+                                      <p className="text-slate-400 dark:text-slate-500 text-[10px]">
+                                        {new Date(tx.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className={`font-bold ${
+                                      tx.type === 'CHARGE' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'
+                                    }`}>
+                                      {tx.type === 'CHARGE' ? '+' : '-'}{Number(tx.amountPbm).toLocaleString()} PBM
+                                    </p>
+                                    <p className={`text-[10px] ${
+                                      tx.status === 'SUCCESS' ? 'text-slate-400' :
+                                      tx.status === 'PENDING' ? 'text-amber-400' : 'text-rose-400'
+                                    }`}>
+                                      {tx.status === 'SUCCESS' ? '완료' : tx.status === 'PENDING' ? '처리중' : '실패'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
+
                       {/* ── 결제 한도 (읽기 전용) ── */}
                       <div>
                         <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">결제 한도</p>
@@ -1039,18 +1253,8 @@ export default function Settings() {
                               setProvisioningSteps([]);
                               setProvisioningError(null);
                               try {
-                                const result = await createMyWallet(limit);
-                                // 즉시 지갑이 반환되면 완료 (동기 생성)
-                                if (result?.walletAddress) {
-                                  setWallet(result);
-                                  setWalletLimitInput(String(result.walletLimit));
-                                  const refreshedBalance = await fetchMyWalletBalance();
-                                  setWalletBalance(refreshedBalance);
-                                  setIsCreatingWallet(false);
-                                  return;
-                                }
-                                // 비동기 생성 → provisioning-status 폴링 시작
-                                startProvisioningPolling();
+                                // SSE 구독 시작 → CONNECTED 수신 후 createMyWallet() 자동 호출
+                                startWalletCreationStream(limit);
                               } catch (err) {
                                 console.error('[Settings] 지갑 생성 실패', err);
                                 setProvisioningError(err instanceof Error ? err.message : '지갑 생성에 실패했습니다.');

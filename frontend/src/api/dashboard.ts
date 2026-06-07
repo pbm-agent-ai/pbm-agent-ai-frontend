@@ -78,11 +78,11 @@ export async function submitDashboardClarification(
 }
 
 // 2026-05-20 수정: 명령 세션 조회 (상품 후보 목록)
-// size=30: 한 번에 최대 30개 후보를 가져온다 (프론트에서 10개씩 페이지네이션)
+// size=100: 멀티 플랫폼(NAVER+ALIEXPRESS 등) 전체 후보를 한 번에 수신하여 프론트에서 라운드로빈 정렬
 export async function fetchCommandDetail(
   commandId: string,
   page = 0,
-  size = 30,
+  size = 100,
 ): Promise<DashboardCommandDetailResponse> {
   const { data } = await shoppingApiClient.get<DashboardCommandDetailResponse>(
     `/api/v1/commands/${commandId}`,
