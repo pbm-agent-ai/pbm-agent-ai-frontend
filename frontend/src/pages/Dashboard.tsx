@@ -5,21 +5,24 @@ import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import 'react-day-picker/style.css';
 import { Sparkles, ListChecks, Sparkles as SparklesIcon, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
-import Swal from 'sweetalert2';
 import { fetchAuthMe } from '../api/auth';
-import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection, submitCommandProductLinks } from '../api/dashboard';
+import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection } from '../api/dashboard';
+import { toast } from '../stores/toastStore';
+import { confirmDialog } from '../stores/confirmDialogStore';
+import ToastContainer from '../components/ui/ToastContainer';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { LogoIcon } from '../components/ui/LogoIcon';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardCommandCandidateItem,
   DashboardCommandDetailResponse,
   DashboardCommandParseResponse,
   DashboardCommandParseSuccessResponse,
-  DashboardCommandProductLinksRequest,
   DashboardCommandSelectionRequest,
   DashboardCommandSelectionResponse,
   DashboardCommandValidationResult,
@@ -59,16 +62,8 @@ function interleaveByPlatform(
 }
 
 // 설명: 흐름을 끊지 않는 토스트 성공 알림
-const showSuccessToast = async (title: string) => {
-  await Swal.fire({
-    icon: 'success',
-    title,
-    toast: true,
-    position: 'bottom-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true,
-  });
+const showSuccessToast = (title: string) => {
+  toast.success(title);
 };
 
 // 설명: 비동기 검색 결과를 기다릴 때 짧게 대기하는 유틸입니다.
@@ -82,7 +77,7 @@ type ClarificationFieldConfig = {
 
 // 설명: 입력 예시로 보여줄 자연어 명령을 모아둡니다.
 const shoppingCommandExamples = [
-  '네이버 항공에서 인천-오사카 25만원 이하면 바로 결제해줘',
+  '네이버에서 다이슨 에어랩 60만원 이하면 알림줘',
   '나이키 에어포스 1 화이트 270 사이즈 10만원 이하 자동결제',
 ];
 
@@ -142,9 +137,6 @@ export default function Dashboard() {
   const [selectionSubmitting, setSelectionSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFetchingCandidates, setIsFetchingCandidates] = useState(false);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [productUrlInputs, setProductUrlInputs] = useState<string[]>(['']);
-  const [productUrlSubmitting, setProductUrlSubmitting] = useState(false);
   const [showClarificationModal, setShowClarificationModal] = useState(false);
   // 설명: 추가 설명 입력값을 저장합니다.
   const [clarificationInput, setClarificationInput] = useState('');
@@ -152,6 +144,17 @@ export default function Dashboard() {
   const [clarificationSubmitting, setClarificationSubmitting] = useState(false);
   // 설명: 누락 항목별 답변을 저장합니다.
   const [clarificationAnswers, setClarificationAnswers] = useState<ClarificationAnswers>({});
+  // 설명: 추천 상품 페이지네이션 — 현재 페이지 (0부터 시작), 페이지당 10개
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 10;
+  // 설명: 등록 성공 시 버튼 morph 표시 (자동 리셋)
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!submissionSuccess) return;
+    const timer = window.setTimeout(() => setSubmissionSuccess(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [submissionSuccess]);
 
   // 설명: AUTO_PURCHASE 마감일 (달력으로 선택)
   const [scheduledEndAt, setScheduledEndAt] = useState<Date | undefined>(addDays(new Date(), 7));
@@ -162,6 +165,8 @@ export default function Dashboard() {
   const resubscribePopupActiveRef = useRef(false);
 
   const commandId = parsedPreview?.data.commandId ?? null;
+  // 설명: 전체 페이지 수 (30개 기준 최대 3페이지, 10개 단위)
+  const totalPages = Math.ceil(candidates.length / pageSize);
 
   // 설명: command-service 세션을 다시 조회해 최신 후보 상품/검증 결과를 화면 상태에 반영합니다.
   // 멀티 플랫폼 결과는 라운드로빈으로 섞어서 표시한다.
@@ -172,6 +177,7 @@ export default function Dashboard() {
 
     setCandidates(interleaveByPlatform(sessionResponse.data.candidates ?? []));
     setValidationResult(sessionResponse.data.validationResult ?? null);
+    setCurrentPage(0); // 설명: 새 후보 목록이 오면 첫 페이지로 리셋
     return sessionResponse.data;
   };
 
@@ -183,7 +189,8 @@ export default function Dashboard() {
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       try {
-        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
+        // 설명: size=30 — 최대 30개 후보를 받아와서 클라이언트에서 10개씩 페이지네이션
+        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId, 0, 30);
         const sessionData = syncSessionState(sessionResponse);
 
         if (!sessionData) {
@@ -250,7 +257,8 @@ export default function Dashboard() {
       }
 
       try {
-        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId);
+        // 설명: 폴링 시에도 동일하게 size=30으로 세션 조회 (페이지네이션 일관성 유지)
+        const sessionResponse: DashboardCommandDetailResponse = await fetchCommandDetail(commandId, 0, 30);
         if (!sessionResponse.success) {
           return;
         }
@@ -264,22 +272,15 @@ export default function Dashboard() {
           window.clearInterval(intervalId);
           resubscribePopupActiveRef.current = true;
 
-          const confirmResult = await Swal.fire({
-            icon: 'question',
+          const ok = await confirmDialog.show({
             title: '기존 모니터링 확인',
-            html: `
-              <p class="text-sm text-slate-700 mb-2">이미 모니터링 중인 상품이 있습니다.</p>
-              <p class="text-sm text-slate-700">기존 모니터링을 갱신하거나 다시 시작하시겠습니까?</p>
-            `,
-            showCancelButton: true,
-            confirmButtonText: '재시작/갱신',
-            cancelButtonText: '취소',
-            confirmButtonColor: '#1E4D8C',
-            cancelButtonColor: '#94A3B8',
-            reverseButtons: true,
+            message: '이미 모니터링 중인 상품이 있습니다. 기존 모니터링을 갱신하거나 다시 시작하시겠습니까?',
+            confirmText: '재시작/갱신',
+            cancelText: '취소',
+            icon: 'question',
           });
 
-          if (confirmResult.isConfirmed) {
+          if (ok) {
             try {
               const payload: DashboardCommandSelectionRequest = {
                 selectedProductIds: lastSubmittedProductIdsRef.current,
@@ -289,25 +290,16 @@ export default function Dashboard() {
               if (!response.success) {
                 throw new Error(response.message);
               }
+              setSelectionSubmitting(false);
+              setSelectedProductIds([]);
+              await showSuccessToast('모니터링 갱신 완료');
             } catch (error: unknown) {
               setSelectionSubmitting(false);
-              await Swal.fire({
-                icon: 'error',
-                title: '갱신 실패',
-                text: error instanceof Error ? error.message : '오류가 발생했습니다.',
-                confirmButtonText: '확인',
-                confirmButtonColor: '#1E4D8C',
-              });
+              toast.error(error instanceof Error ? error.message : '오류가 발생했습니다.');
             }
           } else {
             setSelectionSubmitting(false);
-            await Swal.fire({
-              icon: 'info',
-              title: '선택 유지',
-              text: '기존 모니터링을 유지합니다. 새로운 조건을 다시 시도해보세요.',
-              confirmButtonText: '확인',
-              confirmButtonColor: '#1E4D8C',
-            });
+            toast.info('기존 모니터링을 유지합니다. 새로운 조건을 다시 시도해보세요.');
           }
 
           resubscribePopupActiveRef.current = false;
@@ -325,6 +317,7 @@ export default function Dashboard() {
             sessionData.status === 'BROWSER_PURCHASE_IN_PROGRESS'
           ) {
             setSelectedProductIds([]);
+            setSubmissionSuccess(true);
             await showSuccessToast(
               sessionData.status === 'BROWSER_PURCHASE_IN_PROGRESS' ? '자동 구매 시작됨' : '상품 선택 완료',
             );
@@ -344,6 +337,7 @@ export default function Dashboard() {
     setCandidates([]);
     setValidationResult(null);
     setSelectedProductIds([]);
+    setCurrentPage(0); // 설명: 새 분석 결과 시 첫 페이지로 초기화
     setSelectionSubmitting(false);
     setShowClarificationModal(false);
     setClarificationInput('');
@@ -358,8 +352,7 @@ export default function Dashboard() {
     setCandidates([]);
     setValidationResult(null);
     setSelectedProductIds([]);
-    setShowUrlInput(false);
-    setProductUrlInputs(['']);
+    setCurrentPage(0); // 설명: 검색 초기화 시 첫 페이지로 리셋
     setNaturalLanguageInput('');
     setScheduledEndAt(addDays(new Date(), 7));
     lastSubmittedProductIdsRef.current = [];
@@ -374,7 +367,7 @@ export default function Dashboard() {
 
     const commandText = naturalLanguageInput.trim();
     if (!commandText) {
-      await Swal.fire({ icon: 'warning', title: '자연어 입력 필요', text: '명령어를 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
+      toast.warning('명령어를 입력해주세요.');
       return;
     }
 
@@ -416,17 +409,22 @@ export default function Dashboard() {
       await showSuccessToast('분석 완료');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.';
-      const mockCandidate: DashboardCommandCandidateItem = {
-        productId: 'mock-product-1',
-        title: '삼성 갤럭시 버즈 FE 블루투스 이어폰',
-        lprice: '89000',
-        mallName: '쿠팡',
-        productUrl: 'https://www.coupang.com/vp/products/123456789',
+
+      // 설명: 페이지네이션 테스트용 mock 후보 25개 (다양한 플랫폼, 가격, 상품명)
+      const mockProducts = [
+        { title: '삼성 갤럭시 버즈 FE 블루투스 이어폰', price: '89000', mall: '쿠팡', platform: 'coupang' },
+      ];
+      const mockCandidates: DashboardCommandCandidateItem[] = mockProducts.map((p, i) => ({
+        productId: `mock-product-${i + 1}`,
+        title: p.title,
+        lprice: p.price,
+        mallName: p.mall,
+        productUrl: '#',
         currency: 'KRW',
-        platform: 'coupang',
-        searchKeyword: '무선 이어폰',
-        imageUrl: 'https://via.placeholder.com/128',
-      };
+        platform: p.platform,
+        searchKeyword: p.title,
+        imageUrl: `https://via.placeholder.com/128/1E4D8C/FFFFFF?text=${encodeURIComponent(p.title.slice(0, 4))}`,
+      }));
 
       const mockParseResponse: DashboardCommandParseSuccessResponse = {
         success: true,
@@ -434,14 +432,14 @@ export default function Dashboard() {
         data: {
           intent: 'shopping.monitor',
           parsedCommand: {
-            productName: '갤럭시 버즈 FE',
-            platforms: ['COUPANG'],
-            maxPrice: 100000,
+            productName: 'Mock 상품',
+            platform: 'ALL',
+            maxPrice: 1000000,
             mode: 'ALERT_ONLY',
           },
-          missingRequiredFields: ['productName', 'maxPrice'],
-          ambiguousFields: ['color'],
-          needsClarification: true,
+          missingRequiredFields: [],
+          ambiguousFields: [],
+          needsClarification: false,
           confidence: 0.98,
           commandId: "999999",
         },
@@ -453,23 +451,16 @@ export default function Dashboard() {
         purchasedProductId: null,
         summaryMessage: '모의 데이터로 미리보기를 표시합니다.',
         confirmationRequired: false,
-        duplicateProducts: [mockCandidate],
-        confirmationMessage: '기존 모니터링 이력이 있습니다.',
+        duplicateProducts: [],
+        confirmationMessage: '',
       };
 
       applyParsedPreview(mockParseResponse);
-      setCandidates([mockCandidate]);
+      setCandidates(mockCandidates);
       setValidationResult(mockValidationResult);
       setSelectedProductIds([]);
-      setProductUrlInputs(['']);
 
-      await Swal.fire({
-        icon: 'warning',
-        title: '서버 연결 실패',
-        text: `${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`,
-        confirmButtonText: '확인',
-        confirmButtonColor: '#1E4D8C',
-      });
+      toast.warning(`${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`);
     } finally {
       setIsAnalyzing(false);
     }
@@ -496,59 +487,10 @@ export default function Dashboard() {
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '상품 선택을 전송하지 못했습니다.';
-      await Swal.fire({
-        icon: 'error',
-        title: '전송 실패',
-        text: errorMessage,
-        confirmButtonText: '확인',
-        confirmButtonColor: '#1E4D8C',
-      });
+      toast.error(errorMessage);
       setSelectionSubmitting(false);
     } finally {
       // 성공 시 후속 상태 변화는 폴링 useEffect가 처리한다.
-    }
-  };
-
-  // 설명: 직접 입력한 상품 URL을 전송합니다.
-  const handleProductUrlSubmit = async (): Promise<void> => {
-    if (!parsedPreview?.data.commandId) {
-      return;
-    }
-
-    // 설명: 빈 URL을 제외하고 전송 대상을 정리합니다.
-    const urls = productUrlInputs.map((u) => u.trim()).filter(Boolean);
-
-    if (urls.length === 0) {
-      await Swal.fire({ icon: 'warning', title: 'URL 입력 필요', text: '상품 URL을 하나 이상 입력해주세요.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
-      return;
-    }
-
-    if (urls.length > 5) {
-      await Swal.fire({ icon: 'warning', title: '초과', text: '최대 5개의 URL만 입력 가능합니다.', confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
-      return;
-    }
-
-    try {
-      setProductUrlSubmitting(true);
-
-      // 설명: URL 목록을 요청 본문으로 구성합니다.
-      const payload: DashboardCommandProductLinksRequest = { productUrls: urls };
-      const response = await submitCommandProductLinks(parsedPreview.data.commandId, payload);
-
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-
-      setCandidates(interleaveByPlatform(response.data.candidates ?? []));
-      setValidationResult(response.data.validationResult ?? null);
-      setProductUrlInputs(['']);
-
-      await showSuccessToast('URL 제출 완료');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'URL 전송에 실패했습니다.';
-      await Swal.fire({ icon: 'error', title: '전송 실패', text: errorMessage, confirmButtonText: '확인', confirmButtonColor: '#1E4D8C' });
-    } finally {
-      setProductUrlSubmitting(false);
     }
   };
 
@@ -567,13 +509,7 @@ export default function Dashboard() {
     }, {});
 
     if (!clarificationInput.trim() && Object.keys(answers).length === 0) {
-      await Swal.fire({
-        icon: 'warning',
-        title: '보완 입력 필요',
-        text: '추가 설명이나 항목별 답변을 입력해주세요.',
-        confirmButtonText: '확인',
-        confirmButtonColor: '#1E4D8C',
-      });
+      toast.warning('추가 설명이나 항목별 답변을 입력해주세요.');
       return;
     }
 
@@ -611,13 +547,7 @@ export default function Dashboard() {
       await showSuccessToast('보완 내용 전송 완료');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '보완 내용을 전송하지 못했습니다.';
-      await Swal.fire({
-        icon: 'error',
-        title: '전송 실패',
-        text: errorMessage,
-        confirmButtonText: '확인',
-        confirmButtonColor: '#1E4D8C',
-      });
+      toast.error(errorMessage);
     } finally {
       setClarificationSubmitting(false);
     }
@@ -630,9 +560,11 @@ export default function Dashboard() {
 
   // 설명: 대시보드의 전체 화면 레이아웃을 그립니다.
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
+      {/* --- 장식용 기하학 배경 요소 (Abstract Geometric + Glassmorphism) --- */}
+      <DecorativeBackground />
       {/* 설명: 상단 히어로와 자연어 입력 영역입니다. */}
-      <section className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden">
+      <section className="bg-white/10 dark:bg-slate-950/20 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden z-10">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF]"></div>
         <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center relative z-10">
           <div className="mb-4 flex h-12 items-center text-4xl font-medium text-slate-700 dark:text-slate-300 md:text-4xl">
@@ -651,9 +583,14 @@ export default function Dashboard() {
           <div className="w-full max-w-3xl bg-white dark:bg-slate-800 rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-slate-200 dark:border-slate-700 relative overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]"></div>
             <div className="p-4 pt-5 flex flex-col gap-3">
-              <div className="bg-white dark:bg-slate-800 rounded-2xl p-2 ring-1 ring-[#E2E8F0] focus-within:bg-slate-100 dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-[#1E4D8C]/30 dark:focus-within:ring-[#7BAEDA]/30 transition-all duration-300">
+              <div className={`bg-white dark:bg-slate-800 rounded-2xl p-2 ring-1 transition-all duration-300 ${
+                isAnalyzing
+                  ? 'ring-2 ring-[#1E4D8C]/50 dark:ring-[#7BAEDA]/50 shadow-[0_0_15px_rgba(30,77,140,0.2)] animate-pulse'
+                  : 'ring-[#E2E8F0] focus-within:bg-slate-100 dark:focus-within:bg-slate-900 focus-within:ring-2 focus-within:ring-[#1E4D8C]/30 dark:focus-within:ring-[#7BAEDA]/30'
+              }`}>
                 <textarea
                   rows={1}
+                  disabled={isAnalyzing}
                   placeholder="예: 쿠팡에서 탐사수 7000원 밑으로 알림"
                   value={naturalLanguageInput}
                   onFocus={() => setIsCommandInputFocused(true)}
@@ -663,7 +600,7 @@ export default function Dashboard() {
                     e.target.style.height = 'auto';
                     e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
                   }}
-                  className="w-full bg-transparent border-none px-4 py-3 text-slate-900 dark:text-slate-50 text-lg placeholder:text-slate-700 dark:placeholder:text-slate-400 focus:outline-none resize-none min-h-[60px] font-medium"
+                  className={`w-full bg-transparent border-none px-4 py-3 text-slate-900 dark:text-slate-50 text-lg placeholder:text-slate-700 dark:placeholder:text-slate-400 focus:outline-none resize-none min-h-[60px] font-medium ${isAnalyzing ? 'opacity-60 cursor-not-allowed' : ''}`}
                 />
               </div>
 
@@ -814,7 +751,7 @@ export default function Dashboard() {
                         {/* 플랫폼 — 버튼 다중 선택 */}
                         <div>
                           <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">플랫폼</Label>
-                          <div className="flex gap-2 mt-1">
+                          <div className="flex flex-wrap gap-2 mt-1">
                             {([{ value: 'NAVER', label: '네이버' }, { value: 'ALIEXPRESS', label: '알리익스프레스' }] as const).map(({ value, label }) => {
                               const selected = (clarificationAnswers['platform'] ?? '').split(',').filter(Boolean).includes(value);
                               return (
@@ -891,7 +828,7 @@ export default function Dashboard() {
                           const items: { label: string; value: string }[] = [];
                           if (d.productName) items.push({ label: '상품', value: d.productName });
                           if (d.brand) items.push({ label: '브랜드', value: d.brand });
-                          if (d.platforms?.[0]) items.push({ label: '플랫폼', value: d.platforms[0] });
+                          if (d.platform) items.push({ label: '플랫폼', value: d.platform });
                           if (d.maxPrice != null) items.push({ label: '목표가', value: `₩${d.maxPrice.toLocaleString()}` });
                           if (d.mode) items.push({ label: '모드', value: d.mode === 'AUTO_PAYMENT' ? '자동결제' : '알림' });
                           if (items.length === 0) return null;
@@ -1034,15 +971,19 @@ export default function Dashboard() {
                         <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">{selectedProductIds.length}개 선택됨</span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">총 {candidates.length}개</span>
+                    {/* 설명: 현재 페이지 / 전체 페이지 · 총 상품 개수 */}
+                    <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">{currentPage + 1}/{Math.ceil(candidates.length / pageSize)} · 총 {candidates.length}개</span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {(() => {
                       const triggeredIds = new Set((validationResult?.triggeredProducts ?? []).map((p) => p.productId));
                       const monitoringIds = new Set((validationResult?.monitoringProducts ?? []).map((p) => p.productId));
                       const duplicateIds = new Set((validationResult?.duplicateProducts ?? []).map((p) => p.productId));
+                      // 설명: 현재 페이지에 해당하는 10개만 추출 (클라이언트 사이드 페이지네이션)
+                      const startIdx = currentPage * pageSize;
+                      const pagedCandidates = candidates.slice(startIdx, startIdx + pageSize);
 
-                      return candidates.map((item) => {
+                      return pagedCandidates.map((item) => {
                         const isSelected = selectedProductIds.includes(item.productId);
                         let badgeText = '';
                         let badgeClass = '';
@@ -1075,7 +1016,16 @@ export default function Dashboard() {
                             }`}
                           >
                             <div className="relative shrink-0">
-                              <img src={item.imageUrl} alt={item.title} className="w-20 h-20 rounded-xl object-cover bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700" />
+                              <img
+                src={item.imageUrl}
+                alt={item.title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="%23F1F5F9"/><text x="40" y="40" font-family="sans-serif" font-size="8" fill="%2394A3B8" text-anchor="middle" dominant-baseline="middle">이미지 없음</text></svg>';
+                  e.currentTarget.classList.add('opacity-60');
+                }}
+                className="w-20 h-20 rounded-xl object-cover bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 transition-opacity duration-300"
+              />
                               {isSelected && (
                                 <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
                                   <div className="w-6 h-6 rounded-full bg-[#1E4D8C] dark:bg-[#7BAEDA] flex items-center justify-center shadow-md">
@@ -1104,6 +1054,49 @@ export default function Dashboard() {
                     })()}
                   </div>
 
+                  {/* 설명: 페이지네이션 컨트롤 — 1페이지 이하일 경우 숨김 */}
+                  {totalPages > 1 && (
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      {/* 설명: 이전 페이지 버튼 (첫 페이지에서는 비활성화) */}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                        disabled={currentPage === 0}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      {/* 설명: 페이지 번호 버튼 — 현재 페이지는 파란색 하이라이트 */}
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setCurrentPage(i)}
+                          className={`inline-flex items-center justify-center min-w-[2.25rem] h-9 rounded-xl text-sm font-bold transition-all duration-200 ${
+                            i === currentPage
+                              ? 'bg-[#1E4D8C] dark:bg-[#7BAEDA] text-white shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      {/* 설명: 다음 페이지 버튼 (마지막 페이지에서는 비활성화) */}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+                        disabled={currentPage === totalPages - 1}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-xl text-sm font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+
                   {selectedProductIds.length > 0 && (
                     <div className="mt-4 flex items-center justify-between gap-3 bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 rounded-2xl border border-[#DBE2EF] dark:border-[#1E4D8C]/30 px-5 py-3">
                       <div className="flex items-center gap-2">
@@ -1120,99 +1113,23 @@ export default function Dashboard() {
                           setClarificationAnswers({});
                           setShowClarificationModal(true);
                         }}
-                        disabled={selectionSubmitting}
-                        className="rounded-xl bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-6 py-2 font-bold shadow-md shadow-[#1E4D8C]/20 transition-all"
+                        disabled={selectionSubmitting || submissionSuccess}
+                        className={`rounded-xl font-bold shadow-md transition-all duration-300 ${
+                          submissionSuccess
+                            ? 'bg-emerald-500 text-white w-12 h-12 p-0 rounded-full shadow-lg shadow-emerald-500/30'
+                            : 'bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-6 py-2 shadow-[#1E4D8C]/20'
+                        }`}
                       >
-                        조건 생성하기
+                        {submissionSuccess ? (
+                          <svg className="w-5 h-5 animate-in zoom-in duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          '조건 생성하기'
+                        )}
                       </Button>
                     </div>
-                  )}
-
-                  {/* URL 직접 입력 (접이식) */}
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowUrlInput((prev) => !prev)}
-                      aria-expanded={showUrlInput}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-left text-sm font-medium text-slate-500 dark:text-slate-300 hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:text-[#1E4D8C] dark:hover:text-[#7BAEDA] transition-all duration-200 cursor-pointer"
-                    >
-                      <span className="flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                        </svg>
-                        원하는 상품이 목록에 없나요?
-                      </span>
-                      <svg
-                        className={`w-4 h-4 transition-transform duration-200 ${showUrlInput ? 'rotate-180' : ''}`}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-
-                    {showUrlInput && (
-                      <div className="mt-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">직접 상품 URL 입력</h4>
-                          <span className="text-xs text-slate-400">{productUrlInputs.length}/5</span>
-                        </div>
-                        <div className="space-y-2">
-                          {productUrlInputs.map((url, index) => (
-                            <div key={index} className="flex gap-2">
-                              <Input
-                                value={url}
-                                onChange={(e) => {
-                                  const next = [...productUrlInputs];
-                                  next[index] = e.target.value;
-                                  setProductUrlInputs(next);
-                                }}
-                                placeholder={`상품 URL ${index + 1}`}
-                                className="flex-1 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm h-10 rounded-xl focus-visible:ring-2 focus-visible:ring-[#1E4D8C]/30 pr-10"
-                              />
-                              {productUrlInputs.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const next = productUrlInputs.filter((_, i) => i !== index);
-                                    setProductUrlInputs(next.length > 0 ? next : ['']);
-                                  }}
-                                  className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex items-center justify-between mt-3">
-                          {productUrlInputs.length < 5 ? (
-                            <button
-                              type="button"
-                              onClick={() => setProductUrlInputs((prev) => [...prev, ''])}
-                              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA] hover:text-[#0F3460] dark:hover:text-[#7BAEDA]/80 transition-colors"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                              </svg>
-                              새로운 URL 추가하기
-                            </button>
-                          ) : (
-                            <span className="text-xs text-slate-400">최대 5개까지 추가할 수 있습니다</span>
-                          )}
-                          <Button
-                            type="button"
-                            onClick={() => void handleProductUrlSubmit()}
-                            disabled={productUrlSubmitting}
-                            className="rounded-xl bg-[#1E4D8C] hover:bg-[#0F3460] text-white px-5 py-2 text-xs font-bold shadow-sm transition-all"
-                          >
-                            {productUrlSubmitting ? '전송 중...' : 'URL 제출'}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                )}
                 </div>
               ) : (isCommandInputFocused || naturalLanguageInput.trim().length > 0) && (
                 // 설명: 입력 예시와 사용 팁을 안내합니다.
@@ -1244,9 +1161,9 @@ export default function Dashboard() {
                         이런 것도 알아들어요
                       </h4>
                       <div className="text-sm text-slate-700 dark:text-slate-300 space-y-3 font-medium">
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">플랫폼:</strong> 네이버 쇼핑, 네이버 항공, 쿠팡, 알리익스프레스 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">플랫폼:</strong> 네이버 쇼핑, 알리익스프레스</p></div>
                         <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">상품 정보:</strong> 브랜드명, 정확한 모델명, 사이즈, 색상 등</p></div>
-                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">조건 액션:</strong> 얼마 이하, 즉시 결제, 알림만, 대기 등</p></div>
+                        <div className="flex items-start gap-2"><div className="w-1.5 h-1.5 rounded-full bg-[#1E4D8C]/50 mt-1.5 flex-shrink-0" /><p><strong className="text-slate-900 dark:text-slate-50">원하는 방식:</strong> 얼마 이하 즉시 결제/알림만 등</p></div>
                       </div>
                     </div>
                   </div>
@@ -1258,7 +1175,7 @@ export default function Dashboard() {
       </section>
 
       {/* 메뉴 네비게이션 카드 (모니터링 현황이 있던 자리) */}
-      <section className="py-16 px-4 md:px-8 bg-slate-50 dark:bg-slate-950">
+      <section className="py-16 px-4 md:px-8 bg-slate-50/30 dark:bg-slate-900/40 relative z-20">
         <div className="max-w-[1200px] mx-auto">
           <div className="mb-8 text-center">
             <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50">빠른 이동</h2>
@@ -1292,6 +1209,8 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <ToastContainer />
+      <ConfirmDialog />
     </div>
   );
 }

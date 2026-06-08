@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Zap, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink, RefreshCw } from 'lucide-react';
+import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink, RefreshCw } from 'lucide-react';
 import { LogoIcon } from '../components/ui/LogoIcon';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
 import { changeAuthPassword, fetchAuthMe, fetchPairingToken } from '../api/auth';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, subscribeToWalletCreation, chargeWallet, subscribeToChargeProgress, fetchTransactionHistory, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep, type TokenTransactionResponse, type ChargeProgressEvent, type ChargeProgressStep } from '../api/wallet';
 
 type ExtensionStatus = 'idle' | 'detecting' | 'not-installed' | 'pairing' | 'paired' | 'error';
@@ -27,13 +28,11 @@ const getInitials = (name: string) => {
 };
 
 export default function Settings() {
-  const [paymentMode, setPaymentMode] = useState<'alert' | 'auto'>('auto');
   const [telegramEnabled, setTelegramEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [telegramChatId, setTelegramChatId] = useState('123456789');
   const [email, setEmail] = useState('leon.kim@example.com');
   const [monthlyLimit] = useState('5000000');
-  const [allowedPlatforms, setAllowedPlatforms] = useState<string[]>(['naver', 'coupang', '11st', 'gmarket']);
   // ── DND ──
   const [dndEnabled, setDndEnabled] = useState(false);
   const [dndStart, setDndStart] = useState('22:00');
@@ -142,17 +141,6 @@ export default function Settings() {
       chargeSseRef.current?.abort();
     };
   }, []);
-
-  const platformOptions = [
-    { id: 'naver-shopping', label: '네이버 쇼핑' },
-    { id: 'aliexpress', label: '알리 익스프레스' },
-  ];
-
-  const togglePlatform = (id: string) => {
-    setAllowedPlatforms((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
-  };
 
   const tabs = [
     { id: 'account' as const, label: '계정', icon: User },
@@ -332,7 +320,6 @@ export default function Settings() {
   };
 
   const handleConfirmDelete = () => {
-    // TODO: call DELETE /api/v1/members/{id} with { password: deletePassword, reason: deleteReason }
     setShowConfirmDelete(false);
     resetDeleteFields();
   };
@@ -430,7 +417,6 @@ export default function Settings() {
   };
 
   const handleProfileSave = () => {
-    // TODO: call PUT /api/v1/members/{id} with { name: profileName, walletAddress: profileWalletAddress }
     setShowProfileSheet(false);
   };
 
@@ -479,16 +465,12 @@ export default function Settings() {
   };
 
   const handleNotificationsSave = () => {
-    // TODO: call PUT /api/v1/settings with { telegramEnabled, telegramChatId, emailEnabled, email, dndEnabled, dndStart, dndEnd }
-  };
-
-  const handleSettingsSave = () => {
-    // TODO: call PUT /api/v1/settings with { monthlyLimit, perTxLimit, allowedPlatforms }
-    // 지갑 주소는 [연결] 버튼으로 별도 등록
+    // 저장 로직은 API 연동 시 구현 예정
   };
 
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
+      <DecorativeBackground variant="minimal" />
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto space-y-6">
 
@@ -794,115 +776,6 @@ export default function Settings() {
           {/* ═══════════ Payment Tab ═══════════ */}
           {activeTab === 'payment' && (
             <>
-              <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5 text-[#1E4D8C]" />
-                    <CardTitle className="text-slate-900 dark:text-slate-50">기본 결제 모드</CardTitle>
-                  </div>
-                  <CardDescription className="text-slate-500 dark:text-slate-300">
-                    조건 충족 시 결제 여부를 전역으로 설정합니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-0 pt-0">
-                  {/* ── 알림만 ── */}
-                  <button
-                    onClick={() => setPaymentMode('alert')}
-                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                      paymentMode === 'alert'
-                        ? 'bg-[#1E4D8C] text-white shadow-[0_4px_10px_-4px_rgba(30,77,140,0.4)]'
-                        : 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/10'
-                    }`}>
-                      <Bell className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className={`text-sm font-bold transition-colors ${
-                        paymentMode === 'alert' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : 'text-slate-900 dark:text-slate-50'
-                      }`}>
-                        알림만
-                      </p>
-                      <p className="text-[12px] text-slate-500 dark:text-slate-300 mt-0.5">조건 충족 시 알림만 발송하고 결제는 직접 진행</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                      paymentMode === 'alert'
-                        ? 'border-[#1E4D8C]'
-                        : 'border-slate-300 dark:border-slate-700'
-                    }`}>
-                      {paymentMode === 'alert' && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E4D8C]" />
-                      )}
-                    </div>
-                  </button>
-
-                  {/* ── 자동결제 ── */}
-                  <button
-                    onClick={() => setPaymentMode('auto')}
-                    className="w-full flex items-center gap-3 px-4 py-4 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-900/50"
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                      paymentMode === 'auto'
-                        ? 'bg-[#1E4D8C] text-white shadow-[0_4px_10px_-4px_rgba(30,77,140,0.4)]'
-                        : 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/10'
-                    }`}>
-                      <Zap className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className={`text-sm font-bold transition-colors ${
-                        paymentMode === 'auto' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' : 'text-slate-900 dark:text-slate-50'
-                      }`}>
-                        자동결제
-                      </p>
-                      <p className="text-[12px] text-slate-500 dark:text-slate-300 mt-0.5">조건 충족 시 즉시 결제가 실행됩니다</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
-                      paymentMode === 'auto'
-                        ? 'border-[#1E4D8C]'
-                        : 'border-slate-300 dark:border-slate-700'
-                    }`}>
-                      {paymentMode === 'auto' && (
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#1E4D8C]" />
-                      )}
-                    </div>
-                  </button>
-                </CardContent>
-              </Card>
-
-              {/* ── 허용 플랫폼 ── */}
-              <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🛒</span>
-                    <CardTitle className="text-slate-900 dark:text-slate-50">허용 플랫폼</CardTitle>
-                  </div>
-                  <CardDescription className="text-slate-500 dark:text-slate-300">
-                    결제를 허용할 쇼핑 플랫폼을 선택하세요
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-0">
-                  <div className="flex flex-wrap gap-2.5 py-1">
-                    {platformOptions.map((platform) => {
-                      const isSelected = allowedPlatforms.includes(platform.id);
-                      return (
-                        <button
-                          key={platform.id}
-                          onClick={() => togglePlatform(platform.id)}
-                          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-                            isSelected
-                              ? 'bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border-2 border-[#1E4D8C] dark:border-[#7BAEDA]'
-                              : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-300 border-2 border-slate-200 dark:border-slate-700 hover:border-[#1E4D8C]/40 hover:text-[#1E4D8C]'
-                          }`}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5" />}
-                          {platform.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* PBM Wallet */}
               <Card className="bg-white dark:bg-slate-800 border-[#E2E8F0] dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem]">
                 <CardHeader>
@@ -1274,13 +1147,6 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              {/* ── Save Button (tab bottom) ── */}
-              <Button
-                onClick={handleSettingsSave}
-                className="w-full bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 border-none"
-              >
-                저장
-              </Button>
             </>
           )}
 

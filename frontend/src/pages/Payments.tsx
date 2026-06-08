@@ -11,6 +11,7 @@ import {
 import { fetchMyPayments, fetchPaymentDetail, type PaymentSummary, type PaymentDetail } from '../api/payments';
 import { fetchAuthMe } from '../api/auth';
 import { fetchMyWallet, fetchMyWalletBalance } from '../api/wallet';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 
 // ── 상태 표시 스타일 맵 ─────────────────────────────────────────
 const statusStyleMap: Record<string, { label: string; dot: string; bg: string }> = {
@@ -85,8 +86,8 @@ export default function Payments() {
   // ── 데이터 상태 ──
   const [payments, setPayments]             = useState<PaymentSummary[]>([]);
   const [loading, setLoading]               = useState(true);
-  const [walletLimit, setWalletLimit]       = useState<number | null>(null);
   const [walletBalance, setWalletBalance]   = useState<number | null>(null);
+  const [walletLimit, setWalletLimit]       = useState<number | null>(null);
   // 클릭 시 상세(txHash) 캐시
   const [details, setDetails]               = useState<Record<string, PaymentDetail>>({});
   const [loadingTx, setLoadingTx]           = useState<Record<string, boolean>>({});
@@ -145,7 +146,8 @@ export default function Payments() {
   const totalPayment     = successPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <div className="w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50">
+    <div className="relative w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50 overflow-x-hidden">
+      <DecorativeBackground variant="minimal" />
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto">
 
@@ -162,38 +164,35 @@ export default function Payments() {
 
           {/* ═══════════ Summary Stats ═══════════ */}
           <div className="mb-5 bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-700">
-              <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 건수</p>
-                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
-                  {loading ? '—' : `${successPayments.length}건`}
-                </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-700">
+                <div className="py-5 text-center">
+                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 건수</p>
+                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                    {loading ? '—' : `${successPayments.length}건`}
+                  </p>
+                </div>
+                <div className="py-5 text-center">
+                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 금액</p>
+                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                    {loading ? '—' : formatPrice(totalPayment)}
+                  </p>
+                </div>
+                <div className="py-5 text-center">
+                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">전체 내역</p>
+                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                    {loading ? '—' : `${payments.length}건`}
+                  </p>
+                </div>
+                <div className="py-5 text-center">
+                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑</p>
+                  <p className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                    {loading ? '—' : formatCurrencyAmount(walletBalance)}
+                    <span className="block text-xs font-medium text-zinc-400 dark:text-zinc-400 mt-0.5">
+                      한도 {loading ? '—' : formatCurrencyAmount(walletLimit)}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 금액</p>
-                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
-                  {loading ? '—' : formatPrice(totalPayment)}
-                </p>
-              </div>
-              <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">전체 내역</p>
-                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
-                  {loading ? '—' : `${payments.length}건`}
-                </p>
-              </div>
-              <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑 한도</p>
-                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
-                  {loading ? '—' : formatCurrencyAmount(walletLimit)}
-                </p>
-              </div>
-              <div className="py-5 text-center">
-                <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑 잔액</p>
-                <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
-                  {loading ? '—' : formatCurrencyAmount(walletBalance)}
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* ═══════════ Search Bar ═══════════ */}

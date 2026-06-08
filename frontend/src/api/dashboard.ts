@@ -7,7 +7,6 @@ import type {
   DashboardCommandDetailResponse,
   DashboardCommandParseRequest,
   DashboardCommandParseResponse,
-  DashboardCommandProductLinksRequest,
   DashboardCommandSelectionRequest,
   DashboardCommandSelectionResponse,
   DashboardStatsSummary,
@@ -90,19 +89,6 @@ export async function fetchCommandDetail(
   );
   return data;
 }
-
-// 2026-05-20 수정: 상품 URL 제출
-export async function submitCommandProductLinks(
-  commandId: string,
-  payload: DashboardCommandProductLinksRequest,
-): Promise<DashboardCommandDetailResponse> {
-  const { data } = await shoppingApiClient.post<DashboardCommandDetailResponse>(
-    `/api/v1/commands/${commandId}/product-links`,
-    payload,
-  );
-  return data;
-}
-
 // 2026-05-20 수정: 상품 선택 전송
 export async function submitCommandSelection(
   commandId: string,
