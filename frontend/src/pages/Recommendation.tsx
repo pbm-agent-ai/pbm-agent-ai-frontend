@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { fetchRecommendationItems, fetchYoutubeReviews } from '@/api/recommendation';
 import type { RecommendationItem, YoutubeReviewVideo } from '@/types/recommendation';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 
 // ── 정적 카테고리 정의 (프론트 전용, 백엔드 enum 값과 매핑) ─────
 
@@ -176,7 +177,8 @@ export default function Recommendations() {
     : '';
 
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
+      <DecorativeBackground variant="minimal" />
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[1000px] mx-auto">
 

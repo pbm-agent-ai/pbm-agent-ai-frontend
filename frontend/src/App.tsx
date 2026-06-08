@@ -54,6 +54,11 @@ function AppLayout() {
  * 없거나 만료됐으면 /login으로 리다이렉트.
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
+  // ── UI 테스트용: .env에 VITE_BYPASS_AUTH=true 설정 시 인증 생략 ──
+  if (import.meta.env.VITE_BYPASS_AUTH === 'true') {
+    return <>{children}</>;
+  }
+
   const accessToken = useAuthStore((s) => s.accessToken);
   const logout      = useAuthStore((s) => s.logout);
   const [status, setStatus] = useState<'checking' | 'ok' | 'no-auth'>('checking');

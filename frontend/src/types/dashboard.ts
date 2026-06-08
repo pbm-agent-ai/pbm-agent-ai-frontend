@@ -1,4 +1,3 @@
-import type { ComponentType } from 'react';
 import type { ConditionCardItem } from './condition.ts';
 
 
@@ -17,12 +16,6 @@ export interface DashboardMonitoringItem {
   targetPrice: string;
 }
 //
-export interface DashboardStat {
-  label: string;
-  value: string;
-  color: string;
-  icon: ComponentType<{ className?: string }>;
-}
 
 // [추가] 핵심 지표 카드에 필요한 요약 수치다.
 export interface DashboardStatsSummary {
@@ -52,7 +45,7 @@ export interface DashboardParsedCommand {
   model?: string;
   color?: string;
   size?: string;
-  platforms?: string[];
+  platform?: string;
   maxPrice?: number;
   minPrice?: number;
   currency?: string;
@@ -94,7 +87,7 @@ export type DashboardCommandParsedData = DashboardParsedCommand;
 export interface DashboardMonitoringCreateData {
   commandId: number;
   status?: string;
-  parsedData: DashboardCommandParsedData;
+  parsedCommand: DashboardCommandParsedData;
   missingFields: string[];
 }
 
@@ -118,8 +111,8 @@ export interface DashboardMonitoringCreateRequest {
 }
 
 export interface DashboardCommandParseRequest {
-  // 2026-05-20 수정: 프론트에서 userId를 직접 보내야 함
-  userId: number;
+  // 2026-05-20 수정: userId는 서버에서 토큰으로 추출하므로 보내지 않음
+  userId?: number;
   commandText: string;
 }
 
@@ -203,7 +196,6 @@ export type DashboardCommandDetailResponse = DashboardCommandDetailSuccessRespon
 export interface DashboardCommandSelectionRequest {
   selectedProductIds: string[];
   forceResubscribe?: boolean;
-  /** 모니터링 마감일 (ISO 8601, null이면 백엔드 기본 7일 적용) */
   scheduledEndAt?: string | null;
 }
 
@@ -222,11 +214,6 @@ export interface DashboardCommandSelectionErrorResponse {
 export type DashboardCommandSelectionResponse =
   | DashboardCommandSelectionSuccessResponse
   | DashboardCommandSelectionErrorResponse;
-
-// 2026-05-20 수정: 상품 URL 제출 요청
-export interface DashboardCommandProductLinksRequest {
-  productUrls: string[];
-}
 
 // [추가] 대시보드 모니터링 목록 API 응답의 기본 형태다.
 export interface DashboardMonitoringResponseItem extends DashboardMonitoringItem {

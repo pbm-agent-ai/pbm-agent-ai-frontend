@@ -14,6 +14,7 @@ import { fetchConditionList } from '../api/condition';
 import { fetchPriceHistory } from '../api/priceHistory';
 import type { ConditionListItem } from '../types/condition';
 import type { PriceHistoryData } from '../types/priceHistory';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 
 // ── Mock Data (서버 미연결 시 fallback) ─────────────────────────
 
@@ -230,7 +231,8 @@ export default function PriceHistory() {
 
   // ── 렌더링 ──────────────────────────────────────────────────
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
+      <DecorativeBackground variant="minimal" />
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[1200px] mx-auto">
           {/* ═══════════ Page Header ═══════════ */}

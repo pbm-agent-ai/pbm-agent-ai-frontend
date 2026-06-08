@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '../components/ui/label';
 import type { SubscriptionItem, SubscriptionUpdateRequest } from '../types/condition';
 import { deleteSubscription, fetchSubscriptions, updateSubscription } from '../api/condition';
+import DecorativeBackground from '../components/ui/DecorativeBackground';
 
 type EditConditionForm = {
   id: number;
@@ -221,7 +222,8 @@ export default function Conditions() {
   };
 
   return (
-    <div className="w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans overflow-x-hidden">
+      <DecorativeBackground variant="minimal" />
       <div className="p-4 md:p-8 max-w-[1200px] mx-auto flex flex-col h-full">
 
         {/* 헤더 */}
