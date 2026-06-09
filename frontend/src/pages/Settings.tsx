@@ -145,7 +145,7 @@ export default function Settings() {
   const tabs = [
     { id: 'account' as const, label: '계정', icon: User },
     { id: 'notifications' as const, label: '알림', icon: Bell },
-    { id: 'payment' as const, label: '결제', icon: CreditCard },
+    { id: 'payment' as const, label: '지갑', icon: CreditCard },
     { id: 'integration' as const, label: '연동', icon: Plug },
   ];
 
@@ -487,7 +487,7 @@ export default function Settings() {
 
           {/* ═══════════ Tab Bar ═══════════ */}
           <div className="relative">
-            <div className="flex bg-white dark:bg-slate-800 rounded-t-[1.5rem]">
+            <div className="flex bg-white dark:bg-slate-800 rounded-t-[1.5rem] border-b border-slate-100 dark:border-slate-700/50">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -578,7 +578,9 @@ export default function Settings() {
               <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] rounded-[1.5rem] gap-4">
                 <CardHeader className="px-6 pt-5 pb-0">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-[#1E4D8C]" />
+                    <div className="w-9 h-9 rounded-xl bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/20 flex items-center justify-center">
+                      <Shield className="w-5 h-5 text-[#1E4D8C] dark:text-[#7BAEDA]" />
+                    </div>
                     <CardTitle className="text-slate-900 dark:text-slate-50">보안</CardTitle>
                   </div>
                   <CardDescription className="text-slate-500 dark:text-slate-300">
@@ -1446,8 +1448,8 @@ export default function Settings() {
           </div>
 
           {passwordError && (
-            <div className="px-6 pb-2">
-              <p className="text-sm font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/50">
+            <div className="px-6 pb-2 -mt-2">
+              <p className="text-sm font-medium text-rose-500 dark:text-rose-400">
                 {passwordError}
               </p>
             </div>

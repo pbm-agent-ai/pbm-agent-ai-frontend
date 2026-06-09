@@ -7,8 +7,8 @@ import 'react-day-picker/style.css';
 import { Sparkles, ListChecks, Sparkles as SparklesIcon, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
 import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection } from '../api/dashboard';
-import { toast } from '../stores/toastStore';
-import { confirmDialog } from '../stores/confirmDialogStore';
+import { toast } from '../store/toastStore';
+import { confirmDialog } from '../store/confirmDialogStore';
 import ToastContainer from '../components/ui/ToastContainer';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { Button } from '../components/ui/button';
@@ -82,7 +82,7 @@ const shoppingCommandExamples = [
 ];
 
 // 설명: 상단 타이틀에서 순환 표시할 단어들입니다.
-const rotatingCommandMessages = ['항공권', '생필품', '신발', '전자기기'];
+const rotatingCommandMessages = ['가전제품', '생필품', '신발', '전자제품'];
 
 
 
@@ -126,8 +126,6 @@ export default function Dashboard() {
   const [isRotatingMessageVisible, setIsRotatingMessageVisible] = useState(true);
   // 설명: 입력창 포커스 상태를 저장합니다.
   const [isCommandInputFocused, setIsCommandInputFocused] = useState(false);
-  // ── 조건 분석 버튼 호버 시 로봇 입 O자로 변경 ──
-  const [isAnalyzeBtnHovered, setIsAnalyzeBtnHovered] = useState(false);
   // 설명: 분석된 명령 미리보기를 저장합니다.
   const [parsedPreview, setParsedPreview] = useState<DashboardCommandParseSuccessResponse | null>(null);
   // 설명: 후보 상품 목록을 저장합니다.
@@ -137,6 +135,25 @@ export default function Dashboard() {
   const [selectionSubmitting, setSelectionSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFetchingCandidates, setIsFetchingCandidates] = useState(false);
+  // 설명: 분석 종료 후 어지러움 효과 (눈이 @로)
+  const [showDizzy, setShowDizzy] = useState(false);
+  // 설명: 어지러움 후 멍한 표정 (0.5초)
+  const [showNeutral, setShowNeutral] = useState(false);
+
+  useEffect(() => {
+    if (!showDizzy) return;
+    const timer = window.setTimeout(() => {
+      setShowDizzy(false);
+      setShowNeutral(true);
+    }, 2000);
+    return () => window.clearTimeout(timer);
+  }, [showDizzy]);
+
+  useEffect(() => {
+    if (!showNeutral) return;
+    const timer = window.setTimeout(() => setShowNeutral(false), 500);
+    return () => window.clearTimeout(timer);
+  }, [showNeutral]);
   const [showClarificationModal, setShowClarificationModal] = useState(false);
   // 설명: 추가 설명 입력값을 저장합니다.
   const [clarificationInput, setClarificationInput] = useState('');
@@ -371,6 +388,8 @@ export default function Dashboard() {
       return;
     }
 
+    const analyzeStartTime = Date.now();
+
     try {
       setIsAnalyzing(true);
 
@@ -437,9 +456,9 @@ export default function Dashboard() {
             maxPrice: 1000000,
             mode: 'ALERT_ONLY',
           },
-          missingRequiredFields: [],
+          missingRequiredFields: ['maxPrice'],
           ambiguousFields: [],
-          needsClarification: false,
+          needsClarification: true,
           confidence: 0.98,
           commandId: "999999",
         },
@@ -462,7 +481,14 @@ export default function Dashboard() {
 
       toast.warning(`${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`);
     } finally {
+      // 설명: 최소 1.5초간 analyzing 유지 (안테나 회전을 확인할 수 있도록)
+      const minDuration = 1500;
+      const elapsed = Date.now() - analyzeStartTime;
+      if (elapsed < minDuration) {
+        await new Promise((r) => window.setTimeout(r, minDuration - elapsed));
+      }
       setIsAnalyzing(false);
+      setShowDizzy(true);
     }
   };
 
@@ -567,6 +593,19 @@ export default function Dashboard() {
       <section className="bg-white/10 dark:bg-slate-950/20 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden z-10">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF]"></div>
         <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center relative z-10">
+          {/* ── 마스코트 로고 아이콘 ── */}
+          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] mb-5 relative overflow-hidden border border-white/10">
+            <div className="absolute inset-0 rounded-2xl border border-white/20 pointer-events-none" />
+            {isAnalyzing ? (
+              <LogoIcon className="w-12 h-12 animate-spin" animated={false} mouth="open" />
+            ) : showDizzy ? (
+              <LogoIcon className="w-12 h-12" animated={false} dizzy />
+            ) : showNeutral ? (
+              <LogoIcon className="w-12 h-12" animated={false} mouth="auto" />
+            ) : (
+              <LogoIcon className="w-12 h-12" animated={true} mouth="smile" analyzing />
+            )}
+          </div>
           <div className="mb-4 flex h-12 items-center text-4xl font-medium text-slate-700 dark:text-slate-300 md:text-4xl">
             <span className="relative inline-grid h-12 items-center overflow-hidden text-[#1E4D8C] dark:text-[#7BAEDA] transition-[width] duration-300">
               <span className="invisible whitespace-nowrap font-bold">{rotatingCommandMessages[rotatingMessageIndex]}</span>
@@ -623,14 +662,7 @@ export default function Dashboard() {
                   disabled={isAnalyzing}
                   className="bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] dark:hover:from-[#7BAEDA] hover:to-[#0F3460] dark:hover:to-[#1E4D8C] hover:-translate-y-0.5 rounded-xl h-12 px-8 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 w-full sm:w-auto group border-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   onClick={() => void handleAnalyzeClick()}
-                  onMouseEnter={() => setIsAnalyzeBtnHovered(true)}
-                  onMouseLeave={() => setIsAnalyzeBtnHovered(false)}
                 >
-                  {isAnalyzing ? (
-                    <LogoIcon className="w-4 h-4 mr-2 animate-spin" animated={false} mouth="open" />
-                  ) : (
-                    <LogoIcon className="w-4 h-4 mr-2" animated={false} mouth={isAnalyzeBtnHovered ? 'open' : 'auto'} />
-                  )}
                   {isAnalyzing ? '분석 중...' : '조건 분석하기'}
                 </Button>
               </div>
@@ -643,7 +675,7 @@ export default function Dashboard() {
                     <p className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">혹시 빠뜨린 내용이 있나요?</p>
                   </div>
                   <Button type="button" onClick={() => setShowClarificationModal(true)} className="rounded-xl bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white">
-                    입력 보완하기
+                    조건 보완하기
                   </Button>
                 </div>
               )}
@@ -716,7 +748,7 @@ export default function Dashboard() {
                               ? format(scheduledEndAt, 'yyyy년 M월 d일', { locale: ko })
                               : '날짜를 선택해주세요'}
                           </div>
-                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex justify-center">
+                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-2 overflow-hidden flex justify-center">
                             <DayPicker
                               mode="single"
                               selected={scheduledEndAt}
@@ -802,8 +834,7 @@ export default function Dashboard() {
                               ? format(scheduledEndAt, 'yyyy년 M월 d일', { locale: ko })
                               : '날짜를 선택해주세요'}
                           </div>
-                          {/* classNames 오버라이드 없이 기본 rdp 스타일 유지 — replace 방식이므로 root 클래스 교체 시 레이아웃 깨짐 */}
-                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden flex justify-center">
+                          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 p-2 overflow-hidden flex justify-center">
                             <DayPicker
                               mode="single"
                               selected={scheduledEndAt}
@@ -866,18 +897,15 @@ export default function Dashboard() {
                                 const isNumericField = field === 'maxPrice' || field === 'minPrice';
 
                                 return (
-                                  <div key={field} className="relative">
-                                    <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400 rounded-full" />
-                                    <div className="pl-4">
-                                      <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">{config.label}</Label>
-                                      <Input
-                                        value={clarificationAnswers[field] ?? ''}
-                                        onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
-                                        placeholder={config.placeholder}
-                                        inputMode={isNumericField ? 'numeric' : 'text'}
-                                        className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 rounded-xl h-10 text-sm transition-all"
-                                      />
-                                    </div>
+                                  <div key={field}>
+                                    <Label className="text-slate-700 dark:text-slate-300 text-xs font-semibold mb-1.5 block">{config.label} <span className="text-amber-500 ml-0.5">*</span></Label>
+                                    <Input
+                                      value={clarificationAnswers[field] ?? ''}
+                                      onChange={(e) => setClarificationAnswers((prev) => ({ ...prev, [field]: e.target.value }))}
+                                      placeholder={config.placeholder}
+                                      inputMode={isNumericField ? 'numeric' : 'text'}
+                                      className="bg-white dark:bg-slate-900 border-amber-200 dark:border-amber-900/50 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-amber-500/20 focus-visible:border-amber-500 rounded-xl h-10 text-sm transition-all"
+                                    />
                                   </div>
                                 );
                               })}
@@ -953,7 +981,7 @@ export default function Dashboard() {
               {/* 상품 후보 로딩 중 */}
               {isFetchingCandidates && (
                 <div className="mx-2 mt-2 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 flex flex-col items-center gap-3 shadow-sm">
-                  <LogoIcon className="w-7 h-7 animate-spin" animated={false} />
+                  <LogoIcon className="w-7 h-7" animated={false} analyzing={isFetchingCandidates} />
                   <p className="text-sm text-slate-500 dark:text-slate-300 font-medium">상품 검색 중입니다...</p>
                   <p className="text-xs text-slate-400 dark:text-slate-500">후보 상품을 불러오고 있어요</p>
                 </div>
@@ -961,7 +989,7 @@ export default function Dashboard() {
 
               {/* 설명: 후보 상품 목록과 선택 버튼을 보여줍니다. */}
               {!isFetchingCandidates && candidates.length > 0 ? (
-                <div className="mx-2 mt-4">
+                <div className="-mx-4 -mb-4 mt-4 bg-slate-50/80 dark:bg-slate-900/50 px-5 py-6 border-t border-slate-200 dark:border-slate-800 shadow-[inset_0_4px_6px_-4px_rgba(0,0,0,0.05)]">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-slate-900 dark:text-slate-50">추천 상품</h3>
@@ -1012,7 +1040,7 @@ export default function Dashboard() {
                             className={`group relative flex gap-3 rounded-2xl p-3.5 cursor-pointer transition-all duration-200 ${
                               isSelected
                                 ? 'border-2 border-[#1E4D8C] dark:border-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 shadow-[0_4px_12px_rgba(30,77,140,0.08)]'
-                                : 'border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/40 hover:shadow-md hover:-translate-y-0.5'
+                                : 'border border-white dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_2px_10px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] hover:-translate-y-1'
                             }`}
                           >
                             <div className="relative shrink-0">

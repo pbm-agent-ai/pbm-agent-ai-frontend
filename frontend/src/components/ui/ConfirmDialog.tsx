@@ -1,4 +1,4 @@
-import { useConfirmDialogStore } from '../../stores/confirmDialogStore';
+import { useConfirmDialogStore } from '../../store/confirmDialogStore';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from './button';
 

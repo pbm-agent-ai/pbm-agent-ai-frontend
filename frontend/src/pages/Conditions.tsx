@@ -1,6 +1,10 @@
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import { Search, ListChecks, ExternalLink } from 'lucide-react';
+import { DayPicker } from 'react-day-picker';
+import { format, addDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import 'react-day-picker/style.css';
+import { Search, ListChecks, ExternalLink, CalendarDays, ChevronDown } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/dialog';
@@ -8,6 +12,7 @@ import { Label } from '../components/ui/label';
 import type { SubscriptionItem, SubscriptionUpdateRequest } from '../types/condition';
 import { deleteSubscription, fetchSubscriptions, updateSubscription } from '../api/condition';
 import DecorativeBackground from '../components/ui/DecorativeBackground';
+import Popover from '../components/ui/popover';
 
 type EditConditionForm = {
   id: number;
@@ -57,8 +62,15 @@ export default function Conditions() {
           setLoadErrorMessage(res.message || '구독 목록을 불러오지 못했습니다.');
         }
       } catch {
-        setConditions([]);
-        setLoadErrorMessage('구독 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        // 설명: API 연결 실패 시 mock 데이터로 UI 미리보기
+        setConditions([
+          { id: 1, commandId: 'cmd-1', platform: 'coupang', productId: 'prod-1', productUrl: '#', snapshotTitle: '삼성 갤럭시 버즈 FE 블루투스 이어폰', snapshotPrice: 89000, snapshotImageUrl: 'https://via.placeholder.com/128/1E4D8C/FFFFFF?text=버즈', searchKeyword: '갤럭시 버즈 FE', targetPrice: 100000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
+          { id: 2, commandId: 'cmd-2', platform: 'naver', productId: 'prod-2', productUrl: '#', snapshotTitle: 'Apple AirPods Pro 2세대', snapshotPrice: 289000, snapshotImageUrl: 'https://via.placeholder.com/128/0F3460/FFFFFF?text=에어팟', searchKeyword: '에어팟 프로', targetPrice: 300000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
+          { id: 3, commandId: 'cmd-3', platform: 'aliexpress', productId: 'prod-3', productUrl: '#', snapshotTitle: 'QCY T13 PRO 무선 이어폰', snapshotPrice: 19800, snapshotImageUrl: 'https://via.placeholder.com/128/FF6B6B/FFFFFF?text=QCY', searchKeyword: 'QCY T13', targetPrice: 25000, currency: 'KRW', intent: 'AUTO_PAYMENT', status: 'ACTIVE', checkIntervalMinutes: 30, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 1800000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
+          { id: 4, commandId: 'cmd-4', platform: 'coupang', productId: 'prod-4', productUrl: '#', snapshotTitle: '다이슨 에어랩 멀티스타일러 컴플리트', snapshotPrice: 599000, snapshotImageUrl: 'https://via.placeholder.com/128/1E4D8C/FFFFFF?text=다이슨', searchKeyword: '다이슨 에어랩', targetPrice: 550000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
+          { id: 5, commandId: 'cmd-5', platform: 'naver', productId: 'prod-5', productUrl: '#', snapshotTitle: '인천-오사카 왕복 항공권', snapshotPrice: 248000, snapshotImageUrl: 'https://via.placeholder.com/128/03c75a/FFFFFF?text=항공', searchKeyword: '인천 오사카', targetPrice: 250000, currency: 'KRW', intent: 'AUTO_PAYMENT', status: 'ACTIVE', checkIntervalMinutes: 120, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 7200000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
+        ]);
+        setLoadErrorMessage('');
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +86,6 @@ export default function Conditions() {
   const getPlatformName = (platform: string): string => {
     const map: Record<string, string> = {
       naver: '네이버쇼핑',
-      naver_flight: '네이버항공권',
       aliexpress: '알리익스프레스',
     };
     return map[platform] || platform;
@@ -83,7 +94,6 @@ export default function Conditions() {
   const getPlatformColor = (platform: string): string => {
     const map: Record<string, string> = {
       naver: '#03c75a',
-      naver_flight: '#03c75a',
       aliexpress: '#ff6b6b',
     };
     return map[platform] || '#1E4D8C';
@@ -232,8 +242,8 @@ export default function Conditions() {
             <ListChecks className="w-6 h-6 md:w-7 md:h-7" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">모니터링 구독</h1>
-            <p className="text-slate-500 dark:text-slate-300 mt-1 font-medium">구독 중인 상품의 가격을 모니터링합니다.</p>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50 tracking-tight">조건 관리</h1>
+            <p className="text-slate-500 dark:text-slate-300 mt-1 font-medium">등록된 조건의 가격을 모니터링합니다.</p>
           </div>
         </div>
 
@@ -244,7 +254,7 @@ export default function Conditions() {
         )}
 
         {/* 메인 리스트 */}
-        <div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid auto-rows-min grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
           {isLoading && (
             <div className="col-span-full flex justify-center py-20">
               <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
@@ -255,14 +265,12 @@ export default function Conditions() {
           )}
 
           {!isLoading && conditions.length === 0 && (
-            <div className="col-span-full">
-              <div className="py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-800 rounded-[1.5rem] border-2 border-dashed border-slate-200 dark:border-slate-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
-                <div className="w-16 h-16 rounded-full bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 border border-[#1E4D8C]/10 flex items-center justify-center mb-4 text-slate-400 dark:text-slate-400">
-                  <Search className="w-8 h-8" />
-                </div>
-                <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">구독 중인 상품이 없습니다</h4>
-                <p className="text-slate-500 dark:text-slate-300">새로운 모니터링 구독을 추가해보세요.</p>
+            <div className="col-span-full py-20 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-full bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 border border-[#1E4D8C]/10 flex items-center justify-center mb-4 text-slate-400 dark:text-slate-400">
+                <Search className="w-8 h-8" />
               </div>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-1">구독 중인 상품이 없습니다</h4>
+              <p className="text-slate-500 dark:text-slate-300">새로운 모니터링 구독을 추가해보세요.</p>
             </div>
           )}
 
@@ -273,7 +281,7 @@ export default function Conditions() {
             return (
               <div
                 key={item.id}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15,23,42,0.08)] transition-all duration-200 flex h-full flex-col group relative"
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-6 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:border-[#1E4D8C]/40 dark:hover:border-[#7BAEDA]/50 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgb(15,23,42,0.08)] transition-all duration-200 flex flex-col group relative"
               >
                 {/* 상단: 플랫폼 배지 + 모드 */}
                 <div className="mb-3 flex items-center justify-between gap-2">
@@ -296,14 +304,18 @@ export default function Conditions() {
                   </Badge>
                 </div>
 
-                {/* 상품 이미지 */}
+                {/* 상품 이미지 — 조건 카드 크기에 맞춰 대시보드와 동일한 방식 */}
                 {item.snapshotImageUrl && (
-                  <div className="mb-3 -mx-6 overflow-hidden">
+                  <div className="mb-3 -mx-6 overflow-hidden bg-slate-50 dark:bg-slate-900">
                     <img
                       src={item.snapshotImageUrl}
                       alt={item.snapshotTitle}
                       className="w-full h-[250px] object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250"><rect width="500" height="250" fill="%23F1F5F9"/><text x="250" y="130" font-family="sans-serif" font-size="18" fill="%2394A3B8" text-anchor="middle">이미지 없음</text></svg>';
+                        e.currentTarget.classList.add('object-contain', 'p-10');
+                      }}
                     />
                   </div>
                 )}
@@ -439,9 +451,9 @@ export default function Conditions() {
           {editingCondition && (
             <form onSubmit={handleSaveEditCondition}>
               <DialogHeader className="px-6 pt-6 pb-2">
-                <DialogTitle className="text-slate-900 dark:text-slate-50 text-xl font-bold">구독 수정</DialogTitle>
+                <DialogTitle className="text-slate-900 dark:text-slate-50 text-xl font-bold">조건 수정</DialogTitle>
                 <DialogDescription className="text-slate-700 dark:text-slate-300">
-                  모니터링 구독 조건을 수정합니다.
+                  모니터링 조건을 수정합니다.
                 </DialogDescription>
               </DialogHeader>
 
@@ -454,7 +466,11 @@ export default function Conditions() {
                         src={editingCondition.snapshotImageUrl}
                         alt={editingCondition.snapshotTitle}
                         className="w-full h-[250px] object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="500" height="250"><rect width="500" height="250" fill="%23F1F5F9"/><text x="250" y="115" font-family="sans-serif" font-size="16" fill="%2394A3B8" text-anchor="middle">이미지 없음</text></svg>';
+                        e.currentTarget.classList.add('object-contain', 'p-8');
+                      }}
                       />
                     </div>
                   )}
@@ -478,7 +494,7 @@ export default function Conditions() {
                       type="button"
                       variant="outline"
                       onClick={() => setEditingCondition((prev) => (prev ? { ...prev, intent: 'ALERT_ONLY' } : prev))}
-                      className={editingCondition.intent === 'ALERT_ONLY' ? 'border-[#f0a040] bg-[#f0a040]/10 text-[#b45309] hover:bg-[#f0a040]/20 rounded-xl h-11' : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl h-11'}
+                      className={editingCondition.intent === 'ALERT_ONLY' ? 'border-[#f0a040] bg-[#fef3c7] text-[#b45309] shadow-inner rounded-xl h-11 font-bold' : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl h-11'}
                     >
                       알람 전용
                     </Button>
@@ -486,7 +502,7 @@ export default function Conditions() {
                       type="button"
                       variant="outline"
                       onClick={() => setEditingCondition((prev) => (prev ? { ...prev, intent: 'AUTO_PAYMENT' } : prev))}
-                      className={editingCondition.intent === 'AUTO_PAYMENT' ? 'border-[#1E4D8C] bg-[#F9F7F7] text-[#1E4D8C] dark:bg-[#1E4D8C]/10 hover:bg-[#F9F7F7]/80 dark:hover:bg-[#1E4D8C]/20 rounded-xl h-11' : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl h-11'}
+                      className={editingCondition.intent === 'AUTO_PAYMENT' ? 'border-[#1E4D8C] bg-[#1E4D8C]/10 text-[#1E4D8C] dark:bg-[#7BAEDA]/20 dark:text-[#7BAEDA] shadow-inner rounded-xl h-11 font-bold' : 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl h-11'}
                     >
                       자동 결제
                     </Button>
@@ -501,9 +517,9 @@ export default function Conditions() {
                       step="1000"
                       value={editingCondition.targetPrice}
                       onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, targetPrice: e.target.value } : prev))}
-                      className="w-full bg-slate-100 dark:bg-slate-900 border border-[#1E4D8C]/40 rounded-xl px-4 py-3 pr-8 text-sm font-black text-[#0F3460] focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
+                      className="w-full bg-slate-100 dark:bg-slate-900 border border-[#1E4D8C]/40 rounded-xl px-4 py-3 pr-10 text-sm font-bold text-[#0F3460] dark:text-[#7BAEDA] focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400 dark:text-slate-400 font-semibold">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500 dark:text-slate-300 font-medium">
                       {editingCondition.currency === 'USD' ? '$' : editingCondition.currency === 'JPY' ? '¥' : '원'}
                     </span>
                   </div>
@@ -512,12 +528,39 @@ export default function Conditions() {
 
                 <div className="space-y-2">
                   <Label className="text-slate-700 dark:text-slate-300 text-sm font-semibold">만료일</Label>
-                  <input
-                    type="date"
-                    value={editingCondition.editExpiryDate ?? ''}
-                    onChange={(e) => setEditingCondition((prev) => (prev ? { ...prev, editExpiryDate: e.target.value } : prev))}
-                    className="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-[#0f172a] dark:text-slate-50 focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] focus:ring-1 focus:ring-[#1E4D8C]/30 dark:focus:ring-[#7BAEDA]/30 transition-all outline-none"
-                  />
+                  <Popover
+                    trigger={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="group w-full flex items-center justify-between font-normal bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 h-auto text-sm text-[#0f172a] dark:text-slate-50 transition-colors hover:bg-slate-200/50 dark:hover:bg-slate-800 focus-visible:ring-1 focus-visible:ring-[#1E4D8C]/30 dark:focus-visible:ring-[#7BAEDA]/30 focus-visible:border-[#1E4D8C] dark:focus-visible:border-[#7BAEDA] outline-none"
+                      >
+                        <div className="flex items-center">
+                          <CalendarDays className="w-4 h-4 mr-2 shrink-0 text-slate-400 dark:text-slate-500" />
+                          <span className={editingCondition.editExpiryDate ? 'text-[#0f172a] dark:text-slate-50' : 'text-slate-400 dark:text-slate-500'}>
+                            {editingCondition.editExpiryDate
+                              ? format(new Date(editingCondition.editExpiryDate), 'yyyy년 M월 d일', { locale: ko })
+                              : '날짜를 선택해주세요'}
+                          </span>
+                        </div>
+                        <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                      </Button>
+                    }
+                  >
+                    <div className="p-2 bg-white dark:bg-slate-800">
+                      <DayPicker
+                        mode="single"
+                        selected={editingCondition.editExpiryDate ? new Date(editingCondition.editExpiryDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setEditingCondition((prev) => (prev ? { ...prev, editExpiryDate: date.toISOString().split('T')[0] } : prev));
+                          }
+                        }}
+                        locale={ko}
+                        disabled={{ before: addDays(new Date(), 1) }}
+                      />
+                    </div>
+                  </Popover>
                 </div>
 
                 {/* 메타 정보 (읽기 전용) */}
