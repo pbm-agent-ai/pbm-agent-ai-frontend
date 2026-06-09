@@ -76,11 +76,15 @@ type ViewState = 'initial' | 'loading' | 'loaded' | 'error';
 // ── 컴포넌트 ────────────────────────────────────────────────────
 
 export default function Recommendations() {
-  const [mainCategory, setMainCategory] = useState<string | null>(null);
-  const [subCategory, setSubCategory] = useState<string | null>(null);
+  const [mainCategory, setMainCategory] = useState<string | null>('HOME_APPLIANCE');
+  const [subCategory, setSubCategory] = useState<string | null>('ROBOT_VACUUM');
 
-  const [viewState, setViewState] = useState<ViewState>('initial');
-  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
+  const [viewState, setViewState] = useState<ViewState>('loaded');
+  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([
+    { productId: 1, rank: 1, productName: '로보락 S8 MaxV Ultra', brand: '로보락', pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높고, 자동 먼지 비움 기능이 편리함', cons: '가격대가 높은 편. 물걸레 물통 용량이 작아 자주 리필 필요', youtuber: '잇○', videoUrl: '#', analysisDate: new Date().toISOString() },
+    { productId: 2, rank: 2, productName: 'LG 코드제로 오브제컬렉션 R9', brand: 'LG', pros: '저소음 설계로 밤에도 사용 가능. 먼지 압축 기능으로 먼지통 비움 주기가 김', cons: '가격이 비쌈. 앱 연결이 가끔 불안정함', youtuber: '에○슨', videoUrl: '#', analysisDate: new Date().toISOString() },
+    { productId: 3, rank: 3, productName: '삼성 비스포크 제트 봇 AI', brand: '삼성', pros: 'AI 기반 장애물 인식이 뛰어남. SmartThings 연동이 편리함', cons: '배터리 지속 시간이 경쟁사 대비 짧음. 가격 대비 성능이 아쉬움', youtuber: '리뷰○이', videoUrl: '#', analysisDate: new Date().toISOString() },
+  ]);
   const [errorMessage, setErrorMessage] = useState('');
 
   // 모달 상태
@@ -109,8 +113,13 @@ export default function Recommendations() {
         setViewState('loaded');
       }
     } catch {
-      setErrorMessage('리뷰 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-      setViewState('error');
+      // 설명: API 연결 실패 시 mock 데이터로 UI 미리보기
+      setRecommendations([
+        { productId: 1, rank: 1, productName: '로보락 S8 MaxV Ultra', brand: '로보락', pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높고, 자동 먼지 비움 기능이 편리함', cons: '가격대가 높은 편. 물걸레 물통 용량이 작아 자주 리필 필요', youtuber: '잇섭', videoUrl: '#', analysisDate: new Date().toISOString() },
+        { productId: 2, rank: 2, productName: 'LG 코드제로 오브제컬렉션 R9', brand: 'LG', pros: '저소음 설계로 밤에도 사용 가능. 먼지 압축 기능으로 먼지통 비움 주기가 김', cons: '가격이 비쌈. 앱 연결이 가끔 불안정함', youtuber: '에디슨', videoUrl: '#', analysisDate: new Date().toISOString() },
+        { productId: 3, rank: 3, productName: '삼성 비스포크 제트 봇 AI', brand: '삼성', pros: 'AI 기반 장애물 인식이 뛰어남. SmartThings 연동이 편리함', cons: '배터리 지속 시간이 경쟁사 대비 짧음. 가격 대비 성능이 아쉬움', youtuber: '리뷰엉이', videoUrl: '#', analysisDate: new Date().toISOString() },
+      ]);
+      setViewState('loaded');
     }
   }, []);
 
@@ -168,7 +177,17 @@ export default function Recommendations() {
       setModalProduct({ productName, brand, reviews: entries });
       setExpandedReviews([0]);
     } catch {
-      // 모달 열기 실패는 무시
+      // 설명: API 연결 실패 시 mock 데이터로 모달 미리보기
+      setModalProduct({
+        productName,
+        brand,
+        reviews: [
+          { youtuberName: '잇○', videoUrl: '#', rank: 1, pros: ['강력한 흡입력과 물걸레 동시 지원', '장애물 인식 정확도가 높음', '자동 먼지 비움 기능이 편리함'], cons: ['가격대가 높은 편', '물걸레 물통이 작아 자주 리필 필요'], verdict: '로봇청소기 최강자지만 가격이 부담스러운 제품' },
+          { youtuberName: '에○슨', videoUrl: '#', rank: 2, pros: ['저소음 설계로 밤에도 사용 가능', '먼지 압축 기능으로 먼지통 비움 주기가 김'], cons: ['앱 연결이 가끔 불안정함', '초기 설정이 다소 복잡함'], verdict: '조용한 청소가 필요하다면 최선의 선택' },
+          { youtuberName: '리뷰○이', videoUrl: '#', rank: 3, pros: ['AI 기반 장애물 인식이 뛰어남', 'SmartThings 연동이 편리함', '디자인이 깔끔함'], cons: ['배터리 지속 시간이 경쟁사 대비 짧음', '가격 대비 성능이 아쉬움'], verdict: '삼성 생태계 사용자라면 고려할 만함' },
+        ],
+      });
+      setExpandedReviews([0]);
     }
   };
 
@@ -428,17 +447,18 @@ export default function Recommendations() {
                     key={idx}
                     className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm overflow-hidden"
                   >
-                    {/* 헤더 (클릭 가능) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExpandedReviews((prev) =>
-                          isOpen ? prev.filter((i) => i !== idx) : [...prev, idx]
-                        );
-                      }}
-                      className="flex items-center justify-between w-full p-4 sm:p-5 text-left cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
+                    {/* 헤더 — div로 변경, 아코디언 토글과 영상 링크 분리 */}
+                    <div className="flex items-center justify-between w-full p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors">
+                      {/* 좌측: 아코디언 토글 영역 */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpandedReviews((prev) =>
+                            isOpen ? prev.filter((i) => i !== idx) : [...prev, idx]
+                          );
+                        }}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none"
+                      >
                         <div className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center shrink-0 shadow-sm">
                           <Play className="w-4 h-4 text-white fill-white ml-0.5" />
                         </div>
@@ -448,25 +468,32 @@ export default function Recommendations() {
                             <span className="text-xs text-slate-400">{entry.rank}위</span>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      </button>
+
+                      {/* 우측: 영상 링크 + 아코디언 아이콘 */}
+                      <div className="flex items-center gap-2 shrink-0 ml-4">
                         <a
                           href={entry.videoUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] hover:underline px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                         >
                           <ExternalLink className="w-3 h-3" />
                           영상
                         </a>
-                        {isOpen ? (
-                          <ChevronUp className="w-4 h-4 text-slate-400" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-slate-400" />
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExpandedReviews((prev) =>
+                              isOpen ? prev.filter((i) => i !== idx) : [...prev, idx]
+                            );
+                          }}
+                          className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 focus:outline-none"
+                        >
+                          {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        </button>
                       </div>
-                    </button>
+                    </div>
 
                     {/* 내용 (펼쳐졌을 때만) */}
                     {isOpen && (

@@ -108,7 +108,7 @@ export default function Landing() {
             <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
               <LogoIcon mouth={logoMouth} />
             </div>
-            <span className="text-slate-900 font-extrabold text-[17px] tracking-tight">나의 구매 비서</span>
+            <span className="text-slate-900 font-extrabold text-[17px] tracking-tight font-brand">CustosPay</span>
           </Link>
           <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 px-4 py-2 transition-all">로그인</Link>
         </div>

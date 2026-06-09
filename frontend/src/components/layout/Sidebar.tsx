@@ -109,7 +109,7 @@ export function Sidebar() {
               <LogoIcon mouth={logoMouth} followMouse={!logoHovered} resetEyes={logoHovered} />
             </div>
             <div className="hidden sm:block">
-              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">나의 구매 비서</div>
+              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">CustosPay</div>
             </div>
           </Link>
           

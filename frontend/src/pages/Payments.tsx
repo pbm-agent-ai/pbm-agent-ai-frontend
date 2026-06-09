@@ -102,14 +102,33 @@ export default function Payments() {
     const load = async () => {
       // fetchAuthMe를 호출해 userId를 store에 보장한다.
       await fetchAuthMe();
-      const [data, wallet, balance] = await Promise.all([
-        fetchMyPayments(),
-        fetchMyWallet(),
-        fetchMyWalletBalance(),
-      ]);
+      let data: PaymentSummary[] = [];
+      try {
+        const [fetchedData, wallet, balance] = await Promise.all([
+          fetchMyPayments(),
+          fetchMyWallet(),
+          fetchMyWalletBalance(),
+        ]);
+        data = fetchedData;
+        setWalletLimit(wallet?.walletLimit ?? null);
+        setWalletBalance(balance?.pbmBalance ?? null);
+      } catch {
+        // API 실패 시 아래 mock 데이터 사용
+      }
+      // 설명: API 미연결 시 mock 데이터로 UI 미리보기
+      if (!data || data.length === 0) {
+        data = [
+          { paymentId: 'pay-001', userId: 1, productName: '쿠팡에서 갤럭시 버즈 FE', amount: 89000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 86400000).toISOString() },
+          { paymentId: 'pay-002', userId: 1, productName: '네이버쇼핑에서 에어팟 프로 2세대', amount: 289000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 172800000).toISOString() },
+          { paymentId: 'pay-003', userId: 1, productName: '알리에서 QCY T13 PRO', amount: 19800, currency: 'KRW', status: 'PENDING', createdAt: new Date(Date.now() - 259200000).toISOString() },
+          { paymentId: 'pay-004', userId: 1, productName: '네이버항공 인천-오사카 왕복', amount: 248000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 345600000).toISOString() },
+          { paymentId: 'pay-005', userId: 1, productName: '쿠팡에서 다이슨 에어랩', amount: 599000, currency: 'KRW', status: 'FAILED', createdAt: new Date(Date.now() - 432000000).toISOString() },
+          { paymentId: 'pay-006', userId: 1, productName: '네이버쇼핑에서 닌텐도 스위치 OLED', amount: 389000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 518400000).toISOString() },
+        ];
+        setWalletLimit(5000000);
+        setWalletBalance(1250000);
+      }
       setPayments(data);
-      setWalletLimit(wallet?.walletLimit ?? null);
-      setWalletBalance(balance?.pbmBalance ?? null);
       setLoading(false);
     };
     void load();
@@ -146,7 +165,7 @@ export default function Payments() {
   const totalPayment     = successPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
-    <div className="relative w-full bg-zinc-50 dark:bg-zinc-950 min-h-screen font-sans text-zinc-900 dark:text-zinc-50 overflow-x-hidden">
+    <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
       <DecorativeBackground variant="minimal" />
       <section className="py-16 px-4 md:px-8">
         <div className="max-w-[820px] mx-auto">
@@ -157,37 +176,38 @@ export default function Payments() {
               <CreditCard className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-50">결제 내역</h1>
-              <p className="text-zinc-700 dark:text-zinc-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-slate-50">결제 내역</h1>
+              <p className="text-slate-700 dark:text-slate-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
             </div>
           </div>
 
           {/* ═══════════ Summary Stats ═══════════ */}
-          <div className="mb-5 bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden">
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-700">
+          <div className="mb-5 bg-white dark:bg-slate-800 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460]"></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-200 dark:divide-slate-700">
                 <div className="py-5 text-center">
-                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 건수</p>
-                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">결제 건수</p>
+                  <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
                     {loading ? '—' : `${successPayments.length}건`}
                   </p>
                 </div>
                 <div className="py-5 text-center">
-                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">결제 금액</p>
-                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">결제 금액</p>
+                  <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
                     {loading ? '—' : formatPrice(totalPayment)}
                   </p>
                 </div>
                 <div className="py-5 text-center">
-                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">전체 내역</p>
-                  <p className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">전체 내역</p>
+                  <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
                     {loading ? '—' : `${payments.length}건`}
                   </p>
                 </div>
                 <div className="py-5 text-center">
-                  <p className="text-[11px] font-medium text-zinc-400 dark:text-zinc-400 tracking-wide">지갑</p>
-                  <p className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50 mt-1.5">
+                  <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">지갑</p>
+                  <p className="text-lg font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
                     {loading ? '—' : formatCurrencyAmount(walletBalance)}
-                    <span className="block text-xs font-medium text-zinc-400 dark:text-zinc-400 mt-0.5">
+                    <span className="block text-xs font-medium text-slate-400 dark:text-slate-400 mt-0.5">
                       한도 {loading ? '—' : formatCurrencyAmount(walletLimit)}
                     </span>
                   </p>
@@ -198,13 +218,13 @@ export default function Payments() {
           {/* ═══════════ Search Bar ═══════════ */}
           <div className="mb-5">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="상품명 검색"
-                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 dark:text-zinc-300 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-zinc-400"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-slate-300 rounded-xl outline-none focus:border-[#1E4D8C] dark:focus:border-[#7BAEDA] transition-colors placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -212,7 +232,7 @@ export default function Payments() {
           {/* ═══════════ Filters ═══════════ */}
           <div className="flex items-center gap-2 mb-6 flex-wrap">
             <Select value={selectedDate} onValueChange={setSelectedDate}>
-              <SelectTrigger className="w-[120px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[120px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 기간" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[140px]">
@@ -223,7 +243,7 @@ export default function Payments() {
             </Select>
 
             <Select value={selectedAmount} onValueChange={setSelectedAmount}>
-              <SelectTrigger className="w-[140px] bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
+              <SelectTrigger className="w-[140px] bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs sm:text-sm rounded-xl h-9 px-3.5">
                 <SelectValue placeholder="전체 금액" />
               </SelectTrigger>
               <SelectContent className="rounded-xl min-w-[160px]">
@@ -252,29 +272,34 @@ export default function Payments() {
                 return (
                   <div
                     key={payment.paymentId}
-                    className="rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] overflow-hidden"
+                    className="relative rounded-[1.5rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:-translate-y-0.5 hover:shadow-lg hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/40 transition-all duration-200 overflow-hidden"
                   >
+                    {/* ── 상태별 악센트 컬러 바 (상단) ── */}
+                    <div className={`absolute inset-x-0 top-0 h-1 rounded-t-[1.5rem] ${
+                      payment.status === 'SUCCESS' ? 'bg-[#1E4D8C] dark:bg-[#7BAEDA]' :
+                      payment.status === 'PENDING' ? 'bg-amber-400' : 'bg-red-500'
+                    }`} />
                     {/* ── Card Header ── */}
-                    <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-700 gap-2">
+                    <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-700 gap-2">
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-50 shrink-0">
+                        <span className="text-sm font-bold text-slate-900 dark:text-slate-50 shrink-0">
                           {formatDate(payment.createdAt)}
                         </span>
-                        <span className="text-[10px] sm:text-[11px] text-zinc-400 dark:text-zinc-400 font-mono truncate">
+                        <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-400 font-mono truncate">
                           {toOrderNumber(payment.paymentId)}
                         </span>
                       </div>
                       <div className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold shrink-0 ${statusStyle.bg}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`} />
-                        <span className="text-zinc-900 dark:text-zinc-100">{statusStyle.label}</span>
+                        <span className={`${payment.status === 'PENDING' ? 'text-amber-800 dark:text-amber-200' : payment.status === 'FAILED' ? 'text-red-800 dark:text-red-200' : 'text-slate-900 dark:text-slate-100'}`}>{statusStyle.label}</span>
                       </div>
                     </div>
 
                     {/* ── Product Row ── */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* Thumbnail */}
-                        <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                        <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
                           🛒
                         </div>
 
@@ -299,10 +324,10 @@ export default function Payments() {
                               )}
                             </Badge>
                           )}
-                          <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 truncate leading-snug">
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-50 truncate leading-snug">
                             {payment.productName}
                           </p>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                             {payment.currency}
                           </p>
                         </div>
@@ -310,17 +335,21 @@ export default function Payments() {
 
                       {/* Price */}
                       <div className="text-left sm:text-right shrink-0 pl-[72px] sm:pl-0">
-                        <p className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50">
+                        <p className={`text-base font-extrabold ${
+                          payment.status === 'SUCCESS' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' :
+                          payment.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' :
+                          'text-red-600 dark:text-red-400'
+                        }`}>
                           {formatPrice(payment.amount)}
                         </p>
                       </div>
                     </div>
 
                     {/* ── Card Footer ── */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-700">
-                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">총 결제금액</span>
-                        <span className="text-sm font-extrabold text-zinc-900 dark:text-zinc-50 whitespace-nowrap">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">결제 금액</span>
+                        <span className="text-lg font-extrabold text-slate-900 dark:text-slate-50 whitespace-nowrap">
                           {formatPrice(payment.amount)}
                         </span>
                       </div>
@@ -331,7 +360,7 @@ export default function Payments() {
                             type="button"
                             onClick={() => void handleTxDetail(payment.paymentId)}
                             disabled={isTxLoading}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 transition-all disabled:opacity-60"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-[#F9F7F7] dark:hover:bg-[#1E4D8C]/10 hover:border-[#1E4D8C]/30 dark:hover:border-[#7BAEDA]/30 transition-all disabled:opacity-60"
                           >
                             {isTxLoading ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -353,12 +382,12 @@ export default function Payments() {
 
           {/* ── Empty State ── */}
           {!loading && filtered.length === 0 && (
-            <div className="rounded-[1.5rem] border-2 border-dashed border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-8 py-16 text-center shadow-[0_2px_12px_rgb(15,23,42,0.04)]">
+            <div className="py-20 flex flex-col items-center justify-center text-center">
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 flex items-center justify-center border border-[#1E4D8C]/10">
                 <CreditCard className="w-7 h-7 text-[#1E4D8C] dark:text-[#7BAEDA]" />
               </div>
-              <p className="text-sm font-bold text-zinc-900 dark:text-zinc-50 mb-1">결제 내역이 없습니다</p>
-              <p className="text-xs text-zinc-700 dark:text-zinc-300">
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-1">결제 내역이 없습니다</p>
+              <p className="text-xs text-slate-700 dark:text-slate-300">
                 {payments.length > 0 ? '검색 조건과 일치하는 내역이 없습니다.' : '조건 매칭이 완료되면 내역이 여기에 표시됩니다.'}
               </p>
             </div>

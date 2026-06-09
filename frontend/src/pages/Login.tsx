@@ -13,7 +13,8 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { authApiClient } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
-import Toast from "../components/ui/toast";
+import { toast } from "../store/toastStore";
+import ToastContainer from "../components/ui/ToastContainer";
 
 type FieldErrors = {
   form?: string;
@@ -83,10 +84,8 @@ export default function Login() {
   // 중복 제출을 막고 버튼 상태를 제어한다.
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 회원가입 후 로그인 화면으로 돌릴 때 안내 메시지를 보여준다.
-  const [successMessage, setSuccessMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
 
   const resetForm = () => {
     setEmail("");
@@ -99,9 +98,7 @@ export default function Login() {
 
   const clearMessages = () => {
     setErrors({});
-    setSuccessMessage("");
     setAuthErrorMessage(null);
-    setToastVisible(false);
   };
 
   const goToSignup = () => {
@@ -226,13 +223,11 @@ export default function Login() {
     const nextErrors = validateLogin();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setSuccessMessage("");
       return;
     }
 
     setIsSubmitting(true);
     setErrors({});
-    setSuccessMessage("");
 
     try {
       // 로그인 성공 응답의 accessToken을 메모리에만 저장하고, refresh는 쿠키로 처리한다.
@@ -277,13 +272,11 @@ export default function Login() {
     const nextErrors = validateSignup();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setSuccessMessage("");
       return;
     }
 
     setIsSubmitting(true);
     setErrors({});
-    setSuccessMessage("");
 
     try {
       // 회원가입은 계정 생성까지만 처리하고, 로그인은 별도 단계로 분리한다.
@@ -306,10 +299,7 @@ export default function Login() {
       setMode("login");
       resetForm();
       setErrors({});
-      setSuccessMessage(
-        data.message ?? "회원가입이 완료되었습니다. 로그인해 주세요.",
-      );
-      setToastVisible(true);
+      toast.success(data.message ?? "회원가입이 완료되었습니다. 로그인해 주세요.");
     } catch (error) {
       setErrors(
         getSignupApiErrorFieldsFromUnknown(error, "회원가입에 실패했습니다."),
@@ -332,8 +322,8 @@ export default function Login() {
           <div className="w-12 h-12 bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] rounded-[14px] flex items-center justify-center shadow-md mb-4 border border-white/10">
             <LogoIcon animated={false} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 ">
-            나의 구매 비서
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 font-brand">
+            CustosPay
           </h1>
           <p className="text-slate-500 text-sm font-medium mt-1.5">
             AI 기반 스마트 자동 결제 시스템
@@ -596,14 +586,7 @@ export default function Login() {
         </p>
       </div>
 
-      <Toast
-        message={successMessage}
-        visible={toastVisible}
-        onClose={() => {
-          setToastVisible(false);
-          setSuccessMessage("");
-        }}
-      />
+      <ToastContainer />
     </div>
   );
 }
