@@ -1,5 +1,5 @@
-import shoppingApiClient from './shoppingAxios';
-import { createApiClient } from './apiClientFactory';
+import shoppingApiClient from './clients/shoppingAxios';
+import { createApiClient } from './clients/apiClientFactory';
 import { fetchMyPayments } from './payments';
 import type {
   DashboardClarificationSubmissionRequest,

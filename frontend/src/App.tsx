@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { LogoIcon } from '@/components/ui/LogoIcon';
+import { LogoIcon } from '@/components/LogoIcon';
 import { useAuthStore } from '@/store/authStore';
 import { fetchAuthMe } from '@/api/auth';
 

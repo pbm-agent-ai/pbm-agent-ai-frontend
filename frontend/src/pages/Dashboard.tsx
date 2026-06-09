@@ -9,14 +9,14 @@ import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection } from '../api/dashboard';
 import { toast } from '../store/toastStore';
 import { confirmDialog } from '../store/confirmDialogStore';
-import ToastContainer from '../components/ui/ToastContainer';
-import ConfirmDialog from '../components/ui/ConfirmDialog';
+import ToastContainer from '../components/ToastContainer';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { LogoIcon } from '../components/ui/LogoIcon';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import { LogoIcon } from '../components/LogoIcon';
+import DecorativeBackground from '../components/DecorativeBackground';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardCommandCandidateItem,

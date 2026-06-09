@@ -1,4 +1,4 @@
-import { createApiClient } from './apiClientFactory';
+import { createApiClient } from './clients/apiClientFactory';
 import type {
   ConditionCardItem,
   ConditionCreateRequest,

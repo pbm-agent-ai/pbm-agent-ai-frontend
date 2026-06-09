@@ -1,4 +1,4 @@
-import { createApiClient } from './apiClientFactory';
+import { createApiClient } from './clients/apiClientFactory';
 
 const paymentApiClient = createApiClient({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '',

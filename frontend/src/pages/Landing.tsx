@@ -5,7 +5,7 @@ import {
   CheckCircle, Search, TrendingUp,
   ThumbsUp, ThumbsDown, ExternalLink, ChevronRight,
 } from "lucide-react";
-import { LogoIcon } from "../components/ui/LogoIcon";
+import { LogoIcon } from "../components/LogoIcon";
 import { Button } from "../components/ui/button";
 import { FadeIn } from "../components/ui/FadeIn";
 

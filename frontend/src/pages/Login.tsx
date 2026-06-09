@@ -8,13 +8,13 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { LogoIcon } from "../components/ui/LogoIcon";
+import { LogoIcon } from "../components/LogoIcon";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { authApiClient } from "../api/auth";
 import { useAuthStore } from "../store/authStore";
 import { toast } from "../store/toastStore";
-import ToastContainer from "../components/ui/ToastContainer";
+import ToastContainer from "../components/ToastContainer";
 
 type FieldErrors = {
   form?: string;

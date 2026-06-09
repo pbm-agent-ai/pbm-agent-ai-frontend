@@ -14,7 +14,7 @@ import { fetchConditionList } from '../api/condition';
 import { fetchPriceHistory } from '../api/priceHistory';
 import type { ConditionListItem } from '../types/condition';
 import type { PriceHistoryData } from '../types/priceHistory';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import DecorativeBackground from '../components/DecorativeBackground';
 
 // ── Mock Data (서버 미연결 시 fallback) ─────────────────────────
 
