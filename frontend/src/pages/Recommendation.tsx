@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { fetchRecommendationItems, fetchYoutubeReviews } from '@/api/recommendation';
 import type { RecommendationItem, YoutubeReviewVideo } from '@/types/recommendation';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import DecorativeBackground from '../components/DecorativeBackground';
 
 // ── 정적 카테고리 정의 (프론트 전용, 백엔드 enum 값과 매핑) ─────
 

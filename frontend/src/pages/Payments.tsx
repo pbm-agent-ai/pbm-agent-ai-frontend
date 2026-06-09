@@ -11,7 +11,7 @@ import {
 import { fetchMyPayments, fetchPaymentDetail, type PaymentSummary, type PaymentDetail } from '../api/payments';
 import { fetchAuthMe } from '../api/auth';
 import { fetchMyWallet, fetchMyWalletBalance } from '../api/wallet';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import DecorativeBackground from '../components/DecorativeBackground';
 
 // ── 상태 표시 스타일 맵 ─────────────────────────────────────────
 const statusStyleMap: Record<string, { label: string; dot: string; bg: string }> = {

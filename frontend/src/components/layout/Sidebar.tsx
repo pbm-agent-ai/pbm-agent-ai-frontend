@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Menu, X } from 'lucide-react';
-import { LogoIcon } from '@/components/ui/LogoIcon';
-import { getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/theme';
+import { LogoIcon } from '@/components/LogoIcon';
+import { getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/lib/theme';
 import { logoutAuth } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
 

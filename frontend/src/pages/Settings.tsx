@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink, RefreshCw } from 'lucide-react';
-import { LogoIcon } from '../components/ui/LogoIcon';
+import { LogoIcon } from '../components/LogoIcon';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from '../components/ui/avatar';
 import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
 import { changeAuthPassword, fetchAuthMe, fetchPairingToken } from '../api/auth';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import DecorativeBackground from '../components/DecorativeBackground';
 import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, subscribeToWalletCreation, chargeWallet, subscribeToChargeProgress, fetchTransactionHistory, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep, type TokenTransactionResponse, type ChargeProgressEvent, type ChargeProgressStep } from '../api/wallet';
 
 type ExtensionStatus = 'idle' | 'detecting' | 'not-installed' | 'pairing' | 'paired' | 'error';

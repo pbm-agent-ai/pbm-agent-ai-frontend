@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from '../components/ui/label';
 import type { SubscriptionItem, SubscriptionUpdateRequest } from '../types/condition';
 import { deleteSubscription, fetchSubscriptions, updateSubscription } from '../api/condition';
-import DecorativeBackground from '../components/ui/DecorativeBackground';
+import DecorativeBackground from '../components/DecorativeBackground';
 import Popover from '../components/ui/popover';
 
 type EditConditionForm = {

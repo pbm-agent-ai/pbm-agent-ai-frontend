@@ -1,6 +1,6 @@
-import { useConfirmDialogStore } from '../../store/confirmDialogStore';
+import { useConfirmDialogStore } from '../store/confirmDialogStore';
 import { AlertTriangle } from 'lucide-react';
-import { Button } from './button';
+import { Button } from './ui/button';
 
 export default function ConfirmDialog() {
   const visible = useConfirmDialogStore((s) => s.visible);

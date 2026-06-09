@@ -1,4 +1,4 @@
-import { useToastStore, type ToastItem } from '../../store/toastStore';
+import { useToastStore, type ToastItem } from '../store/toastStore';
 import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
 const iconMap: Record<ToastItem['type'], React.ReactNode> = {
