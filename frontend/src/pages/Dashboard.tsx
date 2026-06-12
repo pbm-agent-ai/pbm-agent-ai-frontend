@@ -4,7 +4,7 @@ import { DayPicker } from 'react-day-picker';
 import { format, addDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import 'react-day-picker/style.css';
-import { Sparkles, ListChecks, Sparkles as SparklesIcon, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
+import { Sparkles, ListChecks, TrendingUp as TrendingUpIcon, CreditCard, CheckCircle, AlertTriangle, MessageSquare, X } from 'lucide-react';
 import { fetchAuthMe } from '../api/auth';
 import { parseDashboardCommand, submitDashboardClarification, fetchCommandDetail, submitCommandSelection } from '../api/dashboard';
 import { toast } from '../store/toastStore';
@@ -15,7 +15,8 @@ import { Button } from '../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { LogoIcon } from '../components/LogoIcon';
+import { VaultIcon as LogoIcon } from '../components/VaultIcon';
+import DashboardLandscape from '../components/DashboardLandscape';
 import DecorativeBackground from '../components/DecorativeBackground';
 import type {
   DashboardClarificationSubmissionRequest,
@@ -139,6 +140,15 @@ export default function Dashboard() {
   const [showDizzy, setShowDizzy] = useState(false);
   // 설명: 어지러움 후 멍한 표정 (0.5초)
   const [showNeutral, setShowNeutral] = useState(false);
+  // 설명: 빈 입력 시 놀란 표정 (토스트 지속 시간과 동일)
+  const [showSurprised, setShowSurprised] = useState(false);
+
+  // 설명: 놀란 표정 후 자동 리셋 (warning 토스트 = 3500ms)
+  useEffect(() => {
+    if (!showSurprised) return;
+    const timer = window.setTimeout(() => setShowSurprised(false), 3500);
+    return () => window.clearTimeout(timer);
+  }, [showSurprised]);
 
   useEffect(() => {
     if (!showDizzy) return;
@@ -385,10 +395,12 @@ export default function Dashboard() {
     const commandText = naturalLanguageInput.trim();
     if (!commandText) {
       toast.warning('명령어를 입력해주세요.');
+      setShowSurprised(true);
       return;
     }
 
     const analyzeStartTime = Date.now();
+    let analysisFailed = false;
 
     try {
       setIsAnalyzing(true);
@@ -427,6 +439,7 @@ export default function Dashboard() {
 
       await showSuccessToast('분석 완료');
     } catch (error: unknown) {
+      analysisFailed = true;
       const errorMessage = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.';
 
       // 설명: 페이지네이션 테스트용 mock 후보 25개 (다양한 플랫폼, 가격, 상품명)
@@ -481,14 +494,20 @@ export default function Dashboard() {
 
       toast.warning(`${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`);
     } finally {
-      // 설명: 최소 1.5초간 analyzing 유지 (안테나 회전을 확인할 수 있도록)
+      // 설명: 최소 1.5초간 analyzing 유지
       const minDuration = 1500;
       const elapsed = Date.now() - analyzeStartTime;
       if (elapsed < minDuration) {
         await new Promise((r) => window.setTimeout(r, minDuration - elapsed));
       }
       setIsAnalyzing(false);
-      setShowDizzy(true);
+      // 실패 시 어지러운 표정, 성공 시 바로 미소
+      if (analysisFailed) {
+        setShowDizzy(true);
+      } else {
+        setShowDizzy(false);
+        setShowNeutral(false);
+      }
     }
   };
 
@@ -587,41 +606,69 @@ export default function Dashboard() {
   // 설명: 대시보드의 전체 화면 레이아웃을 그립니다.
   return (
     <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
+      <style>{`
+        .rdp-day_selected {
+          background-color: #DBE2EF !important;
+          color: #1E4D8C !important;
+          border-radius: 100% !important;
+          font-weight: 700 !important;
+        }
+        .dark .rdp-day_selected {
+          background-color: #1E4D8C !important;
+          color: #DBE2EF !important;
+          border-radius: 100% !important;
+          font-weight: 700 !important;
+        }
+        .rdp-today {
+          background: #1E4D8C !important;
+          color: #FFFFFF !important;
+          border-radius: 100% !important;
+          font-weight: 800 !important;
+        }
+        .dark .rdp-today {
+          background: #7BAEDA !important;
+          color: #0F3460 !important;
+          border-radius: 100% !important;
+          font-weight: 800 !important;
+        }
+      `}</style>
       {/* --- 장식용 기하학 배경 요소 (Abstract Geometric + Glassmorphism) --- */}
       <DecorativeBackground />
       {/* 설명: 상단 히어로와 자연어 입력 영역입니다. */}
       <section className="bg-white/10 dark:bg-slate-950/20 w-full pt-16 pb-20 px-4 md:px-8 relative overflow-hidden z-10">
         <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#1E4D8C] via-[#0F3460] to-[#DBE2EF]"></div>
         <div className="max-w-[1200px] mx-auto flex flex-col items-center text-center relative z-10">
-          {/* ── 마스코트 로고 아이콘 ── */}
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#1E4D8C] to-[#0F3460] flex items-center justify-center shadow-[0_8px_20px_-6px_rgba(30,77,140,0.5)] mb-5 relative overflow-hidden border border-white/10">
-            <div className="absolute inset-0 rounded-2xl border border-white/20 pointer-events-none" />
-            {isAnalyzing ? (
-              <LogoIcon className="w-12 h-12 animate-spin" animated={false} mouth="open" />
-            ) : showDizzy ? (
-              <LogoIcon className="w-12 h-12" animated={false} dizzy />
-            ) : showNeutral ? (
-              <LogoIcon className="w-12 h-12" animated={false} mouth="auto" />
-            ) : (
-              <LogoIcon className="w-12 h-12" animated={true} mouth="smile" analyzing />
-            )}
-          </div>
-          <div className="mb-4 flex h-12 items-center text-4xl font-medium text-slate-700 dark:text-slate-300 md:text-4xl">
-            <span className="relative inline-grid h-12 items-center overflow-hidden text-[#1E4D8C] dark:text-[#7BAEDA] transition-[width] duration-300">
-              <span className="invisible whitespace-nowrap font-bold">{rotatingCommandMessages[rotatingMessageIndex]}</span>
-              <span className={`absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap font-bold transition-all duration-300 ${isRotatingMessageVisible ? 'translate-y-[-50%] opacity-100' : 'translate-y-[-70%] opacity-0'}`}>
-                {rotatingCommandMessages[rotatingMessageIndex]}
-              </span>
-            </span>
-            <span>&nbsp;찾고 계신가요?</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50 mb-10">
-            원하는 가격, <span className="relative inline-block"><span className="relative z-10 text-[#1E4D8C] dark:text-[#7BAEDA]">알아서 척척</span><span className="absolute bottom-1 left-0 w-full h-3 bg-[#DBE2EF] dark:bg-[#1E4D8C]/30 -z-10 rounded-sm skew-x-[-10deg]"></span></span> 찾아드려요.
-          </h1>
+          {/* ── 노트북 컨테이너: 화면(landscape) + 키보드(입력창) ── */}
+          <div className="w-full max-w-3xl rounded-[2.5rem] border border-slate-200 dark:border-slate-700 shadow-[0_8px_32px_rgba(15,23,42,0.06)] overflow-hidden bg-white dark:bg-slate-800">
+            {/* ── 화면 (Screen): 캐릭터 배경 ── */}
+            <DashboardLandscape
+              isAnalyzing={isAnalyzing}
+              showDizzy={showDizzy}
+              showNeutral={showNeutral}
+              showSurprised={showSurprised}
+              compact={isCommandInputFocused}
+            />
+            {/* 히어로 텍스트 */}
+            <div className="px-5 py-4 relative z-30">
+              <div className="flex h-10 items-center justify-center text-xl md:text-2xl font-medium text-slate-700 dark:text-slate-300">
+                <span className="relative inline-grid h-10 items-center overflow-hidden text-[#1E4D8C] dark:text-[#7BAEDA] transition-[width] duration-300">
+                  <span className="invisible whitespace-nowrap font-bold">{rotatingCommandMessages[rotatingMessageIndex]}</span>
+                  <span className={`absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap font-bold transition-all duration-300 ${isRotatingMessageVisible ? 'translate-y-[-50%] opacity-100' : 'translate-y-[-70%] opacity-0'}`}>
+                    {rotatingCommandMessages[rotatingMessageIndex]}
+                  </span>
+                </span>
+                <span>&nbsp;찾고 계신가요?</span>
+              </div>
+              <h1 className="text-base md:text-xl font-extrabold tracking-tight text-center text-slate-900 dark:text-slate-50 mt-1">
+                원하는 가격, <span className="relative inline-block"><span className="relative z-10 text-[#1E4D8C] dark:text-[#7BAEDA]">알아서 척척</span><span className="absolute bottom-1 left-0 w-full h-2 bg-[#DBE2EF] dark:bg-[#1E4D8C]/30 -z-10 rounded-sm skew-x-[-10deg]"></span></span> 찾아드려요.
+              </h1>
+            </div>
 
-          <div className="w-full max-w-3xl bg-white dark:bg-slate-800 rounded-[2rem] shadow-[0_8px_32px_rgb(15,23,42,0.06)] border border-slate-200 dark:border-slate-700 relative overflow-hidden">
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] rounded-t-[2rem]"></div>
-            <div className="p-4 pt-5 flex flex-col gap-3">
+            {/* ── 힌지 (Hinge): 화면과 키보드 사이 구분선 ── */}
+            <div className="h-px bg-gradient-to-r from-transparent via-[#1E4D8C]/20 dark:via-[#7BAEDA]/20 to-transparent" />
+
+            {/* ── 키보드 (Keyboard): 입력창 ── */}
+            <div className="p-4 pt-5 flex flex-col gap-4">
               <div className={`bg-white dark:bg-slate-800 rounded-2xl p-2 ring-1 transition-all duration-300 ${
                 isAnalyzing
                   ? 'ring-2 ring-[#1E4D8C]/50 dark:ring-[#7BAEDA]/50 shadow-[0_0_15px_rgba(30,77,140,0.2)] animate-pulse'
@@ -632,8 +679,14 @@ export default function Dashboard() {
                   disabled={isAnalyzing}
                   placeholder="예: 쿠팡에서 탐사수 7000원 밑으로 알림"
                   value={naturalLanguageInput}
-                  onFocus={() => setIsCommandInputFocused(true)}
+                   onFocus={() => setIsCommandInputFocused(true)}
                   onBlur={() => window.setTimeout(() => setIsCommandInputFocused(false), 150)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void handleAnalyzeClick();
+                    }
+                  }}
                   onChange={(e) => {
                     setNaturalLanguageInput(e.target.value);
                     e.target.style.height = 'auto';
@@ -1212,7 +1265,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { path: '/conditions', label: '조건 관리', icon: ListChecks, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/20', desc: '등록된 조건 확인' },
-              { path: '/recommendations', label: '추천', icon: SparklesIcon, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: '유튜버 리뷰 기반 추천' },
+              { path: '/recommendations', label: '추천', icon: Sparkles, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', desc: '유튜버 리뷰 기반 추천' },
               { path: '/price-history', label: '가격 히스토리', icon: TrendingUpIcon, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', desc: '가격 변동 추이' },
               { path: '/payments', label: '결제 내역', icon: CreditCard, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-950/20', desc: '자동 결제 현황' },
             ].map((item, i) => {

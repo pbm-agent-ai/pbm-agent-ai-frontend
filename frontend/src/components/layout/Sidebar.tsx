@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun, Menu, X } from 'lucide-react';
-import { LogoIcon } from '@/components/LogoIcon';
+import { VaultIcon as LogoIcon } from '@/components/VaultIcon';
 import { getStoredThemePreference, persistThemePreference, type ThemePreference } from '@/lib/theme';
 import { logoutAuth } from '@/api/auth';
 import { useAuthStore } from '@/store/authStore';
@@ -105,11 +105,11 @@ export function Sidebar() {
             onMouseEnter={() => { setLogoMouth('open'); setLogoHovered(true); }}
             onMouseLeave={() => { setLogoMouth('auto'); setLogoHovered(false); }}
           >
-            <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
+            <div className="w-10 h-10 bg-[#0F3460] rounded-[14px] flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform duration-300">
               <LogoIcon mouth={logoMouth} followMouse={!logoHovered} resetEyes={logoHovered} />
             </div>
             <div className="hidden sm:block">
-              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">CustosPay</div>
+              <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300 font-brand">CustosPay</div>
             </div>
           </Link>
           
@@ -222,7 +222,7 @@ export function Sidebar() {
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 dark:text-[#D4D4D8] hover:bg-zinc-50 dark:hover:bg-[#27272A] hover:text-zinc-900 dark:hover:text-white transition-colors"
                     >
                       <SettingsIcon className="h-4 w-4" />
-                      상세 설정
+                      설정
                     </Link>
                   </>
                 )}
@@ -273,7 +273,7 @@ export function Sidebar() {
               onMouseEnter={() => { setLogoMouth('open'); setLogoHovered(true); }}
               onMouseLeave={() => { setLogoMouth('auto'); setLogoHovered(false); }}
             >
-              <div className="w-10 h-10 bg-[#1E4D8C] rounded-[14px] flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 bg-[#0F3460] rounded-[14px] flex items-center justify-center shadow-sm">
                 <LogoIcon mouth={logoMouth} followMouse={!logoHovered} resetEyes={logoHovered} />
               </div>
               <div className="text-zinc-900 dark:text-white font-extrabold text-[17px] tracking-tight transition-colors duration-300">
