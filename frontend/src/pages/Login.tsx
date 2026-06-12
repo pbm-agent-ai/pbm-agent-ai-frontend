@@ -8,7 +8,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import { LogoIcon } from "../components/LogoIcon";
+import { VaultIcon as LogoIcon } from "../components/VaultIcon";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { authApiClient } from "../api/auth";

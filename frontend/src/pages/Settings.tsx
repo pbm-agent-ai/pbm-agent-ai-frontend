@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, Wallet, Send, CreditCard, Mail, MessageSquare, Check, ChevronRight, ChevronDown, Settings as SettingsIcon, Eye, EyeOff, User, Shield, Moon, Plug, ExternalLink, RefreshCw } from 'lucide-react';
-import { LogoIcon } from '../components/LogoIcon';
+import { VaultIcon as LogoIcon } from '../components/VaultIcon';
 import { Switch } from '../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
