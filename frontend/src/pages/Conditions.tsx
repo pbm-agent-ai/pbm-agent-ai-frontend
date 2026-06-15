@@ -62,15 +62,7 @@ export default function Conditions() {
           setLoadErrorMessage(res.message || '구독 목록을 불러오지 못했습니다.');
         }
       } catch {
-        // 설명: API 연결 실패 시 mock 데이터로 UI 미리보기
-        setConditions([
-          { id: 1, commandId: 'cmd-1', platform: 'coupang', productId: 'prod-1', productUrl: '#', snapshotTitle: '삼성 갤럭시 버즈 FE 블루투스 이어폰', snapshotPrice: 89000, snapshotImageUrl: 'https://via.placeholder.com/128/1E4D8C/FFFFFF?text=버즈', searchKeyword: '갤럭시 버즈 FE', targetPrice: 100000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
-          { id: 2, commandId: 'cmd-2', platform: 'naver', productId: 'prod-2', productUrl: '#', snapshotTitle: 'Apple AirPods Pro 2세대', snapshotPrice: 289000, snapshotImageUrl: 'https://via.placeholder.com/128/0F3460/FFFFFF?text=에어팟', searchKeyword: '에어팟 프로', targetPrice: 300000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
-          { id: 3, commandId: 'cmd-3', platform: 'aliexpress', productId: 'prod-3', productUrl: '#', snapshotTitle: 'QCY T13 PRO 무선 이어폰', snapshotPrice: 19800, snapshotImageUrl: 'https://via.placeholder.com/128/FF6B6B/FFFFFF?text=QCY', searchKeyword: 'QCY T13', targetPrice: 25000, currency: 'KRW', intent: 'AUTO_PAYMENT', status: 'ACTIVE', checkIntervalMinutes: 30, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 1800000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
-          { id: 4, commandId: 'cmd-4', platform: 'coupang', productId: 'prod-4', productUrl: '#', snapshotTitle: '다이슨 에어랩 멀티스타일러 컴플리트', snapshotPrice: 599000, snapshotImageUrl: 'https://via.placeholder.com/128/1E4D8C/FFFFFF?text=다이슨', searchKeyword: '다이슨 에어랩', targetPrice: 550000, currency: 'KRW', intent: 'ALERT_ONLY', status: 'ACTIVE', checkIntervalMinutes: 60, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 3600000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
-          { id: 5, commandId: 'cmd-5', platform: 'naver', productId: 'prod-5', productUrl: '#', snapshotTitle: '인천-오사카 왕복 항공권', snapshotPrice: 248000, snapshotImageUrl: 'https://via.placeholder.com/128/03c75a/FFFFFF?text=항공', searchKeyword: '인천 오사카', targetPrice: 250000, currency: 'KRW', intent: 'AUTO_PAYMENT', status: 'ACTIVE', checkIntervalMinutes: 120, lastCheckedAt: new Date().toISOString(), nextCheckAt: new Date(Date.now() + 7200000).toISOString(), scheduledEndAt: new Date(Date.now() + 604800000).toISOString(), createdAt: new Date().toISOString() },
-        ]);
-        setLoadErrorMessage('');
+        setLoadErrorMessage('구독 목록을 불러오지 못했습니다.');
       } finally {
         setIsLoading(false);
       }

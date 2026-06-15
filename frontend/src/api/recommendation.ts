@@ -5,7 +5,7 @@ import type {
   RecommendationDetailResponse,
 } from '@/types/recommendation';
 
-const apiClient = createApiClient({ baseURL: import.meta.env.VITE_API_BASE_URL ?? '' });
+const apiClient = createApiClient({ baseURL: import.meta.env.VITE_PRICE_API_BASE_URL ?? '' });
 
 // ─── 백엔드 응답 타입 ─────────────────────────────────────────────────────────
 

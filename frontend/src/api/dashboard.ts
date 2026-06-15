@@ -1,6 +1,4 @@
-import shoppingApiClient from './clients/shoppingAxios';
 import { createApiClient } from './clients/apiClientFactory';
-import { fetchMyPayments } from './payments';
 import type {
   DashboardClarificationSubmissionRequest,
   DashboardClarificationSubmissionResponse,
@@ -9,53 +7,12 @@ import type {
   DashboardCommandParseResponse,
   DashboardCommandSelectionRequest,
   DashboardCommandSelectionResponse,
-  DashboardStatsSummary,
 } from '../types/dashboard';
 
-// monitoring/payment 서비스에서 집계한 대시보드 통계를 만들기 위한 클라이언트
-const monitoringApiClient = createApiClient({ baseURL: import.meta.env.VITE_API_BASE_URL ?? '' });
-
-interface MonitoringSubItem {
-  id: number;
-  status: string;
-  snapshotPrice?: number | null;
-  targetPrice?: number | null;
-}
-interface MonitoringListApiResponse {
-  success: boolean;
-  data: MonitoringSubItem[];
-}
-
-/**
- * 대시보드 핵심 지표 요약을 반환한다.
- * 단일 집계 API가 없으므로 monitoring + payment API를 병렬 호출해 프론트에서 합산한다.
- */
-export async function fetchDashboardStatsSummary(): Promise<DashboardStatsSummary> {
-  const [monitoringRes, payments] = await Promise.allSettled([
-    monitoringApiClient.get<MonitoringListApiResponse>('/api/v1/monitoring/subscriptions'),
-    fetchMyPayments(),
-  ]);
-
-  const subs: MonitoringSubItem[] =
-    monitoringRes.status === 'fulfilled' ? (monitoringRes.value.data?.data ?? []) : [];
-
-  const paymentList =
-    payments.status === 'fulfilled' ? payments.value : [];
-
-  const activeCount = subs.filter((s) => s.status === 'ACTIVE').length;
-  const triggeredCount = subs.filter((s) => s.status === 'TRIGGERED').length;
-  const completedPaymentCount = paymentList.filter((p) => p.status === 'SUCCESS').length;
-  const totalSavingsAmount = paymentList
-    .filter((p) => p.status === 'SUCCESS')
-    .reduce((sum, p) => sum + (p.amount ?? 0), 0);
-
-  return {
-    monitoringCount: activeCount,
-    completedPaymentCount,
-    waitingCount: triggeredCount,
-    totalSavingsAmount,
-  };
-}
+// 쇼핑/명령 API (command-service 8082)
+const shoppingApiClient = createApiClient({
+  baseURL: import.meta.env.VITE_COMMAND_API_BASE_URL ?? '',
+});
 
 // 2026-05-19 수정: 명령 파싱 전용 엔드포인트를 Dashboard에서 재사용할 수 있게 분리한다.
 export async function parseDashboardCommand(

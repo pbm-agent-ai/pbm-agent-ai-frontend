@@ -20,48 +20,21 @@ import DecorativeBackground from '../components/DecorativeBackground';
 
 const MOCK_CONDITIONS: ConditionListItem[] = [
   {
-    conditionId: 1, keyword: '인천-오사카 왕복 항공권', platform: 'naver_flight',
-    maxPrice: 250000, mode: 'ALERT_ONLY', isActive: true, currentPrice: 271000,
-    updatedAt: '2026-04-16T10:30:00', priceDiff: 21000,
-  },
-  {
-    conditionId: 2, keyword: 'Apple AirPods Pro 2세대', platform: 'coupang',
+    conditionId: 1, keyword: 'Apple AirPods Pro 2세대', platform: 'alixpress',
     maxPrice: 300000, mode: 'ALERT_ONLY', isActive: true, currentPrice: 289000,
     updatedAt: '2026-04-16T09:00:00', priceDiff: -11000,
   },
   {
-    conditionId: 3, keyword: 'PS5 디지털 에디션', platform: 'naver',
+    conditionId: 2, keyword: 'PS5 디지털 에디션', platform: 'naver',
     maxPrice: 590000, mode: 'AUTO_PAYMENT', isActive: true, currentPrice: 635000,
     updatedAt: '2026-04-15T18:00:00', priceDiff: 45000,
   },
 ];
 
 const MOCK_PRICE_HISTORY: PriceHistoryData[] = [
-  // ── conditionId 1: ICN-TYO 항공권 (하락 추세, 목표가 미달) ──
+  // ── conditionId 1: AirPods Pro (목표가 도달, 안정 추세) ──
   {
-    conditionId: 1, keyword: '인천-오사카 왕복 항공권', platform: 'naver_flight',
-    maxPrice: 250000, currentPrice: 271000, lowestPrice: 239000, highestPrice: 298000, averagePrice: 268000,
-    totalElements: 48, totalPages: 1, currentPage: 0,
-    priceHistory: [
-      { price: 271000, originalPrice: 290000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-16T10:30:00' },
-      { price: 268000, originalPrice: 285000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-16T08:00:00' },
-      { price: 265000, originalPrice: 280000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-15T18:00:00' },
-      { price: 259000, originalPrice: 278000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-15T08:00:00' },
-      { price: 252000, originalPrice: 270000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-14T18:00:00' },
-      { price: 248000, originalPrice: 265000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-14T08:00:00' },
-      { price: 243000, originalPrice: 260000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-13T18:00:00' },
-      { price: 239000, originalPrice: 239000, currency: 'KRW', isLowestPrice: true, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-13T08:00:00' },
-      { price: 241000, originalPrice: 255000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-12T18:00:00' },
-      { price: 245000, originalPrice: 258000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-12T08:00:00' },
-      { price: 256000, originalPrice: 272000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-11T18:00:00' },
-      { price: 268000, originalPrice: 289000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-11T08:00:00' },
-      { price: 278000, originalPrice: 295000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-10T18:00:00' },
-      { price: 289000, originalPrice: 298000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://flight.naver.com/...', collectedAt: '2026-04-10T08:00:00' },
-    ],
-  },
-  // ── conditionId 2: AirPods Pro (목표가 도달, 안정 추세) ──
-  {
-    conditionId: 2, keyword: 'Apple AirPods Pro 2세대', platform: 'coupang',
+    conditionId: 1, keyword: 'Apple AirPods Pro 2세대', platform: 'alixpress',
     maxPrice: 300000, currentPrice: 289000, lowestPrice: 285000, highestPrice: 335000, averagePrice: 310000,
     totalElements: 36, totalPages: 1, currentPage: 0,
     priceHistory: [
@@ -79,9 +52,9 @@ const MOCK_PRICE_HISTORY: PriceHistoryData[] = [
       { price: 335000, originalPrice: 335000, currency: 'KRW', isLowestPrice: false, source: 'EXTENSION', productUrl: 'https://www.coupang.com/...', collectedAt: '2026-04-05T09:00:00' },
     ],
   },
-  // ── conditionId 3: PS5 (상승 추세, 목표가와 격차 큼) ──
+  // ── conditionId 2: PS5 (상승 추세, 목표가와 격차 큼) ──
   {
-    conditionId: 3, keyword: 'PS5 디지털 에디션', platform: 'naver',
+    conditionId: 2, keyword: 'PS5 디지털 에디션', platform: 'naver',
     maxPrice: 590000, currentPrice: 635000, lowestPrice: 578000, highestPrice: 648000, averagePrice: 615000,
     totalElements: 52, totalPages: 1, currentPage: 0,
     priceHistory: [
@@ -107,12 +80,7 @@ const MOCK_PRICE_HISTORY: PriceHistoryData[] = [
 const getPlatformName = (platform: string): string => {
   const map: Record<string, string> = {
     naver: '네이버 쇼핑',
-    coupang: '쿠팡',
-    '11st': '11번가',
-    gmarket: 'G마켓',
-    auction: '옥션',
-    'naver-flights': '네이버 항공',
-    naver_flight: '네이버 항공',
+    alixpress: '알리익스프레스',
   };
   return map[platform] || platform;
 };
@@ -120,9 +88,7 @@ const getPlatformName = (platform: string): string => {
 const getPlatformColor = (platform: string): string => {
   const map: Record<string, string> = {
     naver: '#03c75a',
-    coupang: '#ff6b6b',
-    'naver-flights': '#03c75a',
-    naver_flight: '#03c75a',
+    alixpress: '#e2352f',
   };
   return map[platform] || '#1E4D8C';
 };
@@ -182,7 +148,7 @@ export default function PriceHistory() {
           setSelectedConditionId(res.data.conditions[0].conditionId);
         }
       } catch {
-        // mock 그대로 유지
+        setConditions(MOCK_CONDITIONS);
       }
     };
     void load();
@@ -195,14 +161,11 @@ export default function PriceHistory() {
     const load = async () => {
       try {
         const data = await fetchPriceHistory(selectedConditionId, selectedPeriod);
-        // 서버가 200에 data:null을 내려도 기존 데이터(초기 mock)를 유지하기 위해 유효성 검사 후 업데이트
-        if (data && Array.isArray(data.priceHistory)) {
-          setPriceData(data);
-        }
+        setPriceData(data ?? null);
       } catch {
-        // mock fallback
+        // mock fallback: 없으면 null로 초기화
         const mock = MOCK_PRICE_HISTORY.find((h) => h.conditionId === selectedConditionId) ?? null;
-        if (mock) setPriceData(mock);
+        setPriceData(mock);
       }
     };
     void load();
