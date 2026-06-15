@@ -88,6 +88,7 @@ export default function Payments() {
   const [loading, setLoading]               = useState(true);
   const [walletBalance, setWalletBalance]   = useState<number | null>(null);
   const [walletLimit, setWalletLimit]       = useState<number | null>(null);
+  const [loadError, setLoadError]           = useState(false);
   // 클릭 시 상세(txHash) 캐시
   const [details, setDetails]               = useState<Record<string, PaymentDetail>>({});
   const [loadingTx, setLoadingTx]           = useState<Record<string, boolean>>({});
@@ -113,22 +114,9 @@ export default function Payments() {
         setWalletLimit(wallet?.walletLimit ?? null);
         setWalletBalance(balance?.pbmBalance ?? null);
       } catch {
-        // API 실패 시 아래 mock 데이터 사용
+        setLoadError(true);
       }
-      // 설명: API 미연결 시 mock 데이터로 UI 미리보기
-      if (!data || data.length === 0) {
-        data = [
-          { paymentId: 'pay-001', userId: 1, productName: '쿠팡에서 갤럭시 버즈 FE', amount: 89000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 86400000).toISOString() },
-          { paymentId: 'pay-002', userId: 1, productName: '네이버쇼핑에서 에어팟 프로 2세대', amount: 289000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 172800000).toISOString() },
-          { paymentId: 'pay-003', userId: 1, productName: '알리에서 QCY T13 PRO', amount: 19800, currency: 'KRW', status: 'PENDING', createdAt: new Date(Date.now() - 259200000).toISOString() },
-          { paymentId: 'pay-004', userId: 1, productName: '네이버항공 인천-오사카 왕복', amount: 248000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 345600000).toISOString() },
-          { paymentId: 'pay-005', userId: 1, productName: '쿠팡에서 다이슨 에어랩', amount: 599000, currency: 'KRW', status: 'FAILED', createdAt: new Date(Date.now() - 432000000).toISOString() },
-          { paymentId: 'pay-006', userId: 1, productName: '네이버쇼핑에서 닌텐도 스위치 OLED', amount: 389000, currency: 'KRW', status: 'SUCCESS', createdAt: new Date(Date.now() - 518400000).toISOString() },
-        ];
-        setWalletLimit(5000000);
-        setWalletBalance(1250000);
-      }
-      setPayments(data);
+      setPayments(data ?? []);
       setLoading(false);
     };
     void load();
@@ -180,6 +168,13 @@ export default function Payments() {
               <p className="text-slate-700 dark:text-slate-300 mt-1 font-medium">자동 결제 및 조건 매칭 완료 내역</p>
             </div>
           </div>
+
+          {/* ═══════════ Error Banner ═══════════ */}
+          {loadError && (
+            <div className="mb-6 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              결제 내역을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+            </div>
+          )}
 
           {/* ═══════════ Summary Stats ═══════════ */}
           <div className="mb-5 bg-white dark:bg-slate-800 rounded-[1.5rem] border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden">

@@ -441,58 +441,7 @@ export default function Dashboard() {
     } catch (error: unknown) {
       analysisFailed = true;
       const errorMessage = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.';
-
-      // 설명: 페이지네이션 테스트용 mock 후보 25개 (다양한 플랫폼, 가격, 상품명)
-      const mockProducts = [
-        { title: '삼성 갤럭시 버즈 FE 블루투스 이어폰', price: '89000', mall: '쿠팡', platform: 'coupang' },
-      ];
-      const mockCandidates: DashboardCommandCandidateItem[] = mockProducts.map((p, i) => ({
-        productId: `mock-product-${i + 1}`,
-        title: p.title,
-        lprice: p.price,
-        mallName: p.mall,
-        productUrl: '#',
-        currency: 'KRW',
-        platform: p.platform,
-        searchKeyword: p.title,
-        imageUrl: `https://via.placeholder.com/128/1E4D8C/FFFFFF?text=${encodeURIComponent(p.title.slice(0, 4))}`,
-      }));
-
-      const mockParseResponse: DashboardCommandParseSuccessResponse = {
-        success: true,
-        message: 'Mock parse response',
-        data: {
-          intent: 'shopping.monitor',
-          parsedCommand: {
-            productName: 'Mock 상품',
-            platform: 'ALL',
-            maxPrice: 1000000,
-            mode: 'ALERT_ONLY',
-          },
-          missingRequiredFields: ['maxPrice'],
-          ambiguousFields: [],
-          needsClarification: true,
-          confidence: 0.98,
-          commandId: "999999",
-        },
-      };
-
-      const mockValidationResult: DashboardCommandValidationResult = {
-        triggeredProducts: [],
-        monitoringProducts: [],
-        purchasedProductId: null,
-        summaryMessage: '모의 데이터로 미리보기를 표시합니다.',
-        confirmationRequired: false,
-        duplicateProducts: [],
-        confirmationMessage: '',
-      };
-
-      applyParsedPreview(mockParseResponse);
-      setCandidates(mockCandidates);
-      setValidationResult(mockValidationResult);
-      setSelectedProductIds([]);
-
-      toast.warning(`${errorMessage} / 미리보기용 모의 데이터를 표시합니다.`);
+      toast.error(errorMessage);
     } finally {
       // 설명: 최소 1.5초간 analyzing 유지
       const minDuration = 1500;
@@ -646,7 +595,6 @@ export default function Dashboard() {
               showDizzy={showDizzy}
               showNeutral={showNeutral}
               showSurprised={showSurprised}
-              compact={isCommandInputFocused}
             />
             {/* 히어로 텍스트 */}
             <div className="px-5 py-4 relative z-30">

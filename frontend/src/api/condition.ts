@@ -14,7 +14,7 @@ import type { DashboardMonitoringResponseItem } from '../types/dashboard';
 // ── monitoring API 클라이언트 (price-service 8083, Vite proxy 경유) ──────────
 
 const monitoringApiClient = createApiClient({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
+  baseURL: import.meta.env.VITE_PRICE_API_BASE_URL ?? '',
 });
 
 // ── 백엔드 응답 타입 (MonitoringSubscriptionResponse) ────────────────────────

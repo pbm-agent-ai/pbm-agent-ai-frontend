@@ -17,13 +17,6 @@ export interface DashboardMonitoringItem {
 }
 //
 
-// [추가] 핵심 지표 카드에 필요한 요약 수치다.
-export interface DashboardStatsSummary {
-  monitoringCount: number;
-  completedPaymentCount: number;
-  waitingCount: number;
-  totalSavingsAmount: number;
-}
 
 export interface DashboardConditionDetailResponse {
   conditionId?: ConditionCardItem['conditionId'];

@@ -11,17 +11,15 @@ import { VaultIcon as LogoIcon } from './VaultIcon';
  * @param showDizzy  - 분석 직후 어지러운 눈 효과
  * @param showNeutral - 어지러움 후 멍한 표정
  * @param showSurprised - 빈 입력 시 놀란 표정
- * @param compact - 입력 포커스 시 landscape 축소 (모바일 대응)
  */
 export interface DashboardLandscapeProps {
   isAnalyzing: boolean;
   showDizzy: boolean;
   showNeutral: boolean;
   showSurprised?: boolean;
-  compact?: boolean;
 }
 
-export default function DashboardLandscape({ isAnalyzing, showDizzy, showNeutral, showSurprised, compact }: DashboardLandscapeProps) {
+export default function DashboardLandscape({ isAnalyzing, showDizzy, showNeutral, showSurprised }: DashboardLandscapeProps) {
   return (
     <>
       <style>{`
@@ -43,7 +41,7 @@ export default function DashboardLandscape({ isAnalyzing, showDizzy, showNeutral
         }
       `}</style>
       {/* ── 풍경 컨테이너: 둥근 모서리의 글라스모픽 박스, overflow-hidden으로 내부 클리핑 ── */}
-      <div className={`relative w-full overflow-hidden bg-white dark:bg-slate-900 group ${compact ? 'h-24 md:h-28' : 'h-36 md:h-44'}`}>
+      <div className="relative w-full h-36 md:h-48 overflow-hidden bg-white dark:bg-slate-900 group">
       {/* ── 불투명 베이스 레이어: 뒤쪽 DecorativeBackground가 비치지 않도록 막음 ── */}
       <div className="absolute inset-0 bg-white dark:bg-slate-900" />
 
@@ -77,9 +75,9 @@ export default function DashboardLandscape({ isAnalyzing, showDizzy, showNeutral
       {/* ── 하늘 그라데이션: 상단 65% 영역, 연한 파랑→투명 (light) / 진한 남색→투명 (dark) ── */}
       <div className="absolute inset-0 bottom-[35%] bg-gradient-to-b from-[#7BAEDA]/35 to-[#DBE2EF]/5 dark:from-[#0F3460]/40 dark:to-transparent" />
 
-      {/* ── 스크롤 구름: cloudSpawn 애니메이션으로 오른쪽→왼쪽 이동, 10s 주기 ── */}
+      {/* ── 스크롤 구름: cloudSpawn 애니메이션으로 오른쪽→왼쪽 이동, 10s 주기 (상단 65%만) ── */}
       <div 
-        className="absolute inset-0 pointer-events-none z-[3]"
+        className="absolute inset-0 bottom-[35%] overflow-hidden pointer-events-none z-[3]"
         style={!isAnalyzing ? { animation: 'cloudDrift 8s ease-in-out infinite alternate' } : {}}
       >
         {/* ☁️ 라이트 모드 - 흰색 구름 12개, 0.5s 간격으로 delay 분산 */}

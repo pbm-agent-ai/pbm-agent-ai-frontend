@@ -112,15 +112,10 @@ export default function Recommendations() {
         setRecommendations([]);
         setViewState('loaded');
       }
-    } catch {
-      // 설명: API 연결 실패 시 mock 데이터로 UI 미리보기
-      setRecommendations([
-        { productId: 1, rank: 1, productName: '로보락 S8 MaxV Ultra', brand: '로보락', pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높고, 자동 먼지 비움 기능이 편리함', cons: '가격대가 높은 편. 물걸레 물통 용량이 작아 자주 리필 필요', youtuber: '잇섭', videoUrl: '#', analysisDate: new Date().toISOString() },
-        { productId: 2, rank: 2, productName: 'LG 코드제로 오브제컬렉션 R9', brand: 'LG', pros: '저소음 설계로 밤에도 사용 가능. 먼지 압축 기능으로 먼지통 비움 주기가 김', cons: '가격이 비쌈. 앱 연결이 가끔 불안정함', youtuber: '에디슨', videoUrl: '#', analysisDate: new Date().toISOString() },
-        { productId: 3, rank: 3, productName: '삼성 비스포크 제트 봇 AI', brand: '삼성', pros: 'AI 기반 장애물 인식이 뛰어남. SmartThings 연동이 편리함', cons: '배터리 지속 시간이 경쟁사 대비 짧음. 가격 대비 성능이 아쉬움', youtuber: '리뷰엉이', videoUrl: '#', analysisDate: new Date().toISOString() },
-      ]);
-      setViewState('loaded');
-    }
+      } catch {
+        setViewState('error');
+        setErrorMessage('추천 데이터를 불러오지 못했습니다.');
+      }
   }, []);
 
   useEffect(() => {
@@ -177,17 +172,7 @@ export default function Recommendations() {
       setModalProduct({ productName, brand, reviews: entries });
       setExpandedReviews([0]);
     } catch {
-      // 설명: API 연결 실패 시 mock 데이터로 모달 미리보기
-      setModalProduct({
-        productName,
-        brand,
-        reviews: [
-          { youtuberName: '잇○', videoUrl: '#', rank: 1, pros: ['강력한 흡입력과 물걸레 동시 지원', '장애물 인식 정확도가 높음', '자동 먼지 비움 기능이 편리함'], cons: ['가격대가 높은 편', '물걸레 물통이 작아 자주 리필 필요'], verdict: '로봇청소기 최강자지만 가격이 부담스러운 제품' },
-          { youtuberName: '에○슨', videoUrl: '#', rank: 2, pros: ['저소음 설계로 밤에도 사용 가능', '먼지 압축 기능으로 먼지통 비움 주기가 김'], cons: ['앱 연결이 가끔 불안정함', '초기 설정이 다소 복잡함'], verdict: '조용한 청소가 필요하다면 최선의 선택' },
-          { youtuberName: '리뷰○이', videoUrl: '#', rank: 3, pros: ['AI 기반 장애물 인식이 뛰어남', 'SmartThings 연동이 편리함', '디자인이 깔끔함'], cons: ['배터리 지속 시간이 경쟁사 대비 짧음', '가격 대비 성능이 아쉬움'], verdict: '삼성 생태계 사용자라면 고려할 만함' },
-        ],
-      });
-      setExpandedReviews([0]);
+      // API 실패 시 아무 동작 안 함 (모달 열지 않음)
     }
   };
 
