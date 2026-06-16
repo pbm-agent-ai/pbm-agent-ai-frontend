@@ -3,7 +3,7 @@ import {
   Sparkles, ExternalLink, Play, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X,
   ThumbsUp, ThumbsDown,
 } from 'lucide-react';
-import { fetchRecommendationItems, fetchYoutubeReviews } from '@/api/recommendation';
+import { fetchRecommendationCategories, fetchRecommendationItems, fetchYoutubeReviews } from '@/api/recommendation';
 import type { RecommendationItem, YoutubeReviewVideo } from '@/types/recommendation';
 import DecorativeBackground from '../components/DecorativeBackground';
 
@@ -17,7 +17,6 @@ interface CategoryDef {
 const MAIN_CATEGORIES: CategoryDef[] = [
   { id: 'HOME_APPLIANCE', label: '가전제품' },
   { id: 'IT_ELECTRONICS', label: 'IT/전자제품' },
-  { id: 'OTHER', label: '기타' },
 ];
 
 const SUB_CATEGORIES: Record<string, CategoryDef[]> = {
@@ -48,16 +47,6 @@ const SUB_CATEGORIES: Record<string, CategoryDef[]> = {
     { id: 'CAMERA', label: '카메라' },
     { id: 'TV', label: 'TV' },
   ],
-  OTHER: [
-    { id: 'FITNESS', label: '피트니스' },
-    { id: 'FOOD', label: '식품' },
-    { id: 'BEAUTY', label: '뷰티' },
-    { id: 'FASHION', label: '패션' },
-    { id: 'SPORTS', label: '스포츠' },
-    { id: 'BOOK', label: '도서' },
-    { id: 'TOY', label: '장난감' },
-    { id: 'PET', label: '반려동물' },
-  ],
 };
 
 // ── 제품 비교 모달 타입 ──
@@ -77,9 +66,10 @@ type ViewState = 'initial' | 'loading' | 'loaded' | 'error';
 
 export default function Recommendations() {
   const [mainCategory, setMainCategory] = useState<string | null>('HOME_APPLIANCE');
-  const [subCategory, setSubCategory] = useState<string | null>('ROBOT_VACUUM');
+  const [subCategory, setSubCategory] = useState<string | null>('FOOD_PROCESSOR');
 
   const [viewState, setViewState] = useState<ViewState>('loaded');
+  const [availableCategoryIds, setAvailableCategoryIds] = useState<Set<string>>(new Set());
   const [recommendations, setRecommendations] = useState<RecommendationItem[]>([
     { productId: 1, rank: 1, productName: '로보락 S8 MaxV Ultra', brand: '로보락', pros: '강력한 흡입력과 물걸레 동시 지원. 장애물 인식 정확도가 높고, 자동 먼지 비움 기능이 편리함', cons: '가격대가 높은 편. 물걸레 물통 용량이 작아 자주 리필 필요', youtuber: '잇○', videoUrl: '#', analysisDate: new Date().toISOString() },
     { productId: 2, rank: 2, productName: 'LG 코드제로 오브제컬렉션 R9', brand: 'LG', pros: '저소음 설계로 밤에도 사용 가능. 먼지 압축 기능으로 먼지통 비움 주기가 김', cons: '가격이 비쌈. 앱 연결이 가끔 불안정함', youtuber: '에○슨', videoUrl: '#', analysisDate: new Date().toISOString() },
@@ -96,7 +86,64 @@ export default function Recommendations() {
   const [expandedReviews, setExpandedReviews] = useState<number[]>([]);
   const [imageIndexes, setImageIndexes] = useState<Record<number, number>>({});
 
-  const subs = mainCategory ? (SUB_CATEGORIES[mainCategory] ?? []) : [];
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCategories = async () => {
+      try {
+        const resp = await fetchRecommendationCategories();
+        if (cancelled) return;
+        setAvailableCategoryIds(new Set(resp.data.categories.map((category) => category.categoryId)));
+      } catch {
+        if (!cancelled) {
+          setAvailableCategoryIds(new Set());
+        }
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleMainCategories = MAIN_CATEGORIES.filter((category) => {
+    const subs = SUB_CATEGORIES[category.id] ?? [];
+    if (availableCategoryIds.size === 0) {
+      return true;
+    }
+    return subs.some((sub) => availableCategoryIds.has(sub.id));
+  });
+
+  const subs = mainCategory ? (SUB_CATEGORIES[mainCategory] ?? []).filter((sub) => {
+    if (availableCategoryIds.size === 0) {
+      return true;
+    }
+    return availableCategoryIds.has(sub.id);
+  }) : [];
+
+  useEffect(() => {
+    if (visibleMainCategories.length === 0) {
+      return;
+    }
+
+    const mainIsVisible = mainCategory != null && visibleMainCategories.some((category) => category.id === mainCategory);
+    if (!mainIsVisible) {
+      setMainCategory(visibleMainCategories[0].id);
+      setSubCategory(null);
+      return;
+    }
+
+    if (subs.length === 0) {
+      return;
+    }
+
+    const subIsVisible = subCategory != null && subs.some((category) => category.id === subCategory);
+    if (!subIsVisible) {
+      setSubCategory(subs[0].id);
+    }
+  }, [visibleMainCategories, mainCategory, subCategory, subs]);
 
   // ── 데이터 로드 ──
 
@@ -178,7 +225,7 @@ export default function Recommendations() {
   };
 
   const subLabel = subCategory
-    ? (SUB_CATEGORIES[mainCategory ?? ''] ?? []).find((s) => s.id === subCategory)?.label ?? subCategory
+    ? subs.find((s) => s.id === subCategory)?.label ?? subCategory
     : '';
 
   const moveImage = (productId: number, total: number, direction: 'prev' | 'next') => {
@@ -212,7 +259,7 @@ export default function Recommendations() {
           {/* ═══════════ Main Category Tabs ═══════════ */}
           <div className="mb-5">
             <div className="flex flex-wrap gap-2">
-              {MAIN_CATEGORIES.map((cat) => {
+              {visibleMainCategories.map((cat) => {
                 const active = mainCategory === cat.id;
                 return (
                   <button
