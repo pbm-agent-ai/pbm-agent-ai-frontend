@@ -24,6 +24,7 @@ const statusStyleMap: Record<string, { label: string; dot: string; bg: string }>
 
 const formatPrice = (price: number) => `₩${price.toLocaleString()}`;
 const formatCurrencyAmount = (value?: number | null) => `₩${Math.floor(value ?? 0).toLocaleString()}`;
+const formatFeeAmount = (value?: number | null) => value == null ? '수수료 확인중' : `₩${value.toLocaleString()}`;
 
 /** ISO 날짜 문자열 → "YYYY.MM.DD" */
 const formatDate = (iso: string): string => {
@@ -263,6 +264,7 @@ export default function Payments() {
                 const statusStyle = statusStyleMap[payment.status] ?? statusStyleMap['PENDING'];
                 const detail      = details[payment.paymentId];
                 const isTxLoading = loadingTx[payment.paymentId];
+                const platformUrl = payment.productUrl ?? detail?.productUrl ?? null;
 
                 return (
                   <div
@@ -291,61 +293,76 @@ export default function Payments() {
                     </div>
 
                     {/* ── Product Row ── */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex flex-col gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
                         {/* Thumbnail */}
-                        <div className="w-[60px] h-[60px] sm:w-[68px] sm:h-[68px] rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xl sm:text-2xl shrink-0">
-                          🛒
+                        <div className="w-[88px] h-[88px] sm:w-[108px] sm:h-[108px] rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                          {payment.productImageUrl ? (
+                            <img
+                              src={payment.productImageUrl}
+                              alt={payment.productName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-3xl">🛒</span>
+                          )}
                         </div>
 
                         {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          {/* 플랫폼 배지 (productUrl에서 플랫폼 추론, 없으면 PBM) */}
-                          {detail?.productUrl && (
+                        <div className="flex-1 min-w-0 pt-1">
+                          {platformUrl && (
                             <Badge
                               variant="outline"
                               className="text-[11px] font-bold px-2 py-0.5 rounded-md border mb-1"
                               style={{
-                                color: getPlatformColor(detail.productUrl),
-                                borderColor: `${getPlatformColor(detail.productUrl)}33`,
-                                backgroundColor: `${getPlatformColor(detail.productUrl)}12`,
+                                color: getPlatformColor(platformUrl),
+                                borderColor: `${getPlatformColor(platformUrl)}33`,
+                                backgroundColor: `${getPlatformColor(platformUrl)}12`,
                               }}
                             >
                               {getPlatformName(
-                                detail.productUrl.includes('naver') ? 'naver'
-                                : detail.productUrl.includes('coupang') ? 'coupang'
-                                : detail.productUrl.includes('aliexpress') ? 'aliexpress'
+                                platformUrl.includes('naver') ? 'naver'
+                                : platformUrl.includes('coupang') ? 'coupang'
+                                : platformUrl.includes('aliexpress') ? 'aliexpress'
                                 : 'PBM'
                               )}
                             </Badge>
                           )}
-                          <p className="text-sm font-bold text-slate-900 dark:text-slate-50 truncate leading-snug">
+                          <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-50 leading-snug line-clamp-2">
                             {payment.productName}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                            {payment.currency}
-                          </p>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <div>
+                              <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">결제 금액</p>
+                              <p className={`text-base font-extrabold ${
+                                payment.status === 'SUCCESS' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' :
+                                payment.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' :
+                                'text-red-600 dark:text-red-400'
+                              }`}>
+                                {formatPrice(payment.amount)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">수수료</p>
+                              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                {formatFeeAmount(payment.feeAmountKrw)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Price */}
-                      <div className="text-left sm:text-right shrink-0 pl-[72px] sm:pl-0">
-                        <p className={`text-base font-extrabold ${
-                          payment.status === 'SUCCESS' ? 'text-[#1E4D8C] dark:text-[#7BAEDA]' :
-                          payment.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' :
-                          'text-red-600 dark:text-red-400'
-                        }`}>
-                          {formatPrice(payment.amount)}
-                        </p>
                       </div>
                     </div>
 
                     {/* ── Card Footer ── */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700">
                       <div className="flex items-baseline gap-2 sm:gap-3 flex-wrap">
-                        <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">결제 금액</span>
-                        <span className="text-lg font-extrabold text-slate-900 dark:text-slate-50 whitespace-nowrap">
-                          {formatPrice(payment.amount)}
+                        <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">통화</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-slate-50 whitespace-nowrap">
+                          {payment.currency}
+                        </span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">결제 수수료</span>
+                        <span className="text-sm font-bold text-slate-900 dark:text-slate-50 whitespace-nowrap">
+                          {formatFeeAmount(payment.feeAmountKrw)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">

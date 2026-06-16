@@ -12,15 +12,26 @@ export interface PaymentSummary {
   paymentId: string;
   userId: number;
   productName: string;
+  productUrl: string | null;
+  productImageUrl: string | null;
   amount: number;
   currency: string;
   status: PaymentStatus;
+  gasFeeKrw: number | null;
+  feeAmountKrw: number | null;
+  failureReason: string | null;
   createdAt: string;
 }
 
 export interface PaymentDetail extends PaymentSummary {
-  productUrl: string | null;
   transactionHash: string | null;
+  feeDetails: Array<{
+    subscriptionId: number | null;
+    type: string;
+    amountKrw: number;
+    txHash: string | null;
+    createdAt: string;
+  }>;
   failureReason: string | null;
   updatedAt: string;
 }

@@ -21,6 +21,7 @@ export interface CategoryListResponse {
 export interface YoutuberReview {
   youtuber: string;
   videoUrl: string;
+  imageUrls?: string[];
   pros: string;
   cons: string;
   analysisDate: string;
@@ -30,6 +31,7 @@ export interface YoutuberReview {
 export interface RecommendationItem {
   productId: number;
   rank: number;
+  imageUrls?: string[];
   productName: string;
   brand: string;
   pros: string;
@@ -45,6 +47,7 @@ export interface RecommendationDetail {
   category: string;
   categoryName: string;
   rank: number;
+  imageUrls?: string[];
   productName: string;
   brand: string;
   pros: string;
@@ -82,6 +85,7 @@ export interface RecommendationDetailResponse {
 /** 리뷰 영상에서 추출된 제품 정보 */
 export interface YoutubeReviewProduct {
   rank: number;
+  imageUrls?: string[];
   productName: string;
   brand: string;
   pros: string[];

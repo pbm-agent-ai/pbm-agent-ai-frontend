@@ -44,6 +44,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Notification Service - 알림 설정 API
+      '/api/notifications': {
+        target: 'http://localhost:8085',
+        changeOrigin: true,
+        secure: false,
+      },
       // Price Service - YouTube 리뷰 기반 추천 API
       '/api/v1/youtube': {
         target: 'http://localhost:8083',

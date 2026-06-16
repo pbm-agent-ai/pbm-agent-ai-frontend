@@ -78,8 +78,8 @@ type ClarificationFieldConfig = {
 
 // 설명: 입력 예시로 보여줄 자연어 명령을 모아둡니다.
 const shoppingCommandExamples = [
-  '네이버에서 다이슨 에어랩 60만원 이하면 알림줘',
-  '나이키 에어포스 1 화이트 270 사이즈 10만원 이하 자동결제',
+  '네이버에서 버즈4 30만원 이하면 구매해줘',
+  '알리에서 공구세트 20만원 이하면 알려줘',
 ];
 
 // 설명: 상단 타이틀에서 순환 표시할 단어들입니다.
@@ -625,7 +625,7 @@ export default function Dashboard() {
                 <textarea
                   rows={1}
                   disabled={isAnalyzing}
-                  placeholder="예: 쿠팡에서 탐사수 7000원 밑으로 알림"
+                  placeholder="예: 네이버에서 로지텍 마우스 10만원 이하면 알림"
                   value={naturalLanguageInput}
                    onFocus={() => setIsCommandInputFocused(true)}
                   onBlur={() => window.setTimeout(() => setIsCommandInputFocused(false), 150)}

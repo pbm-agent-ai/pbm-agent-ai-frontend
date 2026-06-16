@@ -25,6 +25,10 @@ export interface WalletCreateRequest {
   walletLimitKrw: number;
 }
 
+export interface WalletLimitUpdateRequest {
+  walletLimitKrw: number;
+}
+
 // ── Provisioning Status ──────────────────────────────────────────────────
 
 /** 개별 프로비저닝 단계 (UI 표시용) */
@@ -149,6 +153,19 @@ export async function createMyWallet(walletLimitKrw: number): Promise<WalletResp
   const { data } = await walletApiClient.post<ApiResponse<WalletResponse | null>>(
     '/api/v1/wallet',
     { walletLimitKrw } satisfies WalletCreateRequest,
+  );
+
+  if (!data.success) {
+    throw new Error(data.message);
+  }
+
+  return data.data;
+}
+
+export async function updateMyWalletLimit(walletLimitKrw: number): Promise<WalletResponse> {
+  const { data } = await walletApiClient.put<ApiResponse<WalletResponse>>(
+    '/api/v1/wallet/limit',
+    { walletLimitKrw } satisfies WalletLimitUpdateRequest,
   );
 
   if (!data.success) {
@@ -382,8 +399,26 @@ export type ChargeProgressStep =
   | 'DONE'
   | 'FAILED';
 
+export type WalletLimitProgressStep =
+  | 'CONNECTED'
+  | 'REQUEST_RECEIVED'
+  | 'VALIDATION_COMPLETED'
+  | 'ONCHAIN_UPDATE_STARTED'
+  | 'TX_SENT'
+  | 'TX_CONFIRMED'
+  | 'ONCHAIN_UPDATE_COMPLETED'
+  | 'DB_UPDATED'
+  | 'DONE'
+  | 'FAILED';
+
 export interface ChargeProgressEvent {
   step: ChargeProgressStep;
+  message: string;
+  detail: string | null;
+}
+
+export interface WalletLimitProgressEvent {
+  step: WalletLimitProgressStep;
   message: string;
   detail: string | null;
 }
@@ -457,6 +492,88 @@ export function subscribeToChargeProgress(
             const dataStr = line.slice('data:'.length).trim();
             try {
               const payload: ChargeProgressEvent = JSON.parse(dataStr);
+              if (currentEvent === 'CONNECTED') {
+                onConnected();
+              } else if (currentEvent === 'DONE') {
+                callbacks.onDone();
+                controller.abort();
+                return;
+              } else if (currentEvent === 'FAILED') {
+                callbacks.onFailed(payload.detail ?? payload.message ?? '알 수 없는 오류');
+                controller.abort();
+                return;
+              } else {
+                callbacks.onStep(payload);
+              }
+            } catch { /* JSON 파싱 실패 무시 */ }
+            currentEvent = '';
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        callbacks.onFailed('SSE 연결 중 오류 발생');
+      }
+    }
+  })();
+
+  return controller;
+}
+
+export interface WalletLimitProgressCallbacks {
+  onStep: (event: WalletLimitProgressEvent) => void;
+  onDone: () => void;
+  onFailed: (reason: string) => void;
+}
+
+export function subscribeToWalletLimitProgress(
+  callbacks: WalletLimitProgressCallbacks,
+  onConnected: () => void,
+): AbortController {
+  const store = useAuthStore.getState();
+  const token = store.accessToken;
+  const tokenType = store.tokenType ?? 'Bearer';
+  const userId = store.userId;
+  const controller = new AbortController();
+  const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+
+  (async () => {
+    try {
+      const response = await fetch(`${baseURL}/api/v1/wallet/limit/stream`, {
+        method: 'GET',
+        headers: {
+          Accept: 'text/event-stream',
+          ...(token ? { Authorization: `${tokenType} ${token}` } : {}),
+          ...(userId != null ? { 'X-User-Id': String(userId) } : {}),
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        callbacks.onFailed('SSE 스트림 연결 실패');
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let currentEvent = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice('event:'.length).trim();
+          } else if (line.startsWith('data:')) {
+            const dataStr = line.slice('data:'.length).trim();
+            try {
+              const payload: WalletLimitProgressEvent = JSON.parse(dataStr);
               if (currentEvent === 'CONNECTED') {
                 onConnected();
               } else if (currentEvent === 'DONE') {

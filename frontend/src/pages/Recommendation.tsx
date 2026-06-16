@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Sparkles, ExternalLink, Play, ChevronRight, ChevronDown, ChevronUp, X,
+  Sparkles, ExternalLink, Play, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, X,
   ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { fetchRecommendationItems, fetchYoutubeReviews } from '@/api/recommendation';
@@ -94,6 +94,7 @@ export default function Recommendations() {
     reviews: ModalReviewEntry[];
   } | null>(null);
   const [expandedReviews, setExpandedReviews] = useState<number[]>([]);
+  const [imageIndexes, setImageIndexes] = useState<Record<number, number>>({});
 
   const subs = mainCategory ? (SUB_CATEGORIES[mainCategory] ?? []) : [];
 
@@ -179,6 +180,17 @@ export default function Recommendations() {
   const subLabel = subCategory
     ? (SUB_CATEGORIES[mainCategory ?? ''] ?? []).find((s) => s.id === subCategory)?.label ?? subCategory
     : '';
+
+  const moveImage = (productId: number, total: number, direction: 'prev' | 'next') => {
+    if (total <= 1) return;
+    setImageIndexes((prev) => {
+      const current = prev[productId] ?? 0;
+      const next = direction === 'next'
+        ? (current + 1) % total
+        : (current - 1 + total) % total;
+      return { ...prev, [productId]: next };
+    });
+  };
 
   return (
     <div className="relative w-full bg-slate-50 dark:bg-slate-950 min-h-screen font-sans text-slate-900 dark:text-slate-50 overflow-x-hidden">
@@ -314,70 +326,117 @@ export default function Recommendations() {
                     className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-[0_2px_12px_rgb(15,23,42,0.04)] hover:shadow-[0_8px_24px_rgb(15,23,42,0.08)] hover:-translate-y-0.5 transition-all duration-200"
                     style={{ animation: `fadeIn 0.3s ease-out ${idx * 0.05}s both` }}
                   >
-                    {/* 제품 헤더 */}
-                    <div className="flex items-center gap-2 mb-4">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-[#1E4D8C] dark:bg-[#1E4D8C] text-white shadow-sm">
-                        {item.rank}위
-                      </span>
-                      <span className="text-base font-bold text-slate-900 dark:text-slate-50">{item.productName}</span>
-                      {item.brand && (
-                        <span className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">{item.brand}</span>
-                      )}
-                    </div>
+                    <div className="flex flex-col gap-5 md:flex-row md:items-start">
+                      <div className="relative w-full md:w-[256px] md:min-w-[256px]">
+                        <div className="relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900">
+                          {item.imageUrls && item.imageUrls.length > 0 ? (
+                            <img
+                              src={item.imageUrls[imageIndexes[item.productId] ?? 0]}
+                              alt={item.productName}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-400 dark:text-slate-500">
+                              이미지 없음
+                            </div>
+                          )}
 
-                    {/* 유튜버 + 영상 링크 */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/30 dark:border-[#7BAEDA]/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
-                        {item.youtuber}
-                      </span>
-                      <a
-                        href={item.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] hover:underline"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        리뷰 영상
-                      </a>
-                    </div>
-
-                    {/* 장점 / 단점 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                      <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 p-3">
-                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1">
-                          <ThumbsUp className="w-3.5 h-3.5" />
-                          장점
-                        </h4>
-                        <p className="text-xs text-emerald-900 dark:text-emerald-300 leading-relaxed">
-                          {item.pros || '-'}
-                        </p>
+                          {item.imageUrls && item.imageUrls.length > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => moveImage(item.productId, item.imageUrls!.length, 'prev')}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white transition hover:bg-black/70"
+                                aria-label="이전 이미지"
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveImage(item.productId, item.imageUrls!.length, 'next')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/55 p-2 text-white transition hover:bg-black/70"
+                                aria-label="다음 이미지"
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </button>
+                              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1">
+                                {item.imageUrls.map((_, imageIdx) => (
+                                  <span
+                                    key={`${item.productId}-${imageIdx}`}
+                                    className={`h-1.5 w-1.5 rounded-full ${
+                                      (imageIndexes[item.productId] ?? 0) === imageIdx ? 'bg-white' : 'bg-white/45'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 p-3">
-                        <h4 className="text-xs font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-1">
-                          <ThumbsDown className="w-3.5 h-3.5" />
-                          단점
-                        </h4>
-                        <p className="text-xs text-rose-900 dark:text-rose-300 leading-relaxed">
-                          {item.cons || '-'}
-                        </p>
-                      </div>
-                    </div>
 
-                    {/* 하단: 분석일 + 리뷰 모아보기 */}
-                    <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
-                      <span className="text-[11px] text-slate-400">
-                        분석일: {new Date(item.analysisDate).toLocaleDateString('ko-KR')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void openReviewModal(item.productName, item.brand)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#1E4D8C]/5 dark:bg-[#7BAEDA]/10 hover:bg-[#1E4D8C]/10 dark:hover:bg-[#7BAEDA]/20 transition-colors"
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                        리뷰 모아보기
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-4 flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm font-bold bg-[#1E4D8C] dark:bg-[#1E4D8C] text-white shadow-sm">
+                            {item.rank}위
+                          </span>
+                          <span className="text-lg font-bold text-slate-900 dark:text-slate-50">{item.productName}</span>
+                          {item.brand && (
+                            <span className="text-sm font-medium text-[#1E4D8C] dark:text-[#7BAEDA]">{item.brand}</span>
+                          )}
+                        </div>
+
+                        <div className="mb-4 flex flex-wrap items-center gap-3">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#1E4D8C]/10 dark:bg-[#7BAEDA]/10 text-[#1E4D8C] dark:text-[#7BAEDA] border border-[#1E4D8C]/30 dark:border-[#7BAEDA]/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 animate-pulse" />
+                            {item.youtuber}
+                          </span>
+                          <a
+                            href={item.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E4D8C] dark:text-[#7BAEDA] hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            리뷰 영상
+                          </a>
+                          <span className="text-[11px] text-slate-400">
+                            분석일: {new Date(item.analysisDate).toLocaleDateString('ko-KR')}
+                          </span>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="rounded-xl bg-emerald-50/80 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 p-3">
+                            <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1">
+                              <ThumbsUp className="w-3.5 h-3.5" />
+                              장점
+                            </h4>
+                            <p className="text-xs text-emerald-900 dark:text-emerald-300 leading-relaxed">
+                              {item.pros || '-'}
+                            </p>
+                          </div>
+                          <div className="rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 p-3">
+                            <h4 className="text-xs font-bold text-rose-700 dark:text-rose-400 mb-2 flex items-center gap-1">
+                              <ThumbsDown className="w-3.5 h-3.5" />
+                              단점
+                            </h4>
+                            <p className="text-xs text-rose-900 dark:text-rose-300 leading-relaxed">
+                              {item.cons || '-'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex justify-end border-t border-slate-200 dark:border-slate-700 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => void openReviewModal(item.productName, item.brand)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#1E4D8C]/5 dark:bg-[#7BAEDA]/10 hover:bg-[#1E4D8C]/10 dark:hover:bg-[#7BAEDA]/20 transition-colors"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            리뷰 모아보기
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}

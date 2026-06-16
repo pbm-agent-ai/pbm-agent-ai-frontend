@@ -10,7 +10,10 @@ import { Separator } from '../components/ui/separator';
 import { Dialog, DialogContent } from '../components/ui/dialog';
 import { changeAuthPassword, fetchAuthMe, fetchPairingToken } from '../api/auth';
 import DecorativeBackground from '../components/DecorativeBackground';
-import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, subscribeToWalletCreation, chargeWallet, subscribeToChargeProgress, fetchTransactionHistory, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep, type TokenTransactionResponse, type ChargeProgressEvent, type ChargeProgressStep } from '../api/wallet';
+import { fetchMyWallet, fetchMyWalletBalance, createMyWallet, subscribeToWalletCreation, chargeWallet, subscribeToChargeProgress, fetchTransactionHistory, updateMyWalletLimit, subscribeToWalletLimitProgress, type WalletResponse, type WalletBalanceResponse, type ProvisioningStep, type TokenTransactionResponse, type ChargeProgressEvent, type ChargeProgressStep, type WalletLimitProgressEvent, type WalletLimitProgressStep } from '../api/wallet';
+import { fetchNotificationPreference, linkTelegramByChatId, sendTestEmail, sendTestTelegram, unlinkTelegram, updateNotificationPreference } from '../api/notification';
+import { toast } from '../store/toastStore';
+import { useAuthStore } from '../store/authStore';
 
 type ExtensionStatus = 'idle' | 'detecting' | 'not-installed' | 'pairing' | 'paired' | 'error';
 
@@ -28,11 +31,16 @@ const getInitials = (name: string) => {
 };
 
 export default function Settings() {
-  const [telegramEnabled, setTelegramEnabled] = useState(true);
-  const [emailEnabled, setEmailEnabled] = useState(true);
-  const [telegramChatId, setTelegramChatId] = useState('123456789');
-  const [email, setEmail] = useState('leon.kim@example.com');
-  const [monthlyLimit] = useState('5000000');
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [email, setEmail] = useState('');
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
+  const [isNotificationsSaving, setIsNotificationsSaving] = useState(false);
+  const [isTelegramSubmitting, setIsTelegramSubmitting] = useState(false);
+  const [isTelegramUnlinking, setIsTelegramUnlinking] = useState(false);
+  const [isEmailTesting, setIsEmailTesting] = useState(false);
   // ── DND ──
   const [dndEnabled, setDndEnabled] = useState(false);
   const [dndStart, setDndStart] = useState('22:00');
@@ -46,6 +54,12 @@ export default function Settings() {
   const [provisioningSteps, setProvisioningSteps]     = useState<ProvisioningStep[]>([]);
   const [provisioningError, setProvisioningError]     = useState<string | null>(null);
   const [walletLimitInput, setWalletLimitInput]       = useState('400000');
+  const [walletLimitEditInput, setWalletLimitEditInput] = useState('');
+  const [isEditingWalletLimit, setIsEditingWalletLimit] = useState(false);
+  const [isUpdatingWalletLimit, setIsUpdatingWalletLimit] = useState(false);
+  const [walletLimitUpdateError, setWalletLimitUpdateError] = useState<string | null>(null);
+  const [walletLimitUpdateSuccess, setWalletLimitUpdateSuccess] = useState<string | null>(null);
+  const [walletLimitUpdateSteps, setWalletLimitUpdateSteps] = useState<WalletLimitProgressEvent[]>([]);
   // ── 토큰 충전 상태 ──
   const [chargeAmountInput, setChargeAmountInput]     = useState('');
   const [isCharging, setIsCharging]                   = useState(false);
@@ -72,6 +86,18 @@ export default function Settings() {
     DONE:                 '처리 완료',
     FAILED:               '실패',
   };
+  const WALLET_LIMIT_STEP_META: Record<WalletLimitProgressStep, string> = {
+    CONNECTED: '스트림 연결',
+    REQUEST_RECEIVED: '변경 요청 수신',
+    VALIDATION_COMPLETED: '한도 검증 완료',
+    ONCHAIN_UPDATE_STARTED: '온체인 변경 시작',
+    TX_SENT: '트랜잭션 전송',
+    TX_CONFIRMED: '트랜잭션 확정',
+    ONCHAIN_UPDATE_COMPLETED: '온체인 변경 완료',
+    DB_UPDATED: '서버 정보 갱신',
+    DONE: '처리 완료',
+    FAILED: '실패',
+  };
   const [activeTab, setActiveTab] = useState<'account' | 'notifications' | 'payment' | 'integration'>('account');
   const [extensionStatus, setExtensionStatus] = useState<ExtensionStatus>('idle');
   const [extensionVersion, setExtensionVersion] = useState('');
@@ -83,6 +109,8 @@ export default function Settings() {
   const walletSseRef = useRef<AbortController | null>(null);
   // 토큰 충전 SSE AbortController (언마운트 시 스트림 정리용)
   const chargeSseRef = useRef<AbortController | null>(null);
+  // 지갑 한도 변경 SSE AbortController (언마운트 시 스트림 정리용)
+  const walletLimitSseRef = useRef<AbortController | null>(null);
 
   const startWalletCreationStream = useCallback((walletLimitKrw: number) => {
     // 기존 스트림 정리
@@ -102,6 +130,7 @@ export default function Settings() {
           if (walletData) {
             setWallet(walletData);
             setWalletLimitInput(String(walletData.walletLimit));
+            setWalletLimitEditInput(String(walletData.walletLimit));
           }
           if (balanceData) setWalletBalance(balanceData);
           setIsCreatingWallet(false);
@@ -134,11 +163,59 @@ export default function Settings() {
     walletSseRef.current = controller;
   }, []);
 
+  const startWalletLimitUpdateStream = useCallback((walletLimitKrw: number) => {
+    walletLimitSseRef.current?.abort();
+
+    walletLimitSseRef.current = subscribeToWalletLimitProgress(
+      {
+        onStep: (event) => {
+          setWalletLimitUpdateSteps((prev) => [...prev, event]);
+        },
+        onDone: async () => {
+          walletLimitSseRef.current = null;
+          setIsUpdatingWalletLimit(false);
+          setIsEditingWalletLimit(false);
+          setWalletLimitUpdateSuccess(`지갑 한도가 ${walletLimitKrw.toLocaleString()}원으로 변경되었습니다.`);
+
+          const [walletData, balanceData] = await Promise.all([
+            fetchMyWallet(),
+            fetchMyWalletBalance(),
+          ]);
+
+          if (walletData) {
+            setWallet(walletData);
+            setWalletLimitEditInput(String(walletData.walletLimit));
+          }
+          if (balanceData) {
+            setWalletBalance(balanceData);
+          }
+        },
+        onFailed: (reason) => {
+          walletLimitSseRef.current = null;
+          setIsUpdatingWalletLimit(false);
+          setWalletLimitUpdateError(reason || '지갑 한도 변경에 실패했습니다.');
+        },
+      },
+      async () => {
+        try {
+          const updatedWallet = await updateMyWalletLimit(walletLimitKrw);
+          setWallet(updatedWallet);
+        } catch (err) {
+          walletLimitSseRef.current?.abort();
+          walletLimitSseRef.current = null;
+          setIsUpdatingWalletLimit(false);
+          setWalletLimitUpdateError(err instanceof Error ? err.message : '지갑 한도 변경에 실패했습니다.');
+        }
+      },
+    );
+  }, []);
+
   // 언마운트 시 SSE 스트림 정리 (지갑 생성 + 토큰 충전)
   useEffect(() => {
     return () => {
       walletSseRef.current?.abort();
       chargeSseRef.current?.abort();
+      walletLimitSseRef.current?.abort();
     };
   }, []);
 
@@ -173,6 +250,7 @@ export default function Settings() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
+  const authUserId = useAuthStore((state) => state.userId);
 
   const deleteReasonOptions = [
     { value: 'hard-to-use', label: '사용이 불편해요' },
@@ -222,6 +300,52 @@ export default function Settings() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'notifications') {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadNotificationPreference = async () => {
+      setIsNotificationsLoading(true);
+
+      try {
+        if (authUserId == null) {
+          await fetchAuthMe();
+        }
+
+        const preference = await fetchNotificationPreference();
+
+        if (!isMounted) {
+          return;
+        }
+
+        setTelegramEnabled(preference.telegramEnabled);
+        setTelegramLinked(preference.telegramLinked);
+        setTelegramChatId(preference.telegramChatId ?? '');
+        setEmailEnabled(preference.emailEnabled);
+        setEmail(preference.email ?? '');
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        toast.error(error instanceof Error ? error.message : '알림 설정을 불러오지 못했습니다.');
+      } finally {
+        if (isMounted) {
+          setIsNotificationsLoading(false);
+        }
+      }
+    };
+
+    void loadNotificationPreference();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, authUserId, profileEmail]);
 
   const detectExtension = useCallback((): Promise<{ installed: boolean; version?: string }> => {
     return new Promise((resolve) => {
@@ -295,6 +419,7 @@ export default function Settings() {
         if (walletData) {
           setWallet(walletData);
           setWalletLimitInput(String(walletData.walletLimit));
+          setWalletLimitEditInput(String(walletData.walletLimit));
         }
         if (balanceData) {
           setWalletBalance(balanceData);
@@ -333,7 +458,6 @@ export default function Settings() {
     setVisiblePwd((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const formatPrice = (price: string) => `₩${parseInt(price).toLocaleString()}`;
   const formatCurrencyAmount = (value?: number | string | null) => {
     const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
     if (!Number.isFinite(numericValue)) {
@@ -464,8 +588,126 @@ export default function Settings() {
     resetPasswordFields();
   };
 
-  const handleNotificationsSave = () => {
-    // 저장 로직은 API 연동 시 구현 예정
+  const handleNotificationsSave = async () => {
+    if (isNotificationsSaving) {
+      return;
+    }
+
+    if (emailEnabled && !email.trim()) {
+      toast.warning('이메일 알림을 사용하려면 이메일 주소를 입력해주세요.');
+      return;
+    }
+
+    setIsNotificationsSaving(true);
+
+    try {
+      const preference = await updateNotificationPreference({
+        email: email.trim() || null,
+        emailEnabled,
+        telegramEnabled,
+      });
+
+      setTelegramEnabled(preference.telegramEnabled);
+      setTelegramLinked(preference.telegramLinked);
+      setEmailEnabled(preference.emailEnabled);
+      setEmail(preference.email ?? email.trim());
+      toast.success('알림 설정이 저장되었습니다.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '알림 설정 저장에 실패했습니다.');
+    } finally {
+      setIsNotificationsSaving(false);
+    }
+  };
+
+  const handleTelegramLink = async () => {
+    if (isTelegramSubmitting) {
+      return;
+    }
+
+    setIsTelegramSubmitting(true);
+
+    try {
+      const chatId = telegramChatId.trim();
+
+      if (!chatId) {
+        toast.warning('텔레그램 Chat ID를 입력해주세요.');
+        return;
+      }
+
+      const preference = await linkTelegramByChatId(chatId);
+      setTelegramLinked(preference.telegramLinked);
+      setTelegramEnabled(preference.telegramEnabled);
+      toast.success('텔레그램이 연동되었습니다.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '텔레그램 연동에 실패했습니다.');
+    } finally {
+      setIsTelegramSubmitting(false);
+    }
+  };
+
+  const handleTelegramTest = async () => {
+    if (isTelegramSubmitting) {
+      return;
+    }
+
+    if (!telegramLinked) {
+      toast.warning('먼저 텔레그램을 연동해주세요.');
+      return;
+    }
+
+    setIsTelegramSubmitting(true);
+
+    try {
+      await sendTestTelegram();
+      toast.success('텔레그램 테스트 메시지를 보냈습니다.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '텔레그램 테스트 발송에 실패했습니다.');
+    } finally {
+      setIsTelegramSubmitting(false);
+    }
+  };
+
+  const handleTelegramUnlink = async () => {
+    if (isTelegramUnlinking) {
+      return;
+    }
+
+    setIsTelegramUnlinking(true);
+
+    try {
+      await unlinkTelegram();
+      setTelegramLinked(false);
+      setTelegramEnabled(false);
+      setTelegramChatId('');
+      toast.success('텔레그램 연동이 해제되었습니다.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '텔레그램 연동 해제에 실패했습니다.');
+    } finally {
+      setIsTelegramUnlinking(false);
+    }
+  };
+
+  const handleEmailTest = async () => {
+    if (isEmailTesting) {
+      return;
+    }
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      toast.warning('테스트할 이메일 주소를 입력해주세요.');
+      return;
+    }
+
+    setIsEmailTesting(true);
+
+    try {
+      await sendTestEmail(trimmedEmail);
+      toast.success('테스트 이메일을 발송했습니다.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '테스트 이메일 발송에 실패했습니다.');
+    } finally {
+      setIsEmailTesting(false);
+    }
   };
 
   return (
@@ -533,15 +775,15 @@ export default function Settings() {
                     </p>
                   </div>
                   <div className="py-5 text-center">
-                    <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">건당 한도</p>
+                    <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">토큰 잔여량</p>
                     <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
-                      {isWalletLoading ? '불러오는 중...' : formatCurrencyAmount(wallet?.walletLimit)}
+                      {isWalletLoading ? '불러오는 중...' : formatCurrencyAmount(walletBalance?.pbmBalance)}
                     </p>
                   </div>
                   <div className="py-5 text-center">
-                    <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">월간 한도</p>
+                    <p className="text-[11px] font-medium text-slate-400 dark:text-slate-400 tracking-wide">지갑 한도</p>
                     <p className="text-xl font-extrabold text-slate-900 dark:text-slate-50 mt-1.5">
-                      {formatPrice(monthlyLimit)}
+                      {isWalletLoading ? '불러오는 중...' : formatCurrencyAmount(wallet?.walletLimit)}
                     </p>
                   </div>
                 </div>
@@ -661,25 +903,52 @@ export default function Settings() {
                     <Switch checked={telegramEnabled} onCheckedChange={setTelegramEnabled} />
                   </div>
 
-                  {telegramEnabled && (
-                    <div className="mt-3 ml-12 flex gap-2">
-                      <Input
-                        type="text"
-                        value={telegramChatId}
-                        onChange={(e) => setTelegramChatId(e.target.value)}
-                        placeholder="Chat ID"
-                        className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
-                      />
+                  <div className="mt-3 ml-12 flex gap-2">
+                    <Input
+                      type="text"
+                      value={telegramChatId}
+                      onChange={(e) => setTelegramChatId(e.target.value)}
+                      placeholder={telegramLinked ? '연동된 상태입니다. 재연동 시 Chat ID를 다시 입력하세요.' : 'Chat ID'}
+                      className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void handleTelegramLink();
+                      }}
+                      disabled={isNotificationsLoading || isTelegramSubmitting || isTelegramUnlinking}
+                      className="border-slate-200 dark:border-slate-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
+                    >
+                      <Send className="w-3 h-3 mr-1.5" />
+                      {telegramLinked ? '재연동' : '연동'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void handleTelegramTest();
+                      }}
+                      disabled={isNotificationsLoading || isTelegramSubmitting || isTelegramUnlinking || !telegramLinked}
+                      className="border-slate-200 dark:border-slate-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
+                    >
+                      <Send className="w-3 h-3 mr-1.5" />
+                      테스트
+                    </Button>
+                    {telegramLinked && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-slate-200 dark:border-slate-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
+                        onClick={() => {
+                          void handleTelegramUnlink();
+                        }}
+                        disabled={isNotificationsLoading || isTelegramSubmitting || isTelegramUnlinking}
+                        className="border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl h-9 text-xs"
                       >
-                        <Send className="w-3 h-3 mr-1.5" />
-                        테스트
+                        연동해제
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 <Separator className="bg-slate-100 dark:bg-slate-700/50" />
@@ -699,25 +968,27 @@ export default function Settings() {
                     <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
                   </div>
 
-                  {emailEnabled && (
-                    <div className="mt-3 ml-12 flex gap-2">
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-slate-200 dark:border-slate-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
-                      >
-                        <Send className="w-3 h-3 mr-1.5" />
-                        테스트
-                      </Button>
-                    </div>
-                  )}
+                  <div className="mt-3 ml-12 flex gap-2">
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="flex-1 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus-visible:border-[#1E4D8C] focus-visible:ring-[#1E4D8C]/50 rounded-xl h-9 text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void handleEmailTest();
+                      }}
+                      disabled={isNotificationsLoading || isEmailTesting}
+                      className="border-slate-200 dark:border-slate-700 text-[#1E4D8C] dark:text-[#7BAEDA] bg-[#F9F7F7] dark:bg-[#1E4D8C]/10 hover:bg-[#DBE2EF] dark:hover:bg-[#1E4D8C]/20 rounded-xl h-9 text-xs"
+                    >
+                      <Send className="w-3 h-3 mr-1.5" />
+                      테스트
+                    </Button>
+                  </div>
               </div>
 
               <Separator className="bg-slate-100 dark:bg-slate-700/50" />
@@ -768,9 +1039,10 @@ export default function Settings() {
           {/* ── Save Button (tab bottom) ── */}
           <Button
             onClick={handleNotificationsSave}
+            disabled={isNotificationsLoading || isNotificationsSaving}
             className="w-full bg-gradient-to-r from-[#1E4D8C] dark:from-[#1E4D8C] to-[#0F3460] dark:to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] hover:-translate-y-0.5 rounded-xl h-12 text-base font-bold shadow-[0_4px_14px_rgba(30,77,140,0.25)] hover:shadow-[0_6px_20px_rgba(30,77,140,0.4)] transition-all duration-300 border-none"
           >
-            저장
+            {isNotificationsSaving ? '저장 중...' : '저장'}
           </Button>
             </>
           )}
@@ -1011,19 +1283,117 @@ export default function Settings() {
 
                       <Separator className="my-5 bg-slate-100 dark:bg-slate-700/50" />
 
-                      {/* ── 결제 한도 (읽기 전용) ── */}
+                      {/* ── 지갑 한도 ── */}
                       <div>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">결제 한도</p>
-                        <div className="relative">
+                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">지갑 한도</p>
+                        <div className="relative flex gap-2">
+                          <div className="relative flex-1">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300 font-medium text-sm">₩</span>
                           <Input
                             type="text"
-                            value={String(wallet.walletLimit)}
-                            readOnly
-                            className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-slate-900 dark:text-slate-50 rounded-xl h-9 text-sm"
+                              value={walletLimitEditInput}
+                              readOnly={!isEditingWalletLimit || isUpdatingWalletLimit}
+                              onClick={() => {
+                                if (!isUpdatingWalletLimit) {
+                                  setIsEditingWalletLimit(true);
+                                  setWalletLimitUpdateError(null);
+                                  setWalletLimitUpdateSuccess(null);
+                                }
+                              }}
+                              onChange={(e) => {
+                                setWalletLimitEditInput(e.target.value.replace(/[^0-9]/g, ''));
+                                setWalletLimitUpdateError(null);
+                                setWalletLimitUpdateSuccess(null);
+                                if (!isUpdatingWalletLimit) setWalletLimitUpdateSteps([]);
+                              }}
+                              className="pl-7 bg-[#F8FAFC] dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-700 text-slate-900 dark:text-slate-50 rounded-xl h-9 text-sm"
                           />
+                          </div>
+                          {isEditingWalletLimit && (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                  setIsEditingWalletLimit(false);
+                                  setWalletLimitEditInput(String(wallet.walletLimit));
+                                  setWalletLimitUpdateError(null);
+                                  setWalletLimitUpdateSuccess(null);
+                                  if (!isUpdatingWalletLimit) {
+                                    setWalletLimitUpdateSteps([]);
+                                  }
+                                }}
+                                disabled={isUpdatingWalletLimit}
+                                className="shrink-0 rounded-xl h-9 text-xs border-slate-200 dark:border-slate-700"
+                              >
+                                취소
+                              </Button>
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  const limit = parseInt(walletLimitEditInput, 10);
+                                  if (isNaN(limit) || limit < 1) {
+                                    setWalletLimitUpdateError('지갑 한도는 1원 이상이어야 합니다.');
+                                    return;
+                                  }
+                                  if (limit === Number(wallet.walletLimit)) {
+                                    setIsEditingWalletLimit(false);
+                                    setWalletLimitUpdateSteps([]);
+                                    setWalletLimitUpdateError(null);
+                                    setWalletLimitUpdateSuccess(null);
+                                    return;
+                                  }
+
+                                  setIsUpdatingWalletLimit(true);
+                                  setWalletLimitUpdateError(null);
+                                  setWalletLimitUpdateSuccess(null);
+                                  setWalletLimitUpdateSteps([]);
+                                  startWalletLimitUpdateStream(limit);
+                                }}
+                                disabled={!walletLimitEditInput || isUpdatingWalletLimit}
+                                className="shrink-0 bg-gradient-to-r from-[#1E4D8C] to-[#0F3460] text-white hover:from-[#0F3460] hover:to-[#0F3460] rounded-xl h-9 px-4 text-xs font-bold border-none"
+                              >
+                                {isUpdatingWalletLimit ? '변경 중...' : '지갑 한도 변경'}
+                              </Button>
+                            </>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">지갑 생성 시 등록된 한도입니다</p>
+                        {walletLimitUpdateSteps.length > 0 && (
+                          <div className="mt-3 space-y-1.5">
+                            {walletLimitUpdateSteps.map((step, i) => (
+                              <div key={`${step.step}-${i}`} className="flex items-start gap-2 text-xs">
+                                <span className="mt-0.5 w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                  <Check className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                                </span>
+                                <div>
+                                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                    {WALLET_LIMIT_STEP_META[step.step] ?? step.step}
+                                  </span>
+                                  {step.detail && (
+                                    <span className="ml-1.5 text-slate-400 dark:text-slate-500 font-mono text-[10px]">
+                                      {step.detail}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                            {isUpdatingWalletLimit && (
+                              <div className="flex items-center gap-2 text-xs text-[#1E4D8C] dark:text-[#7BAEDA]">
+                                <div className="w-4 h-4 border-2 border-[#1E4D8C] border-t-transparent rounded-full animate-spin shrink-0" />
+                                <span>처리 중...</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {walletLimitUpdateError && (
+                          <p className="text-xs text-rose-500 mt-1.5">{walletLimitUpdateError}</p>
+                        )}
+                        {walletLimitUpdateSuccess && (
+                          <p className="text-xs text-emerald-500 mt-1.5">{walletLimitUpdateSuccess}</p>
+                        )}
+                        {!isEditingWalletLimit && !isUpdatingWalletLimit && walletLimitUpdateSteps.length === 0 && !walletLimitUpdateError && !walletLimitUpdateSuccess && (
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">입력칸을 클릭하면 지갑 한도를 수정할 수 있습니다</p>
+                        )}
                       </div>
                     </>
                   ) : (

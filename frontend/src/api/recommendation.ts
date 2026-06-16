@@ -11,6 +11,7 @@ const apiClient = createApiClient({ baseURL: import.meta.env.VITE_PRICE_API_BASE
 
 interface BackendProduct {
   rank: number;
+  imageUrls?: string[];
   productName: string;
   brand: string;
   pros: string[];
@@ -157,6 +158,7 @@ export async function fetchRecommendationItems(category: string): Promise<Recomm
     string,
     {
       rank: number;
+      imageUrls: string[];
       brand: string;
       pros: string[];
       cons: string[];
@@ -172,6 +174,7 @@ export async function fetchRecommendationItems(category: string): Promise<Recomm
       if (!productMap.has(key)) {
         productMap.set(key, {
           rank: product.rank,
+          imageUrls: product.imageUrls ?? [],
           brand: product.brand,
           pros: product.pros,
           cons: product.cons,
@@ -186,6 +189,7 @@ export async function fetchRecommendationItems(category: string): Promise<Recomm
   const recommendations = Array.from(productMap.entries()).map(([productName, info]) => ({
     productId: hashString(productName),
     rank: info.rank,
+    imageUrls: info.imageUrls,
     productName,
     brand: info.brand,
     pros: info.pros.join(', '),
