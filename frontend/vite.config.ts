@@ -46,7 +46,7 @@ export default defineConfig({
       },
       // Notification Service - 알림 설정 API
       '/api/notifications': {
-        target: 'http://localhost:8085',
+        target: 'http://127.0.0.1:8085',
         changeOrigin: true,
         secure: false,
       },
